@@ -9,6 +9,3 @@
 
 # Session info
 octave-workspace
-
-# Ignore changes in git submodule file
-*.gitm*
