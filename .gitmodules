@@ -1,0 +1,3 @@
+[submodule "WFSim"]
+	path = WFSim
+	url = https://github.com/Bartdoekemeijer/WFSim
