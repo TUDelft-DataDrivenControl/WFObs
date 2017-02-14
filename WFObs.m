@@ -47,19 +47,19 @@ addpath WFSim\libraries\export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 15, ...  % Plot figures every # iteration (no animation: 0)
-       'plotcontour'  , 1, ...   % plot flow fields (contourf)
+    'Animation'       , 0, ...  % Plot figures every # iteration (no animation: 0)
+       'plotcontour'  , 0, ...   % plot flow fields (contourf)
        'plotpower'    , 0, ...   % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...   % plot RMS and maximum error vs. time
     'plotMesh'        , 0, ...   % Plot meshing layout (grid)
-    'saveplots'       , 1, ...   % Save all plots in external files at each time step
+    'saveplots'       , 0, ...   % Save all plots in external files at each time step
     'saveest'         , 0, ...   % Save estimated flow fields & powers in an external file at each time step
-    'saveworkspace'   , 1, ...   % Save complete workspace at the end of simulation
-    'savepath'        , ['..\Results\Autotuning_withPrec\'] ... % Destination folder of saved files
+    'saveworkspace'   , 0, ...   % Save complete workspace at the end of simulation
+    'savepath'        , ['..\Results\tmp\'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file
-configName = 'WithPrecursor_50x25.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
+configName = 'YawCase3_ACC.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%
