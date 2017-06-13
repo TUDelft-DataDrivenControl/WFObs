@@ -80,10 +80,13 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
 %     else
 %         Power_SOWFA(:,k) = measured.power';
 %     end;
-    
+     
     while ( eps>conv_eps && it<max_it && eps<epss ); % Convergence to a solution
         it   = it+1; epss = eps;        
         if k>1; max_it = max_it_dyn; end;
+        % Pre-processing: determine U_inf and wind direction from SCADA data
+        windDirection = mean(measured.turb.windVane);
+        windSpeed     = 
         
         % Calculate optimal solution according to filter of choice
         [sol,strucObs]      = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input{timeindex},measured,sol,k,it,options);  % Perform the observer update
