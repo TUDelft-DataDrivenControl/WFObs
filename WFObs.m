@@ -59,7 +59,7 @@ strucScript = struct(...
     );  
 
 %% Model and observer configuration file
-configName = 'YawCase3_ACC.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
+configName = 'WithPrecursor_50x25.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%
@@ -75,11 +75,11 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
     
     % Load measurement data
     measured         = WFObs_s_loadmeasurements( sourcepath, datanroffset, timeindex, strucObs.noise_obs ); 
-    if sum(strcmp(fieldnames(measured),'turb')) > 0 % Compatibility with both old and new format of SOWFA data
-        Power_SOWFA(:,k) = measured.turb.Power';
-    else
-        Power_SOWFA(:,k) = measured.power';
-    end;
+%     if sum(strcmp(fieldnames(measured),'turb')) > 0 % Fix compatibility: old format of SOWFA data
+%         Power_SOWFA(:,k) = measured.turb.Power';
+%     else
+%         Power_SOWFA(:,k) = measured.power';
+%     end;
     
     while ( eps>conv_eps && it<max_it && eps<epss ); % Convergence to a solution
         it   = it+1; epss = eps;        
