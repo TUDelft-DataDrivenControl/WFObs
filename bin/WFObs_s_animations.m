@@ -16,7 +16,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         subplot(2,3,1);
         contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,sol.u,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
         title(['Predicted u velocity (t = ' num2str(timeindex) ')'])
-        colormap(jet); caxis([0 Wp.site.u_Inf*1.05]);
+        colormap(jet); caxis([0 10.]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')
@@ -31,7 +31,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         subplot(2,3,2);
         contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,measured.uq,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
         title(['Measured u velocity (t = ' num2str(timeindex) ')'])
-        colormap(jet); caxis([0 Wp.site.u_Inf*1.05]);
+        colormap(jet); caxis([0 10]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')

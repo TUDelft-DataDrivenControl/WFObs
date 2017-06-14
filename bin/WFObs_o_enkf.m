@@ -21,6 +21,9 @@ function [ sol,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured
 
 solf = sol; % Create a copy solution structure for forecast
 
+strucObs.tuneModel.lmu.tune = 0;
+strucObs.tuneModel.lmv.tune = 0;
+
 if k==1
     % Determine initial state ensemble for state vector [u; v]
     initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u

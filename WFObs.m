@@ -47,9 +47,9 @@ addpath WFSim\libraries\export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 0, ...  % Plot figures every # iteration (no animation: 0)
-       'plotcontour'  , 0, ...   % plot flow fields (contourf)
-       'plotpower'    , 0, ...   % Plot true and predicted power capture vs. time
+    'Animation'       , 15, ...  % Plot figures every # iteration (no animation: 0)
+       'plotcontour'  , 1, ...   % plot flow fields (contourf)
+       'plotpower'    , 1, ...   % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...   % plot RMS and maximum error vs. time
     'plotMesh'        , 0, ...   % Plot meshing layout (grid)
     'saveplots'       , 0, ...   % Save all plots in external files at each time step
@@ -59,7 +59,7 @@ strucScript = struct(...
     );  
 
 %% Model and observer configuration file
-configName = 'WithPrecursor_50x25.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
+configName = 'YawCase3.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%
@@ -75,18 +75,18 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
     
     % Load measurement data
     measured         = WFObs_s_loadmeasurements( sourcepath, datanroffset, timeindex, strucObs.noise_obs ); 
-%     if sum(strcmp(fieldnames(measured),'turb')) > 0 % Fix compatibility: old format of SOWFA data
-%         Power_SOWFA(:,k) = measured.turb.Power';
-%     else
-%         Power_SOWFA(:,k) = measured.power';
-%     end;
+    if sum(strcmp(fieldnames(measured),'turb')) > 0 % Fix compatibility: old format of SOWFA data
+        Power_SOWFA(:,k) = measured.turb.data.Power';
+    else
+        Power_SOWFA(:,k) = measured.power';
+    end;
      
     while ( eps>conv_eps && it<max_it && eps<epss ); % Convergence to a solution
         it   = it+1; epss = eps;        
         if k>1; max_it = max_it_dyn; end;
-        % Pre-processing: determine U_inf and wind direction from SCADA data
-        windDirection = mean(measured.turb.windVane);
-        windSpeed     = 
+        % Pre-processing: update freestream conditions from SCADA data
+        [sol,Wp] = WFObs_s_preprocess(Wp,input{k},measured,sol);
+        u_preprocess(k) = mean(mean(sol.u(1:2,:)));
         
         % Calculate optimal solution according to filter of choice
         [sol,strucObs]      = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input{timeindex},measured,sol,k,it,options);  % Perform the observer update

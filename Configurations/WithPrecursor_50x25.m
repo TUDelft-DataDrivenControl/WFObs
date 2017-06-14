@@ -6,13 +6,13 @@ sensors_path    = ['Setup_sensors\sensor_layouts\' ...               % Specify f
                    'sensors_yaw_2turb_50x25_lin_2row_downwind.mat']; 
 
 % Model settings
-options.startUniform  = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+options.startUniform  = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 conv_eps              = 1e-6; % Convergence parameter
 max_it_dyn            = 1;    % Convergence parameter
 max_it                = 1;    % Convergence parameter
 
 % Environment/SOWFA settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'sim'; % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)

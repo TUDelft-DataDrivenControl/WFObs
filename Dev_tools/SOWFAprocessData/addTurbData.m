@@ -1,8 +1,8 @@
 clear all; tic;
-TargetFolder = 'D:\Documents\MATLAB\WFObs\WFSim\data_SOWFA\WithPrecursor\2turb_50x25_lin';
-SuperCONpath = 'D:\Documents\MATLAB\WFObs\WFSim\data_SOWFA\WithPrecursor\superCONOUT.csv';
+TargetFolder = 'D:\bmdoekemeijer\My Documents\MATLAB\WFObs\WFSim\data_SOWFA\YawCase3\2turb_50x25_lin';
+SuperCONpath = 'K:\dcsc\DataDriven\Data\SOWFA\Yawexcitationcase3\superCONOUT.csv';
 dataOffset   = 20000;
-dataRange    = 1:1998;
+dataRange    = 1:1000;
 dataPrefix   = '';
 
 %% Core code
