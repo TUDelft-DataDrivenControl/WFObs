@@ -207,9 +207,11 @@ if k == 1
     end;
 end;
 
+%% Inflation
 % Implement the effect of covariance inflation on the ensemble
 Aenf  = Aenf*(1/strucObs.nrens)*ones(strucObs.nrens)+sqrt(strucObs.r_infl)*Aenft;
 
+%% KF update
 % analysis update: incorporate measurements in WFSim for optimal estimate
 strucObs.Aen = Aenf + strucObs.cross_corrfactor.*(Aenft*Yenft') * ...
                pinv( strucObs.auto_corrfactor.*(Yenft*Yenft')+ Gamma*Gamma')*Dent;
