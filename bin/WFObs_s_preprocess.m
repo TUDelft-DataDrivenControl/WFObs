@@ -32,12 +32,13 @@ function [ sol,Wp ] = WFObs_s_preprocess( Wp,input,measured,sol )
     v_Inf = U_inf*sind(270-wd);
     
     % Define output
+    [sol.u,sol.uu] = deal(sol.u+(u_Inf-Wp.site.u_Inf)); % Update all states
+    [sol.v,sol.vv] = deal(sol.v+(v_Inf-Wp.site.v_Inf)); % Update all states
+    %[sol.u(1:3,:),sol.uu(1:3,:)] = deal(u_Inf); % Update boundary only
+    %[sol.v(1:3,:),sol.vv(1:3,:)] = deal(v_Inf); % Update boundary only
     Wp.site.u_Inf = u_Inf;
     Wp.site.v_Inf = v_Inf;
-    %[sol.u(1:3,:),sol.uu(1:3,:)] = deal(u_Inf);
-    [sol.u(:,1:3),sol.uu(:,1:3)] = deal(u_Inf);
-    %u(:,1)      =  u(:,2);
-    [sol.v(:,1:3),sol.vv(:,1:3)] = deal(v_Inf);
+
     
     disp(['Freestream conditions: u_Inf = ' num2str(u_Inf)]);
     disp(['Freestream conditions: v_Inf = ' num2str(v_Inf)]);

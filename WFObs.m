@@ -49,13 +49,13 @@ addpath WFSim\libraries\export_fig    % Graphics library (get here: http://www.m
 strucScript = struct(...
     'Animation'       , 15, ...  % Plot figures every # iteration (no animation: 0)
        'plotcontour'  , 1, ...   % plot flow fields (contourf)
-       'plotpower'    , 1, ...   % Plot true and predicted power capture vs. time
+       'plotpower'    , 0, ...   % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...   % plot RMS and maximum error vs. time
     'plotMesh'        , 0, ...   % Plot meshing layout (grid)
-    'saveplots'       , 0, ...   % Save all plots in external files at each time step
+    'saveplots'       , 1, ...   % Save all plots in external files at each time step
     'saveest'         , 0, ...   % Save estimated flow fields & powers in an external file at each time step
     'saveworkspace'   , 0, ...   % Save complete workspace at the end of simulation
-    'savepath'        , ['..\Results\tmp\'] ... % Destination folder of saved files
+    'savepath'        , ['..\Results\tmp_enkf2\'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file
@@ -86,6 +86,8 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
         if k>1; max_it = max_it_dyn; end;
         % Pre-processing: update freestream conditions from SCADA data
         [sol,Wp] = WFObs_s_preprocess(Wp,input{k},measured,sol);
+        [B1,B2,bc]           = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
+        B2                   = 2*B2;
         u_preprocess(k) = mean(mean(sol.u(1:2,:)));
         
         % Calculate optimal solution according to filter of choice
