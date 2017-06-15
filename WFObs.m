@@ -47,7 +47,7 @@ addpath WFSim\libraries\export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 15, ...  % Plot figures every # iteration (no animation: 0)
+    'Animation'       , 100, ...  % Plot figures every # iteration (no animation: 0)
        'plotcontour'  , 1, ...   % plot flow fields (contourf)
        'plotpower'    , 0, ...   % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...   % plot RMS and maximum error vs. time
@@ -55,7 +55,7 @@ strucScript = struct(...
     'saveplots'       , 1, ...   % Save all plots in external files at each time step
     'saveest'         , 0, ...   % Save estimated flow fields & powers in an external file at each time step
     'saveworkspace'   , 0, ...   % Save complete workspace at the end of simulation
-    'savepath'        , ['..\Results\tmp_enkf2\'] ... % Destination folder of saved files
+    'savepath'        , ['..\Results\tmp_exkf\'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file
@@ -75,19 +75,12 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
     
     % Load measurement data
     measured         = WFObs_s_loadmeasurements( sourcepath, datanroffset, timeindex, strucObs.noise_obs ); 
-    if sum(strcmp(fieldnames(measured),'turb')) > 0 % Fix compatibility: old format of SOWFA data
-        Power_SOWFA(:,k) = measured.turb.data.Power';
-    else
-        Power_SOWFA(:,k) = measured.power';
-    end;
      
     while ( eps>conv_eps && it<max_it && eps<epss ); % Convergence to a solution
         it   = it+1; epss = eps;        
         if k>1; max_it = max_it_dyn; end;
         % Pre-processing: update freestream conditions from SCADA data
-        [sol,Wp] = WFObs_s_preprocess(Wp,input{k},measured,sol);
-        [B1,B2,bc]           = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
-        B2                   = 2*B2;
+        [sol,Wp,B1,B2,bc,strucObs] = WFObs_s_preprocess(Wp,input{k},measured,sol,strucObs);
         u_preprocess(k) = mean(mean(sol.u(1:2,:)));
         
         % Calculate optimal solution according to filter of choice

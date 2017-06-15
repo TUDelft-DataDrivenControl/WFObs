@@ -6,7 +6,14 @@
 %    * Plots of the RMS and maximum error (m/s)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Save turbine power measurements to one vector
+if sum(strcmp(fieldnames(measured),'turb')) > 0 % Fix compatibility: old format of SOWFA data
+    Power_SOWFA(:,k) = measured.turb.data.Power';
+else
+    Power_SOWFA(:,k) = measured.power';
+end;
 
+% Produce animations
 if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
     yaw_angles = .5*Wp.turbine.Drotor*exp(1i*-input{k}.phi'*pi/180); % applied correction for yaw angle: wake was forming at wrong side
 

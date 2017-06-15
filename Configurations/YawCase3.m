@@ -12,7 +12,7 @@ max_it_dyn              = 1;    % Convergence parameter
 max_it                  = 1;    % Convergence parameter
 
 % Filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'exkf'; % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
@@ -48,10 +48,10 @@ switch lower(strucObs.filtertype)
         strucObs.R_ePW        = 1e-3;     % Measurement noise for turbine power measurements
         
         options.exportPressures = false;      % Include pressure terms in ensemble members (default: false)
-        strucObs.r_infl         = 1.025;      % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
+        strucObs.r_infl         = 1;          % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
         strucObs.f_locl         = 'gaspari';  % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
-        strucObs.l_locl         = 131;        % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
-        options.Linearversion   = 0;          % Calculate linearized system matrices        
+        strucObs.l_locl         = 50;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
+        options.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.      
         
     case {'sim'}
         options.exportPressures = 1; % Do not change for sim case.

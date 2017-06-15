@@ -1,4 +1,4 @@
-function [ sol,Wp ] = WFObs_s_preprocess( Wp,input,measured,sol )
+function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_preprocess( Wp,input,measured,sol,strucObs )
     wd = 270.; % wind direction in degrees. should actually be something like:
     % wd = mean(measured.windVaneMeasurements)
     % but currently no anemometer measurements yet from SOWFA...
@@ -15,7 +15,6 @@ function [ sol,Wp ] = WFObs_s_preprocess( Wp,input,measured,sol )
         Pw  = measured.turb.data.Power(turbi);
         rho = 1.22;
         
-        disp('PLEASE CHECK FOR YAW DEGREES OR RADIANS');
         Cp_tmp = 4*axi*(1-axi)^2*eta*cosd(yaw)^1.88;
         U_est = [U_est, (Pw/(0.5*rho*Ar*Cp_tmp))^(1/3)]; % Determine U for each upstream turbine
     end;    
@@ -36,10 +35,19 @@ function [ sol,Wp ] = WFObs_s_preprocess( Wp,input,measured,sol )
     [sol.v,sol.vv] = deal(sol.v+(v_Inf-Wp.site.v_Inf)); % Update all states
     %[sol.u(1:3,:),sol.uu(1:3,:)] = deal(u_Inf); % Update boundary only
     %[sol.v(1:3,:),sol.vv(1:3,:)] = deal(v_Inf); % Update boundary only
+    % Apply changes to EnKF, if Aen available (k > 1 and EnKF used)
+    if sum(strcmp(fieldnames(strucObs), 'Aen')) > 0
+        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)+(u_Inf-Wp.site.u_Inf);
+        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(v_Inf-Wp.site.v_Inf);
+    end;
+
     Wp.site.u_Inf = u_Inf;
     Wp.site.v_Inf = v_Inf;
 
-    
     disp(['Freestream conditions: u_Inf = ' num2str(u_Inf)]);
     disp(['Freestream conditions: v_Inf = ' num2str(v_Inf)]);
+    
+    % Apply changed boundary conditions to update system matrices
+    [B1,B2,bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
+    B2         = 2*B2;
 end
