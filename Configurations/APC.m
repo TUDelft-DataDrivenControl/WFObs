@@ -1,9 +1,9 @@
 % SOWFA source directories and meshing options
-sourcepath      = 'WFSim\Data_SOWFA\YawCase3\2turb_50x25_lin'; % Specify location of SOWFA data (excluding backslash at the end)
-datanroffset    = 20000;                                          % Numbering offset (first filenumber is datanroffset+1)
-Wp.name         = 'YawCase3_50x50_lin_OBS';                           % Name of meshing (from "meshing.m")
+sourcepath      = 'WFSim\Data_SOWFA\APC\9turb_100x50_lin';        % Specify location of SOWFA data (excluding backslash at the end)
+datanroffset    = 22000;                                          % Numbering offset (first filenumber is datanroffset+1)
+Wp.name         = 'APC_3x3turb_noyaw_9turb_100x50_lin';           % Name of meshing (from "meshing.m")
 sensors_path    = ['Setup_sensors\sensor_layouts\' ...            % Specify file with sensor (measurement) locations
-                   'sensors_yaw_2turb_50x25_lin_2row_downwind.mat']; 
+                   'sensors_downwind_APC_3x3turb_noyaw_9turb_100x50_lin.mat']; 
 
 % Model settings
 options.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
@@ -12,7 +12,7 @@ max_it_dyn              = 1;    % Convergence parameter
 max_it                  = 1;    % Convergence parameter
 
 % Filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'enkf';  % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)

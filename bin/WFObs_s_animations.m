@@ -23,7 +23,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         subplot(2,3,1);
         contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,sol.u,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
         title(['Predicted u velocity (t = ' num2str(timeindex) ')'])
-        colormap(jet); caxis([0 10.]);
+        colormap(jet); caxis([0 13.]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')
@@ -38,7 +38,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         subplot(2,3,2);
         contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,measured.uq,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
         title(['Measured u velocity (t = ' num2str(timeindex) ')'])
-        colormap(jet); caxis([0 10]);
+        colormap(jet); caxis([0 13.]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')
@@ -54,8 +54,8 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,abs(sol.u-measured.uq),(0:0.05:3),'Linecolor','none'); hold on;
         ldyyv = Wp.mesh.ldyy(:); ldxx2v = Wp.mesh.ldxx2(:);
         plot(ldyyv(maxerroruloc(k)),ldxx2v(maxerroruloc(k)),'whiteo','LineWidth',1,'MarkerSize',8,'DisplayName','Maximum error location');
-        title(['u-velocity error (k = ' num2str(k) ')'])
-        colormap(jet); caxis([0 3]);
+        title(['u-velocity error (t = ' num2str(timeindex) ')'])
+        colormap(jet); caxis([0 13.]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')
@@ -102,7 +102,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         ldyy2v = Wp.mesh.ldyy2(:); ldxxv = Wp.mesh.ldxx(:);
         %plot(ldyy2v(maxerrorvloc(k)),ldxxv(maxerrorvloc(k)),'-redo','LineWidth',3,'MarkerSize',8,'DisplayName','Maximum error location');
         plot(ldyy2v(maxerrorvloc(k)),ldxxv(maxerrorvloc(k)),'whiteo','LineWidth',1,'MarkerSize',8,'DisplayName','Maximum error location');
-        title(['v-velocity error (t = ' num2str(Wp.sim.time(k)) ')'])
+        title(['v-velocity error (t = ' num2str(timeindex) ')'])
         colormap(jet); caxis([0 3]);
         hold all; colorbar;
         axis equal; axis tight;

@@ -47,7 +47,7 @@ addpath WFSim\libraries\export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 100, ...  % Plot figures every # iteration (no animation: 0)
+    'Animation'       , 10, ...  % Plot figures every # iteration (no animation: 0)
        'plotcontour'  , 1, ...   % plot flow fields (contourf)
        'plotpower'    , 0, ...   % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...   % plot RMS and maximum error vs. time
@@ -55,11 +55,11 @@ strucScript = struct(...
     'saveplots'       , 1, ...   % Save all plots in external files at each time step
     'saveest'         , 0, ...   % Save estimated flow fields & powers in an external file at each time step
     'saveworkspace'   , 0, ...   % Save complete workspace at the end of simulation
-    'savepath'        , ['..\Results\tmp_exkf\'] ... % Destination folder of saved files
+    'savepath'        , ['..\Results\APC_tmp\'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file
-configName = 'YawCase3.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
+configName = 'APC.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%

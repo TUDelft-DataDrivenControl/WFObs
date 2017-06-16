@@ -10,10 +10,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clear all; close all; clc;
-addpath ..\WFSim\bin\core
+addpath WFSim\bin\core
 
 %Wp.name = 'apc_3x3turb_noyaw_9turb_100x50_lin';  % Define meshing
-Wp.name = 'noprecursor_2turb_50x25_lin';
+Wp.name = 'APC_3x3turb_noyaw_9turb_100x50_lin';
 
 
 %% Internal code
