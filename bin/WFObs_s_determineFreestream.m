@@ -1,4 +1,4 @@
-function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_preprocess( Wp,input,measured,sol,strucObs )
+function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_determineFreestream( Wp,input,measured,sol,strucObs )
     wd = 270.; % wind direction in degrees. should actually be something like:
     % wd = mean(measured.windVaneMeasurements)
     % but currently no anemometer measurements yet from SOWFA...

@@ -1,0 +1,10 @@
+PBS -l nodes=2:ppn=8 				# Request one node with 4 free processor cores 
+PBS -m ae 							# Mail me when the job ends for any reason 
+PBS -M B.M.Doekemeijer@tudelft.nl 	# Email address
+
+# Activate the Matlab version I want e.g., 'module load matlab/2012b'
+module load 'matlab/2016b'
+
+# Run my M file and don't even try to display graphics
+cd $HOME/WFObs
+matlab -nodisplay -noFigureWindows -logfile 'output.log' -r WFObs

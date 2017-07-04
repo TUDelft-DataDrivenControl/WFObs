@@ -55,7 +55,7 @@ if (strucScript.Animation > 0) && (~rem(k,strucScript.Animation))
         ldyyv = Wp.mesh.ldyy(:); ldxx2v = Wp.mesh.ldxx2(:);
         plot(ldyyv(maxerroruloc(k)),ldxx2v(maxerroruloc(k)),'whiteo','LineWidth',1,'MarkerSize',8,'DisplayName','Maximum error location');
         title(['u-velocity error (t = ' num2str(timeindex) ')'])
-        colormap(jet); caxis([0 13.]);
+        colormap(jet); caxis([0 3.]);
         hold all; colorbar;
         axis equal; axis tight;
         xlabel('y-direction')

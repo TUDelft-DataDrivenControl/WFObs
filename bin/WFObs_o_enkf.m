@@ -21,9 +21,6 @@ function [ sol,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured
 
 solf = sol; % Create a copy solution structure for forecast
 
-strucObs.tuneModel.lmu.tune = 0;
-strucObs.tuneModel.lmv.tune = 0;
-
 if k==1
     % Determine initial state ensemble for state vector [u; v]
     initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
@@ -42,19 +39,20 @@ if k==1
         initdist   = [initdist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
     end;
     
-    % Optional: add turbulence terms in long. direction
-    if strucObs.tuneModel.lmu.tune == 1
-        x0           = [x0; Wp.site.lmu];
-        initrand.lmu = (strucObs.tuneModel.lmu.W_0*linspace(-.5,+.5,strucObs.nrens));
-        initdist     = [initdist; bsxfun(@times,initrand.lmu,1)];
+    % Add model parameters as states for online model adaption
+    for iT = 1:length(strucObs.tune.vars)
+        tuneP                 = strucObs.tune.vars{iT};
+        dotLoc                = findstr(tuneP,'.');
+        subStruct             = tuneP(1:dotLoc-1);
+        structVar             = tuneP(dotLoc+1:end);
+        x0                    = [x0; Wp.(subStruct).(structVar)];
+        initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+        initdist              = [initdist; bsxfun(@times,initrand.(structVar),1)];
+        
+        % Save to strucObs for later
+        strucObs.tune.subStruct{iT} = subStruct;
+        strucObs.tune.structVar{iT} = structVar;
     end;
-
-    % Optional: add turbulence terms in lat. direction
-    if strucObs.tuneModel.lmv.tune == 1
-        x0           = [x0; Wp.site.lmv];
-        initrand.lmv = (strucObs.tuneModel.lmv.W_0*linspace(-.5,+.5,strucObs.nrens));
-        initdist     = [initdist; bsxfun(@times,initrand.lmv,1)];
-    end;    
 
     % Calculate initial ensemble
     strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
@@ -62,9 +60,8 @@ if k==1
 end;
 
 % Parallelized solving of the EnKF
-Aenf  = zeros(strucObs.size_output+strucObs.tuneModel.lmu.tune+...
-              strucObs.tuneModel.lmv.tune,strucObs.nrens);                  % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.nrobs+strucObs.measPw*Wp.turbine.N,strucObs.nrens);  % Initialize empty output matrix
+Aenf  = zeros(strucObs.size_output+length(strucObs.tune.vars),strucObs.nrens); % Initialize empty forecast matrix
+Yenf  = zeros(strucObs.nrobs+strucObs.measPw*Wp.turbine.N,strucObs.nrens);          % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
     % Initialize empty variables
@@ -83,14 +80,11 @@ parfor(ji=1:strucObs.nrens)
     jtemppar = strucObs.size_output;
     solpar.x = strucObs.Aen(1:jtemppar,ji);
     
-    if strucObs.tuneModel.lmu.tune
-        jtemppar       = jtemppar + 1;
-        Wppar.site.lmu = strucObs.Aen(jtemppar,ji);
+    % Update Wp with values from the ensemble
+    for iT = 1:length(strucObs.tune.vars)
+        jtemppar = jtemppar + 1;
+        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = strucObs.Aen(jtemppar,ji);
     end;
-    if strucObs.tuneModel.lmv.tune
-        jtemppar       = jtemppar + 1;
-        Wppar.site.lmv = strucObs.Aen(jtemppar,ji);
-    end;       
     
     [solpar,~]           = MapSolution(Wppar.mesh.Nx,Wppar.mesh.Ny,solpar,k,itpar,options);
     [syspar,Pwpar,~,~,~] = Make_Ax_b(Wppar,syspar,solpar,input,B1,B2,bc,k,options);
@@ -105,16 +99,12 @@ parfor(ji=1:strucObs.nrens)
     end;
     xf = xf + Frand;
     
-    if strucObs.tuneModel.lmu.tune
-        Frandlmu = strucObs.tuneModel.lmu.Q_e*randn(1,1)
-        xf    = [xf; max([0,Wppar.site.lmu + Frandlmu])]; % lower bound lmu = 0
-        Frand = [Frand; Frandlmu];
+    for iT = 1:length(strucObs.tune.vars)
+        Frandtemp = strucObs.tune.Q_e(iT)*randn(1,1);
+        xf        = [xf; min([strucObs.tune.ub, max([strucObs.tune.lb,...
+            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) + Frandtemp])])];
+        Frand     = [Frand; Frandtemp];
     end;
-    if strucObs.tuneModel.lmv.tune
-        Frandlmv = strucObs.tuneModel.lmv.Q_e*randn(1,1); 
-        xf    = [xf; max([0,Wppar.site.lmv + Frandlmv])];  % lower bound lmv = 0
-        Frand = [Frand; Frandlmv];
-    end;   
     
     % Calculate output vector
     if strucObs.measPw
@@ -151,54 +141,74 @@ if k == 1
         disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
         addpath Setup_sensors
         
-        % First calculate the cross-correlation between output and state
-        rho_locl   = struct; % initialize empty structure
-        rho_locl_t = {};     % temporary variable used inside the parfor loop
-        parfor(iii = 1:strucObs.size_output) % Loop over all states
-            rho_locl_t{iii} = sparse(1,strucObs.nrobs);
-            [~,loc1,~] = WFObs_s_sensors_nr2grid(iii,Wp.mesh); % location of state
-            for jjj = 1:size(Yenf,1) % Loop over all measurements
-                if jjj <= strucObs.nrobs % flow measurements
-                    [~,loc2,~] = WFObs_s_sensors_nr2grid(strucObs.obs_array(jjj),Wp.mesh); % location output
-                else % power measurements
-                    loc2.x = Wp.turbine.Crx(jjj-strucObs.nrobs); 
-                    loc2.y = Wp.turbine.Cry(jjj-strucObs.nrobs);
-                end;
-                
-                % Calculate localization factor for state iii and output jjj:
-                dx = sqrt((loc1.x-loc2.x)^2+(loc1.y-loc2.y)^2); % displacement between state and output               
-                rho_locl_t{iii}(jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
+        % Generate the locations of all default model states and turbines in Aen
+        stateLocArray = [];
+        for iii = 1:strucObs.size_output
+            [~,loci,~]    = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
+            stateLocArray = [stateLocArray;loci.x, loci.y];
+        end;
+        turbLocArray = [];
+        for iii = 1:Wp.turbine.N
+            turbLocArray = [turbLocArray;Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
+        end;
+        
+        % Generate the locations of all outputs
+        outputLocArray = [];
+        for iii = 1:size(Yenf,1)
+            if iii <= strucObs.nrobs % flow measurements
+                outputLocArray = [outputLocArray;stateLocArray(iii,:)];
+            else % power measurements
+                outputLocArray = [outputLocArray;turbLocArray(iii-strucObs.nrobs,:)]; 
             end;
         end;
-        rho_locl.cross = cell2mat(rho_locl_t'); % write localization matrix to 'rho_locl' structure
-        rho_locl.cross = [rho_locl.cross; ones(strucObs.tuneModel.lmu.tune+...
-                          strucObs.tuneModel.lmv.tune,size(Yenf,1))];
-        clear rho_locl_t dx loc1 loc2 iii jjj
+        
+        % First calculate the cross-correlation between output and default state
+        rho_locl       = struct; % initialize empty structure
+        rho_locl.cross = sparse(strucObs.size_output,size(Yenf,1));
+        for(iii = 1:strucObs.size_output) % Loop over all default states
+            loc1 = stateLocArray(iii,:);
+            for jjj = 1:size(outputLocArray,1) % Loop over all measurements
+                loc2 = outputLocArray(jjj,:);
+                dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output               
+                rho_locl.cross(iii,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
+            end;
+        end;
+        clear iii jjj dx loc1 loc2
+        
+        % Then calculate the cross-correlation between output and model tuning parameter
+        for iT = 1:length(strucObs.tune.vars)
+            if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
+                crossmat_temp = [];
+                for iturb = 1:size(turbLocArray,1)
+                    loc1 = turbLocArray(iturb,:);
+                    for jjj = 1:size(outputLocArray,1)
+                        loc2 = outputLocArray(jjj,:);
+                        dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output   
+                        crossmat_temp(iturb,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
+                    end;
+                end;
+                if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.tune.vars{iT} '.']); end;
+                rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
+                
+            elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
+                rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
+                
+            else
+                disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
+            end;   
+        end;
+        clear iT dx loc1 loc2 iii jjj crossmat_temp iturb
         
         % Secondly, calculate the autocorrelation of output
-        rho_locl_t = {};
-        parfor(iii = 1:size(Yenf,1)) % for each output
-            rho_locl_t{iii} = sparse(1,strucObs.nrobs);
-            if iii <= strucObs.nrobs % flow measurements
-                [~,loc1,~] = WFObs_s_sensors_nr2grid(strucObs.obs_array(iii),Wp.mesh); % location output iii
-            else
-                loc1.x = Wp.turbine.Crx(iii-strucObs.nrobs); 
-                loc1.y = Wp.turbine.Cry(iii-strucObs.nrobs); % location of turbine iii
-            end;
+        rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
+        for(iii = 1:size(outputLocArray,1)) % for each output
+            loc1 = outputLocArray(iii,:);
             for jjj = iii:size(Yenf,1) % for each output
-                if jjj <= strucObs.nrobs
-                    [~,loc2,~] = WFObs_s_sensors_nr2grid(strucObs.obs_array(jjj),Wp.mesh); % location output jjj
-                else
-                    loc2.x = Wp.turbine.Crx(jjj-strucObs.nrobs); 
-                    loc2.y = Wp.turbine.Cry(jjj-strucObs.nrobs); % location of turbine jjj
-                end;
-                dx = sqrt((loc1.x-loc2.x)^2+(loc1.y-loc2.y)^2);
-                
-                % Calculate localization factor for output iii and output jjj:
-                rho_locl_t{iii}(jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
+                loc2 = outputLocArray(jjj,:);
+                dx = sqrt(sum((loc1-loc2).^2));
+                rho_locl.auto(iii,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
             end;
         end;
-        rho_locl.auto = cell2mat(rho_locl_t'); % write localization matrix to 'rho_locl' structure
         clear rho_locl_t dx loc1 loc2 iii jjj
         
         % Implement the effect of covariance inflation on localization

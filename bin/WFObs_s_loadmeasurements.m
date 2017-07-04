@@ -18,7 +18,7 @@ function [ measured ] = WFObs_s_loadmeasurements( sourcepath, datanroffset, time
 %     *measured.v      lateral velocities, disturbed
 %     *measured.vq     lateral velocities, undisturbed
 
-measured                        = load([sourcepath '\' num2str(datanroffset+time) '.mat']);
+measured                        = load([sourcepath '/' num2str(datanroffset+time) '.mat']);
 measured.uq(isnan(measured.uq)) = 0; % nullify any out-of-range measurements
 measured.vq(isnan(measured.vq)) = 0; % nullify any out-of-range measurements
 

@@ -53,6 +53,13 @@ switch lower(strucObs.filtertype)
         strucObs.l_locl         = 50;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         options.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.      
         
+        % Online model parameter adaption/estimation/tuning
+        strucObs.tune.vars = {'turbine.forcescale','site.Rho'};
+        strucObs.tune.Q_e  = [0.01,0.01]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.W_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.00,1.00]; % Lower bound
+        strucObs.tune.ub   = [2.00,1.40]; % Upper bound
+        
     case {'sim'}
         options.exportPressures = 1; % Do not change for sim case.
         options.Linearversion = 0; % Calculate linearized system matrices     
