@@ -1,8 +1,8 @@
 % SOWFA source directories and meshing options
-sourcepath      = 'WFSim\Data_SOWFA\YawCase3\2turb_50x25_lin'; % Specify location of SOWFA data (excluding backslash at the end)
+sourcepath      = 'WFSim/data_SOWFA/YawCase3/2turb_50x25_lin'; % Specify location of SOWFA data (excluding backslash at the end)
 datanroffset    = 20000;                                          % Numbering offset (first filenumber is datanroffset+1)
 Wp.name         = 'YawCase3_50x50_lin_OBS';                           % Name of meshing (from "meshing.m")
-sensors_path    = ['Setup_sensors\sensor_layouts\' ...            % Specify file with sensor (measurement) locations
+sensors_path    = ['Setup_sensors/sensor_layouts/' ...            % Specify file with sensor (measurement) locations
                    'sensors_yaw_2turb_50x25_lin_2row_downwind.mat']; 
 
 % Model settings
@@ -12,7 +12,7 @@ max_it_dyn              = 1;    % Convergence parameter
 max_it                  = 1;    % Convergence parameter
 
 % Filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'ukf'; % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
@@ -20,6 +20,25 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the command "randn*beta"
 
 switch lower(strucObs.filtertype)
+    case {'ukf'}
+        % Filter settings
+%         strucObs.R_k   = 1.0; % Measurement   covariance matrix   
+%         strucObs.Q_k.u = 1.0; % Process noise covariance matrix 
+%         strucObs.Q_k.v = 0.2; % Process noise covariance matrix 
+        strucObs.P_0.u = 0.5; % Initial state covariance matrix 
+        strucObs.P_0.v = 0.1; % Initial state covariance matrix 
+        
+        strucObs.alpha = 1e-1;
+        strucObs.beta  = 2; % Optimal for Gaussian distributions
+        strucObs.kappa = 0;
+        
+        % Pressure terms and covariances
+        options.exportPressures = 0;   % Model/predict/filter pressure terms
+        strucObs.Q_k.p          = 1.0; % Process noise covariance matrix 
+        strucObs.P_0.p          = 0.5; % Initial state covariance matrix 
+        
+        options.Linearversion   = 0;   % Calculate linearized system matrices    
+        
     case {'exkf'}
         strucObs.R_k            = 1.0; % Measurement   covariance matrix   
         strucObs.Q_k            = 1.0; % Process noise covariance matrix 

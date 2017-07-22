@@ -24,6 +24,8 @@ switch lower(strucObs.filtertype)
         [sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
     case 'enkf'
         [sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
+    case 'ukf'
+        [sol,strucObs] = WFObs_o_ukf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
     case 'sim'
         [sys,power,~,~,~] = Make_Ax_b(Wp,sys,sol,input,B1,B2,bc,k,options); % Create system matrices
         [sol,~]           = Computesol(sys,input,sol,k,it,options);         % Compute solution by standard WFSim function
