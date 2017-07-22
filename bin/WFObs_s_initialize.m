@@ -4,7 +4,7 @@
 %  the meshing and all variables required for simulation.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run(['configurations/' configName]);% Load configuration file
+run(['Configurations/' configName]);% Load configuration file
 disp(' WindFarmObserver (WFObs)');
 disp(' ');
 disp(['     Meshing:   ' Wp.name ]);
