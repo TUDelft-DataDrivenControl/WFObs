@@ -32,24 +32,25 @@ if k==1
     end;
     
     % Calculate initial ensemble
-    L                       = length(x0);
-    lambda                  = strucObs.alpha^2*(L+strucObs.kappa)-L;
+    L               = length(x0);
+    lambda          = strucObs.alpha^2*(L+strucObs.kappa)-L;
     
-    strucObs.nrens          = 2*L+1;
-    strucObs.Aen            = repmat(x0,1,strucObs.nrens);
-    
-    strucObs.Wm             = [lambda/(L+lambda), repmat(1/(2*(L+lambda)),1,2*L)];
-    strucObs.Wc             = [lambda/(L+lambda)+(1-strucObs.alpha^2+strucObs.beta), ...
-                               repmat(1/(2*(L+lambda)),1,2*L)];
+    strucObs.nrens  = 2*L+1;
+    strucObs.Wm     = [lambda/(L+lambda), repmat(1/(2*(L+lambda)),1,2*L)];
+    strucObs.Wc     = [lambda/(L+lambda)+(1-strucObs.alpha^2+strucObs.beta), ...
+                       repmat(1/(2*(L+lambda)),1,2*L)];
              
-    strucObs.Px             = Px;
-    strucObs.L              = L;
-    strucObs.lambda         = lambda;
-    strucObs.nrobs          = length(strucObs.obs_array); % number of measurements  
+    strucObs.Px     = Px;
+    strucObs.L      = L;
+    strucObs.lambda = lambda;
+    strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
+    
+    sol.x = x0;
 end;
 
 % Calculate sigma points
-Uscented_devs           = sqrt((strucObs.L+strucObs.lambda)*strucObs.Px); % Deviations from mean
+strucObs.Aen                     = repmat(sol.x,1,strucObs.nrens);
+Uscented_devs                    = sqrt((strucObs.L+strucObs.lambda)*strucObs.Px); % Deviations from mean
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
 

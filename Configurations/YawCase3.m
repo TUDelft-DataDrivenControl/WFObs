@@ -3,7 +3,7 @@ sourcepath      = 'WFSim/data_SOWFA/YawCase3/2turb_50x25_lin'; % Specify locatio
 datanroffset    = 20000;                                          % Numbering offset (first filenumber is datanroffset+1)
 Wp.name         = 'YawCase3_50x50_lin_OBS';                           % Name of meshing (from "meshing.m")
 sensors_path    = ['Setup_sensors/sensor_layouts/' ...            % Specify file with sensor (measurement) locations
-                   'sensors_yaw_2turb_50x25_lin_2row_downwind.mat']; 
+                   'sensors_yaw_2turb_50x25_lin_every5gridpoints.mat']; 
 
 % Model settings
 options.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
@@ -28,7 +28,7 @@ switch lower(strucObs.filtertype)
         strucObs.P_0.u = 0.5; % Initial state covariance matrix 
         strucObs.P_0.v = 0.1; % Initial state covariance matrix 
         
-        strucObs.alpha = 1e-1;
+        strucObs.alpha = 1e-2;
         strucObs.beta  = 2; % Optimal for Gaussian distributions
         strucObs.kappa = 0;
         
