@@ -23,34 +23,42 @@ solf = sol; % Create a copy solution structure for forecast
 
 if k==1             
     x0 = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];    
-    Px = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
+    P0 = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
+    Qx = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
     
     if options.exportPressures == 1 % Optional: add pressure terms
         x0 = [x0; vec(sol.p(2:end-1,2:end-1)')];
         x0 =  x0(1:end-2); % Correction for how pressure is formatted
-        Px = blkdiag(Px,eye(Wp.Np)*strucObs.P_0.p);
+        P0 = blkdiag(Px,eye(Wp.Np)*strucObs.P_0.p);
+        Qx = blkdiag(Qx,eye(Wp.Np)*strucObs.Q_k.p);
     end;
     
     % Calculate initial ensemble
     L               = length(x0);
     lambda          = strucObs.alpha^2*(L+strucObs.kappa)-L;
+    gamma           = sqrt(L+lambda);
     
     strucObs.nrens  = 2*L+1;
-    strucObs.Wm     = [lambda/(L+lambda), repmat(1/(2*(L+lambda)),1,2*L)];
-    strucObs.Wc     = [lambda/(L+lambda)+(1-strucObs.alpha^2+strucObs.beta), ...
-                       repmat(1/(2*(L+lambda)),1,2*L)];
-             
-    strucObs.Px     = Px;
+    strucObs.Wm     = [lambda/(L+lambda); repmat(1/(2*(L+lambda)),2*L,1)];
+    strucObs.Wc     = [lambda/(L+lambda)+(1-strucObs.alpha^2+strucObs.beta); ...
+                       repmat(1/(2*(L+lambda)),2*L,1)];
+    tempMat         = eye(2*L+1)-repmat(strucObs.Wm,1,2*L+1);
+    strucObs.W      = tempMat*diag(strucObs.Wc)*tempMat';
+               
+    strucObs.Qx     = Qx;
+    strucObs.Pk     = P0;
     strucObs.L      = L;
     strucObs.lambda = lambda;
+    strucObs.gamma  = gamma;
     strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
+    strucObs.Rx     = eye(strucObs.nrobs)*strucObs.R_k;
     
     sol.x = x0;
 end;
 
 % Calculate sigma points
 strucObs.Aen                     = repmat(sol.x,1,strucObs.nrens);
-Uscented_devs                    = sqrt((strucObs.L+strucObs.lambda)*strucObs.Px); % Deviations from mean
+Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk); % Deviations from mean
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
 
@@ -85,21 +93,21 @@ parfor(ji=1:strucObs.nrens)
     Aenf(:,ji)  = xf; % Write forecasted state to ensemble forecast matrix   
 end;
 
-% Post processing of forecast step
-xmean = sum(repmat(strucObs.Wm,strucObs.L,1)    .*Aenf, 2);
-ymean = sum(repmat(strucObs.Wm,strucObs.nrobs,1).*Yenf, 2);
+%% Post processing of forecast step
+xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .*Aenf, 2);
 dX    = Aenf-repmat(xmean,1,strucObs.nrens);
-dY    = Yenf-repmat(ymean,1,strucObs.nrens);
-Pxy   = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dY';
-Pyy   = (repmat(strucObs.Wc,strucObs.nrobs,1).*dY) * dY';
-Pxx   = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dX'; 
+Pk    = Aenf*strucObs.W*Aenf' + strucObs.Qx;
 
-%% KF update
-% analysis update: incorporate measurements in WFSim for optimal estimate
-Kgain       = Pxy*pinv(Pyy);
-sol.x       = xmean+Kgain*(measured.sol(strucObs.obs_array)-ymean);
-strucObs.Px = Pxx-Kgain*Pyy*Kgain';
+% Recalculate sigma points to incorporate effects of process noise
+Aenf                     = repmat(xmean,1,strucObs.nrens);
+Sk                       = chol(Pk);
+Aenf(:,2:strucObs.L+1)   = Aenf(:,2:strucObs.L+1)   + strucObs.gamma*Sk;
+Aenf(:,strucObs.L+2:end) = Aenf(:,strucObs.L+2:end) - strucObs.gamma*Sk;
+Yenf                     = Aenf(strucObs.obs_array,:);
+ymean                    = sum(repmat(strucObs.Wm',strucObs.nrobs,1).*Yenf, 2);
+Sk                       = Yenf * strucObs.W * Yenf' + strucObs.Rx;
+Ck                       = Aenf * strucObs.W * Yenf';
 
-% Avoid numerical issues (Px can have negative epsilon entries)
-strucObs.Px = strucObs.Px + 1e-12;
-
+Kk = Ck * pinv(Sk);
+sol.x = xmean + Kk*(measured.sol(strucObs.obs_array)-ymean);
+strucObs.Px = Pk - Kk * Sk * Kk';

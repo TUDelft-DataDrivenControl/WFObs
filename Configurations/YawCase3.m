@@ -22,13 +22,13 @@ strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the
 switch lower(strucObs.filtertype)
     case {'ukf'}
         % Filter settings
-%         strucObs.R_k   = 1.0; % Measurement   covariance matrix   
-%         strucObs.Q_k.u = 1.0; % Process noise covariance matrix 
-%         strucObs.Q_k.v = 0.2; % Process noise covariance matrix 
-        strucObs.P_0.u = 0.5; % Initial state covariance matrix 
-        strucObs.P_0.v = 0.1; % Initial state covariance matrix 
+        strucObs.R_k   = 0.10; % Measurement   covariance matrix   
+        strucObs.Q_k.u = 0.10; % Process noise covariance matrix 
+        strucObs.Q_k.v = 0.01; % Process noise covariance matrix 
+        strucObs.P_0.u = 0.10; % Initial state covariance matrix 
+        strucObs.P_0.v = 0.10; % Initial state covariance matrix 
         
-        strucObs.alpha = 1e-2;
+        strucObs.alpha = 1e0;
         strucObs.beta  = 2; % 2 is optimal for Gaussian distributions
         strucObs.kappa = 0;% "0" or "3-L"
         

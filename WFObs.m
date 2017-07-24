@@ -80,7 +80,7 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
         it   = it+1; epss = eps;        
         if k>1; max_it = max_it_dyn; end;
         % Pre-processing: update freestream conditions from SCADA data
-        [sol,Wp,B1,B2,bc,strucObs] = WFObs_s_determineFreestream(Wp,input{k},measured,sol,strucObs);
+        %[sol,Wp,B1,B2,bc,strucObs] = WFObs_s_determineFreestream(Wp,input{k},measured,sol,strucObs);
         
         % Calculate optimal solution according to filter of choice
         [sol,strucObs]      = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input{timeindex},measured,sol,k,it,options);  % Perform the observer update
