@@ -30,5 +30,5 @@ disp([datestr(rem(now,1)) ' __  t(' num2str(k,['%0' num2str(tlen) 'd']) ') = ' n
 
 % Reformat power variable and write to file
 if strucScript.saveest
-    save([strucScript.savepath '\' strucObs.filtertype '_est' num2str(datanroffset+k),'.mat'],'k','sol','Wp'); 
+    save([strucScript.savepath '/' strucObs.filtertype '_est' num2str(datanroffset+k),'.mat'],'k','sol','Wp'); 
 end;
