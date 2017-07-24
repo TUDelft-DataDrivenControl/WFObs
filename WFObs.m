@@ -47,7 +47,7 @@ addpath WFSim/libraries/export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 10, ...  % Plot figures every # iteration (no animation: 0)
+    'Animation'       , 1, ...  % Plot figures every # iteration (no animation: 0)
        'plotcontour'  , 1, ...  % plot flow fields (contourf)
        'plotpower'    , 0, ...  % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...  % plot RMS and maximum error vs. time

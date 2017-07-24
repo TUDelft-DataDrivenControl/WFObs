@@ -64,7 +64,7 @@ parfor(ji=1:strucObs.nrens)
     solpar   = struct;
     Wppar    = Wp;                       
     sys_full = zeros(strucObs.size_state,1);
-    itpar    = Inf; % Do not iterate inside EnKF
+    itpar    = Inf; % Do not iterate inside UKF
     
     % Initialize empty u, uu, v, vv, p, pp entries in solpar
     [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
@@ -88,15 +88,18 @@ end;
 % Post processing of forecast step
 xmean = sum(repmat(strucObs.Wm,strucObs.L,1)    .*Aenf, 2);
 ymean = sum(repmat(strucObs.Wm,strucObs.nrobs,1).*Yenf, 2);
-dX  = Aenf-repmat(xmean,1,strucObs.nrens);
-dY  = Yenf-repmat(ymean,1,strucObs.nrens);
-Pxy = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dY';
-Pyy = (repmat(strucObs.Wc,strucObs.nrobs,1).*dY) * dY';
-Pxx = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dX'; 
+dX    = Aenf-repmat(xmean,1,strucObs.nrens);
+dY    = Yenf-repmat(ymean,1,strucObs.nrens);
+Pxy   = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dY';
+Pyy   = (repmat(strucObs.Wc,strucObs.nrobs,1).*dY) * dY';
+Pxx   = (repmat(strucObs.Wc,strucObs.L    ,1).*dX) * dX'; 
 
 %% KF update
 % analysis update: incorporate measurements in WFSim for optimal estimate
 Kgain       = Pxy*pinv(Pyy);
 sol.x       = xmean+Kgain*(measured.sol(strucObs.obs_array)-ymean);
 strucObs.Px = Pxx-Kgain*Pyy*Kgain';
+
+% Avoid numerical issues (Px can have negative epsilon entries)
+strucObs.Px = strucObs.Px + 1e-12;
 
