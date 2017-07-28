@@ -36,8 +36,14 @@ switch lower(strucObs.filtertype)
         options.exportPressures = 0;   % Model/predict/filter pressure terms
         strucObs.Q_k.p          = 1.0; % Process noise covariance matrix 
         strucObs.P_0.p          = 0.5; % Initial state covariance matrix 
-        
         options.Linearversion   = 0;   % Calculate linearized system matrices    
+        
+        % Online model parameter adaption/estimation/tuning
+        strucObs.tune.vars = {'turbine.forcescale','site.Rho'};
+        strucObs.tune.Q_k  = [0.01,0.01]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.00,1.00]; % Lower bound
+        strucObs.tune.ub   = [2.00,1.40]; % Upper bound
         
     case {'exkf'}
         strucObs.R_k            = 1.0; % Measurement   covariance matrix   
@@ -71,6 +77,13 @@ switch lower(strucObs.filtertype)
         strucObs.f_locl         = 'gaspari';  % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
         strucObs.l_locl         = 50;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         options.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.      
+        
+        % Online model parameter adaption/estimation/tuning
+        strucObs.tune.vars = {};%{'turbine.forcescale','site.Rho'};
+        strucObs.tune.Q_e  = [];%[0.01,0.01]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.W_0  = [];%[0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [];%[0.00,1.00]; % Lower bound
+        strucObs.tune.ub   = [];%[2.00,1.40]; % Upper bound
         
     case {'sim'}
         options.exportPressures = 1; % Do not change for sim case.

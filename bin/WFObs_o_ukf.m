@@ -33,8 +33,22 @@ if k==1
         Qx = blkdiag(Qx,eye(Wp.Np)*strucObs.Q_k.p);
     end;
     
+    % Add model parameters as states for online model adaption
+    for iT = 1:length(strucObs.tune.vars)
+        tuneP       = strucObs.tune.vars{iT};
+        dotLoc      = findstr(tuneP,'.');
+        subStruct   = tuneP(1:dotLoc-1);
+        structVar   = tuneP(dotLoc+1:end);
+        P0          = blkdiag(P0,strucObs.tune.P_0(iT));
+        Qx          = blkdiag(Qx,strucObs.tune.Q_k(iT));
+        
+        % Save to strucObs for later
+        strucObs.tune.subStruct{iT} = subStruct;
+        strucObs.tune.structVar{iT} = structVar;
+    end;
+    
     % Calculate initial ensemble
-    L               = length(x0);
+    L               = length(x0)+length(strucObs.tune.vars);
     lambda          = strucObs.alpha^2*(L+strucObs.kappa)-L;
     gamma           = sqrt(L+lambda);
     
@@ -56,15 +70,21 @@ if k==1
     sol.x = x0;
 end;
 
-% Calculate sigma points
+%% Calculate sigma points
+% Write the system states to the sigma points
 strucObs.Aen                     = repmat(sol.x,1,strucObs.nrens);
+% Append the sigma points with model parameters
+for iT = 1:length(strucObs.tune.vars) 
+    strucObs.Aen = [strucObs.Aen; repmat(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),1,strucObs.nrens)];
+end;
+% Distribute sigma points around the mean
 Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk); % Deviations from mean
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
 
 % Parallelized solving of the UKF
-Aenf  = zeros(strucObs.size_output,strucObs.nrens); % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.nrobs,strucObs.nrens);       % Initialize empty output matrix
+Aenf  = zeros(strucObs.size_output+length(strucObs.tune.vars),strucObs.nrens); % Initialize empty forecast matrix
+Yenf  = zeros(strucObs.nrobs,strucObs.nrens);                                  % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
     % Initialize empty variables
@@ -80,17 +100,22 @@ parfor(ji=1:strucObs.nrens)
     [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
     
     % Import solution and calculate corresponding system matrices
-    jtemppar = strucObs.size_output;
-    solpar.x = strucObs.Aen(1:jtemppar,ji);
+    solpar.x = strucObs.Aen(1:strucObs.size_output,ji);
        
+    % Update Wp with values from the sigma points
+    for iT = 1:length(strucObs.tune.vars)
+        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
+        min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),strucObs.Aen(strucObs.size_output+iT,ji)));
+    end;
+    
     [solpar,~]           = MapSolution(Wppar.mesh.Nx,Wppar.mesh.Ny,solpar,k,itpar,options);
     [syspar,Pwpar,~,~,~] = Make_Ax_b(Wppar,syspar,solpar,input,B1,B2,bc,k,options);
     sys_full(sys.pRCM,1) = syspar.A(sys.pRCM,sys.pRCM)\syspar.b(sys.pRCM,1);
     xf                   = sys_full(1:strucObs.size_output,1);
     
     % Calculate output vector
-    Yenf(:,ji) =  xf(strucObs.obs_array);
-    Aenf(:,ji)  = xf; % Write forecasted state to ensemble forecast matrix   
+    Yenf(:,ji) =   xf(strucObs.obs_array);
+    Aenf(:,ji)  = [xf;strucObs.Aen(strucObs.size_output+1:end,ji)]; % Write forecasted state to ensemble forecast matrix   
 end;
 
 %% Post processing of forecast step
@@ -108,6 +133,11 @@ ymean                    = sum(repmat(strucObs.Wm',strucObs.nrobs,1).*Yenf, 2);
 Sk                       = Yenf * strucObs.W * Yenf' + strucObs.Rx;
 Ck                       = Aenf * strucObs.W * Yenf';
 
-Kk = Ck * pinv(Sk);
-sol.x = xmean + Kk*(measured.sol(strucObs.obs_array)-ymean);
+Kk          = Ck * pinv(Sk);
+xSolAll     = xmean + Kk*(measured.sol(strucObs.obs_array)-ymean);
 strucObs.Px = Pk - Kk * Sk * Kk';
+
+sol.x = xSolAll(1:strucObs.size_output);
+for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
+    Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(strucObs.size_output+iT)));
+end;
