@@ -39,11 +39,11 @@ switch lower(strucObs.filtertype)
         options.Linearversion   = 0;   % Calculate linearized system matrices    
         
         % Online model parameter adaption/estimation/tuning
-        strucObs.tune.vars = {'turbine.forcescale','site.Rho'};
-        strucObs.tune.Q_k  = [1e-3,1e-3]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [1e-3,1e-3]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [0.00,1.00]; % Lower bound
-        strucObs.tune.ub   = [2.00,1.40]; % Upper bound
+        strucObs.tune.vars = {'turbine.forcescale'};
+        strucObs.tune.Q_k  = [3e-2]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [5e-1]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.00]; % Lower bound
+        strucObs.tune.ub   = [3.00]; % Upper bound
         
     case {'exkf'}
         strucObs.R_k            = 1.0; % Measurement   covariance matrix   

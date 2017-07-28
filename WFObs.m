@@ -53,8 +53,8 @@ strucScript = struct(...
        'ploterror'    , 0, ...  % plot RMS and maximum error vs. time
     'plotMesh'        , 0, ...  % Plot meshing layout (grid)
     'saveplots'       , 0, ...  % Save all plots in external files at each time step
-    'saveest'         , 0, ...  % Save estimated flow fields & powers in an external file at each time step
-    'saveworkspace'   , 0, ...  % Save complete workspace at the end of simulation
+    'saveest'         , 1, ...  % Save estimated flow fields & powers in an external file at each time step
+    'saveworkspace'   , 1, ...  % Save complete workspace at the end of simulation
     'savepath'        , ['Results/yawCase3_UKF_paramTuning/'] ... % Destination folder of saved files
     );  
 
