@@ -40,8 +40,8 @@ switch lower(strucObs.filtertype)
         
         % Online model parameter adaption/estimation/tuning
         strucObs.tune.vars = {'turbine.forcescale','site.Rho'};
-        strucObs.tune.Q_k  = [0.01,0.01]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.Q_k  = [1e-3,1e-3]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [1e-3,1e-3]; % Width of uniform dist. around opt. estimate for initial ensemble
         strucObs.tune.lb   = [0.00,1.00]; % Lower bound
         strucObs.tune.ub   = [2.00,1.40]; % Upper bound
         

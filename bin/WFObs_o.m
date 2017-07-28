@@ -1,4 +1,4 @@
-function [ sol, strucObs ] = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
+function [ sol,Wp,strucObs ] = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
 %[ sol, strucObs ] = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,startUniform)
 %   This script selects which function to call for state reconstruction:
 %   the Extended Kalman Filter (ExKF), Ensemble Kalman Filter (EnKF), or
@@ -23,9 +23,9 @@ switch lower(strucObs.filtertype)
     case 'exkf'
         [sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
     case 'enkf'
-        [sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
+        [sol,Wp,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
     case 'ukf'
-        [sol,strucObs] = WFObs_o_ukf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
+        [sol,Wp,strucObs] = WFObs_o_ukf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options);
     case 'sim'
         [sys,power,~,~,~] = Make_Ax_b(Wp,sys,sol,input,B1,B2,bc,k,options); % Create system matrices
         [sol,~]           = Computesol(sys,input,sol,k,it,options);         % Compute solution by standard WFSim function

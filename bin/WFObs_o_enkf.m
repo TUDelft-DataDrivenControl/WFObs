@@ -1,4 +1,4 @@
-function [ sol,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
+function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
 %[ sol, strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
 %   This script calculates the optimally estimated system state vector
 %   according to the measurement data and the internal model using the
