@@ -55,7 +55,7 @@ strucScript = struct(...
     'saveplots'       , 0, ...  % Save all plots in external files at each time step
     'saveest'         , 1, ...  % Save estimated flow fields & powers in an external file at each time step
     'saveworkspace'   , 1, ...  % Save complete workspace at the end of simulation
-    'savepath'        , ['Results/yawCase3_UKF_paramTuning/'] ... % Destination folder of saved files
+    'savepath'        , ['Results/yawCase3_UKF_dualTuning'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file

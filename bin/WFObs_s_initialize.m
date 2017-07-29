@@ -35,7 +35,7 @@ disp(' ')
 
 % load a default random seed for consistency
 if strucObs.loadrandomseed; load('randomseed'); rng(randomseed); clear randomseed; end;
-if strucScript.saveest; save([strucScript.savepath '\' strucObs.filtertype '_est' num2str(datanroffset) '.mat'],'sol'); end; 
+if strucScript.saveest; save([strucScript.savepath '/' strucObs.filtertype '_est' num2str(datanroffset) '.mat'],'sol'); end; 
 
 % Define what the system should predict (with or without pressures)
 strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
