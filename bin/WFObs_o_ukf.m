@@ -141,3 +141,5 @@ sol.x = xSolAll(1:strucObs.size_output);
 for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
     Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(strucObs.size_output+iT)));
 end;
+
+disp('');
