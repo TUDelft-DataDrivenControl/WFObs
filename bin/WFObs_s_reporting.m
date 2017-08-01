@@ -26,10 +26,12 @@ Power(:,k)   = sol.power';
 % RMSE_Pw(:,k) = abs(measured.power-Power(:,k)); % Absolute error for turbine power capture
 
 elapsedtime(k) = toc;
-disp([datestr(rem(now,1)) ' __  t(' num2str(k,['%0' num2str(tlen) 'd']) ') = ' num2str(timeindex,['%0' num2str(klen) 'd']) ' s __ max. error: ' num2str(maxerror(k),'%10.2f\n'),' m/s, RMSE: ' num2str(RMSE(k),'%10.2f\n'), ' m/s, it. time: ' num2str(elapsedtime(k),'%10.2f\n') ' s.']);
-if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
-    for iT = 1:length(strucObs.tune.vars)
-        disp([datestr(rem(now,1)) ' __  t(' num2str(k,['%0' num2str(tlen) 'd']) ') = ' num2str(timeindex,['%0' num2str(klen) 'd']) ' s __ ' strucObs.tune.vars{iT} ' estimated as ' num2str(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),'%10.2f\n') '.']);
+if strucScript.printProgress
+    disp([datestr(rem(now,1)) ' __  t(' num2str(k,['%0' num2str(tlen) 'd']) ') = ' num2str(timeindex,['%0' num2str(klen) 'd']) ' s __ max. error: ' num2str(maxerror(k),'%10.2f\n'),' m/s, RMSE: ' num2str(RMSE(k),'%10.2f\n'), ' m/s, it. time: ' num2str(elapsedtime(k),'%10.2f\n') ' s.']);
+    if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
+        for iT = 1:length(strucObs.tune.vars)
+            disp([datestr(rem(now,1)) ' __  t(' num2str(k,['%0' num2str(tlen) 'd']) ') = ' num2str(timeindex,['%0' num2str(klen) 'd']) ' s __ ' strucObs.tune.vars{iT} ' estimated as ' num2str(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),'%10.2f\n') '.']);
+        end;
     end;
 end;
 % Reformat power variable and write to file

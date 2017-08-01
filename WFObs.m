@@ -47,15 +47,16 @@ addpath WFSim/libraries/export_fig    % Graphics library (get here: http://www.m
 
 %% Script settings
 strucScript = struct(...
-    'Animation'       , 0, ...  % Plot figures every # iteration (no animation: 0)
-       'plotcontour'  , 0, ...  % plot flow fields (contourf)
+    'Animation'       , 50, ... % Plot figures every # iteration (no animation: 0)
+       'plotcontour'  , 1, ...  % plot flow fields (contourf)
        'plotpower'    , 0, ...  % Plot true and predicted power capture vs. time
        'ploterror'    , 0, ...  % plot RMS and maximum error vs. time
     'plotMesh'        , 0, ...  % Plot meshing layout (grid)
-    'saveplots'       , 0, ...  % Save all plots in external files at each time step
+    'printProgress'   , 0, ...  % Print progress in output window at every timestep
+    'saveplots'       , 1, ...  % Save all plots in external files at each time step
     'saveest'         , 1, ...  % Save estimated flow fields & powers in an external file at each time step
     'saveworkspace'   , 1, ...  % Save complete workspace at the end of simulation
-    'savepath'        , ['Results/yawCase3_UKF_dualTuning'] ... % Destination folder of saved files
+    'savepath'        , ['Results/yawCase3_UKF_paramOnly_manyMeasurements'] ... % Destination folder of saved files
     );  
 
 %% Model and observer configuration file
@@ -93,4 +94,4 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
 end;
 
 if strucScript.saveworkspace; save([strucScript.savepath 'workspace.mat']); end; % save workspace to folder
-disp([datestr(rem(now,1)) ' __  Completed simulations']);
+if strucScript.printProgress; disp([datestr(rem(now,1)) ' __  Completed simulations']); end;

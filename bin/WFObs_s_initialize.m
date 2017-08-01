@@ -5,11 +5,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run(['Configurations/' configName]);% Load configuration file
-disp(' WindFarmObserver (WFObs)');
-disp(' ');
-disp(['     Meshing:   ' Wp.name ]);
-disp(['     Observer: ' strucObs.filtertype ]);
-disp(' ');
+if strucScript.printProgress
+    disp(' WindFarmObserver (WFObs)');
+    disp(' ');
+    disp(['     Meshing:   ' Wp.name ]);
+    disp(['     Observer: ' strucObs.filtertype ]);
+    disp(' ');
+end;
 
 % Create destination folder & save filter settings
 if (strucScript.saveplots + strucScript.saveest + strucScript.saveworkspace > 0)
@@ -22,9 +24,11 @@ options.Projection      = 0;    % Use projection
 options.exportLinearSol = 0;    % Export linear solution
 options.Derivatives     = 0;    % Calculate derivatives/gradients for system
 
-disp([datestr(rem(now,1)) ' __  Initializing simulation model.']); 
-disp([datestr(rem(now,1)) ' __  Grid-turbine mismatch effects:']); 
-disp(' ')
+if strucScript.printProgress
+    disp([datestr(rem(now,1)) ' __  Initializing simulation model.']); 
+    disp([datestr(rem(now,1)) ' __  Grid-turbine mismatch effects:']); 
+    disp(' ')
+end;
 
 [Wp,sol,sys,Power,CT,a,Ueffect,input,B1,B2,bc] = ...
     InitWFSim(Wp,options,strucScript.plotMesh); % Initialize model
@@ -71,4 +75,6 @@ sys.pRCM         = sysRCM.pRCM;  clear sysRCM;
 klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 tlen = length(num2str(Wp.sim.time(end))); % length
 
-disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
+if strucScript.printProgress
+    disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
+end;

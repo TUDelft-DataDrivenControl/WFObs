@@ -12,10 +12,10 @@ max_it_dyn              = 1;    % Convergence parameter
 max_it                  = 1;    % Convergence parameter
 
 % Filter settings
-strucObs.filtertype      = 'ukf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'sim'; % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
-strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
+strucObs.noise_obs       = 0.0;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
 strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the command "randn*beta"
 
