@@ -3,16 +3,16 @@ sourcepath      = 'WFSim/data_SOWFA/YawCase3/2turb_50x25_lin'; % Specify locatio
 datanroffset    = 20000;                                          % Numbering offset (first filenumber is datanroffset+1)
 Wp.name         = 'YawCase3_50x50_lin_OBS';                           % Name of meshing (from "meshing.m")
 sensors_path    = ['Setup_sensors/sensor_layouts/' ...            % Specify file with sensor (measurement) locations
-                   'sensors_yaw_2turb_50x25_lin_every5gridpoints']; %'sensors_yaw_2turb_50x25_lin_2row_downwind.mat']%'sensors_yaw_2turb_50x25_lin_every5gridpoints.mat']; 
+                   'sensors_yaw_2turb_50x25_lin_2row_downwind.mat'];%'sensors_yaw_2turb_50x25_lin_every5gridpoints.mat']; 
 
 % Model settings
-options.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 conv_eps                = 1e-6; % Convergence parameter
 max_it_dyn              = 1;    % Convergence parameter
 max_it                  = 1;    % Convergence parameter
 
 % Filter settings
-strucObs.filtertype      = 'ukf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'sim'; % Observer types are outlined below in "Filter settings"
 strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadrandomseed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
@@ -34,15 +34,15 @@ switch lower(strucObs.filtertype)
         strucObs.kappa = 0;% "0" or "3-L"
         
         % Pressure terms and covariances
-        options.exportPressures = 0;   % Model/predict/filter pressure terms
+        scriptOptions.exportPressures = 0;   % Model/predict/filter pressure terms
         strucObs.Q_k.p          = 1.0; % Process noise covariance matrix 
         strucObs.P_0.p          = 0.5; % Initial state covariance matrix 
-        options.Linearversion   = 0;   % Calculate linearized system matrices    
+        scriptOptions.Linearversion   = 0;   % Calculate linearized system matrices    
         
         % Online model parameter adaption/estimation/tuning
-        strucObs.tune.vars = {'turbine.forcescale','site.lmu'}; % If empty {} then no estimation
-        strucObs.tune.Q_k  = [3e-4,3e-4]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [5e-2,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.vars = {'turbine.forcescale','site.mu'}; % If empty {} then no estimation
+        strucObs.tune.Q_k  = [3e-6,3e-4]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [5e-5,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
         strucObs.tune.lb   = [0.00,0.00]; % Lower bound
         strucObs.tune.ub   = [6.00,6.00]; % Upper bound
         
@@ -50,12 +50,12 @@ switch lower(strucObs.filtertype)
         strucObs.R_k            = 1.0; % Measurement   covariance matrix   
         strucObs.Q_k            = 1.0; % Process noise covariance matrix 
         strucObs.P_0            = 0.5; % Initial state covariance matrix 
-        options.exportPressures = 0;   % Model/predict/filter pressure terms
+        scriptOptions.exportPressures = 0;   % Model/predict/filter pressure terms
         
         strucObs.diagP        = true;   % Neglect all off-diagonal elements in P
         strucObs.sparseF      = true;   % Sparsify F matrix to reduce number of operations
         strucObs.Fthresh      = 0.01;   % Neglect values smaller than [*] in F (if above is set to true)
-        options.Linearversion = 1;      % Calculate linearized system matrices    
+        scriptOptions.Linearversion = 1;      % Calculate linearized system matrices    
         
     case {'enkf'}
         strucObs.nrens   =   50;         % Ensemble size
@@ -73,11 +73,11 @@ switch lower(strucObs.filtertype)
           strucObs.pwLocFactor.cross = 1; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
         strucObs.R_ePW        = 1e-3;     % Measurement noise for turbine power measurements
         
-        options.exportPressures = false;      % Include pressure terms in ensemble members (default: false)
+        scriptOptions.exportPressures = false;      % Include pressure terms in ensemble members (default: false)
         strucObs.r_infl         = 1;          % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
         strucObs.f_locl         = 'gaspari';  % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
         strucObs.l_locl         = 50;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
-        options.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.      
+        scriptOptions.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.      
         
         % Online model parameter adaption/estimation/tuning
         strucObs.tune.vars = {};%{'turbine.forcescale','site.Rho'};
@@ -87,8 +87,8 @@ switch lower(strucObs.filtertype)
         strucObs.tune.ub   = [];%[2.00,1.40]; % Upper bound
         
     case {'sim'}
-        options.exportPressures = 1; % Do not change for sim case.
-        options.Linearversion = 0; % Calculate linearized system matrices     
+        scriptOptions.exportPressures = 1; % Do not change for sim case.
+        scriptOptions.Linearversion = 0; % Calculate linearized system matrices     
         
     otherwise
         error('not a valid filter/simulation specified.');

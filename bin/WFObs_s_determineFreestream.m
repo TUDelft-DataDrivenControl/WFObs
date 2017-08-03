@@ -41,11 +41,20 @@ function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_determineFreestream( Wp,input,me
         strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(v_Inf-Wp.site.v_Inf);
     end;
 
+    % Update parameters
     Wp.site.u_Inf = u_Inf;
     Wp.site.v_Inf = v_Inf;
-
     disp(['Freestream conditions: u_Inf = ' num2str(u_Inf)]);
     disp(['Freestream conditions: v_Inf = ' num2str(v_Inf)]);
+    
+    % Save parameters
+    if ismember('saved',fieldnames(Wp))
+        Wp.saved.u_Inf = [Wp.saved.u_Inf, u_Inf];
+        Wp.saved.v_Inf = [Wp.saved.v_Inf, v_Inf];    
+    else
+        Wp.saved.u_Inf = u_Inf;
+        Wp.saved.v_Inf = v_Inf;
+    end;
     
     % Apply changed boundary conditions to update system matrices
     [B1,B2,bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2

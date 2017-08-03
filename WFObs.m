@@ -45,19 +45,31 @@ addpath WFSim/bin/core                % WFSim model directory
 addpath WFSim/libraries/sparse_null   % Model supplementary library
 addpath WFSim/libraries/export_fig    % Graphics library (get here: http://www.mathworks.com/matlabcentral/fileexchange/23629-export-fig)
 
-%% Script settings
-strucScript = struct(...
-    'Animation'       , 50, ... % Plot figures every # iteration (no animation: 0)
-       'plotcontour'  , 1, ...  % plot flow fields (contourf)
-       'plotpower'    , 0, ...  % Plot true and predicted power capture vs. time
-       'ploterror'    , 0, ...  % plot RMS and maximum error vs. time
-    'plotMesh'        , 0, ...  % Plot meshing layout (grid)
-    'printProgress'   , 0, ...  % Print progress in output window at every timestep
-    'saveplots'       , 1, ...  % Save all plots in external files at each time step
-    'saveest'         , 1, ...  % Save estimated flow fields & powers in an external file at each time step
-    'saveworkspace'   , 1, ...  % Save complete workspace at the end of simulation
-    'savepath'        , ['Results/yawCase3_UKF_paramOnly_manyMeasurements'] ... % Destination folder of saved files
-    );  
+%% Define script settings
+% Convergence settings
+scriptOptions.conv_eps          = 1e-6;     % Convergence threshold
+scriptOptions.max_it_dyn        = 1;        % Maximum number of iterations for k > 1
+if scriptOptions.startUniform==1
+    scriptOptions.max_it = 1; 
+else
+    scriptOptions.max_it = 50;
+end
+
+% Display and visualization settings
+scriptOptions.printProgress     = 1;  % Print progress every timestep
+scriptOptions.printConvergence  = 1;  % Print convergence parameters every timestep
+scriptOptions.Animate           = 1;  % Show 2D flow fields every x iterations (0: no plots)
+scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
+scriptOptions.plotContour       = 0;  % Show flow fields
+scriptOptions.plotPower         = 0;  % Plot true and predicted power capture vs. time
+scriptOptions.plotError         = 0;  % plot RMS and maximum error vs. time
+
+% Saving settings
+scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
+scriptOptions.saveEst           = 0;  % Save estimated flow fields & powers in an external file at each time step
+scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
+scriptOptions.savePath          = ['Results/tmp']; % Destination folder of saved files
+
 
 %% Model and observer configuration file
 configName = 'YawCase3.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
@@ -81,9 +93,55 @@ for k = [1 (2+strucObs.obsv_delay):1:Wp.sim.NN ];
         it   = it+1; epss = eps;        
         if k>1; max_it = max_it_dyn; end;
         % Pre-processing: update freestream conditions from SCADA data
-        %[sol,Wp,B1,B2,bc,strucObs] = WFObs_s_determineFreestream(Wp,input{k},measured,sol,strucObs);
+        [sol,Wp,B1,B2,bc,strucObs] = WFObs_s_determineFreestream(Wp,input{k},measured,sol,strucObs);
         
-        % Calculate optimal solution according to filter of choice
+        %% Pre-processing: parameter estimation
+        paramUpdateFreq = 200;
+        if ~rem(k,paramUpdateFreq)
+            for i = 1:paramUpdateFreq
+                t_tmp               = Wp.sim.time(i+k-paramUpdateFreq+1);
+                measured_tmp        = WFObs_s_loadmeasurements(sourcepath,datanroffset,t_tmp,0);
+                solq_tmp(:,i)       = measured.solq(strucObs.obs_array);
+                solq_tAvg           = mean(solq_tmp,2); % Column average
+                
+                input_tmp.beta(:,i) = [input{i+k-paramUpdateFreq}.beta];
+                input_tmp.phi(:,i)  = [input{i+k-paramUpdateFreq}.phi];
+                input_tAvg.beta     = mean( input_tmp.beta,2 );
+                input_tAvg.phi      = mean( input_tmp.phi, 2 );
+                
+                Wp_tAvg             = Wp;
+                Wp_tAvg.site.u_Inf  = mean(Wp.saved.u_Inf(k-paramUpdateFreq:k));
+                Wp_tAvg.site.v_Inf  = mean(Wp.saved.v_Inf(k-paramUpdateFreq:k));
+                Wp_tAvg.sim.h       = Inf; % Steady-state simulation
+                
+                % Apply changed boundary conditions to update system matrices
+                [B1_tAvg,B2_tAvg,bc_tAvg] = Compute_B1_B2_bc(Wp_tAvg);
+                B2_tAvg                   = 2*B2_tAvg;
+            end
+            clear i sol_tmp t_tmp measured_tmp % Remove old variables
+            
+            % Cost function
+            function J = costFunction(x,Wp_tAvg,input_tAvg,solq_tAvg,B1_tAvg,B2_tAvg,bc_tAvg )
+                global strucObs sys options
+                Wp_tAvg.turbine.forcescale = x(1);
+                
+                it        = 0;
+                eps       = 1e19;
+                epss      = 1e20;
+
+                while ( eps>conv_eps && it<max_it && eps<epss )
+                    it   = it+1;
+                    epss = eps;
+                    
+                    %% Calculate optimal solution according to filter of choice
+                    [sol,Wp,strucObs]   = WFObs_o(strucObs,Wp_tAvg,sys,B1_tAvg,B2_tAvg,bc_tAvg,input_tAvg,[],struct(),1,it_tmp,options);  % Perform the observer update
+                    [sol,eps]           = MapSolution(Wp.mesh.Nx,Wp.mesh.Ny,sol,k,it,options);   % Map solution to flowfields
+                end;
+            end
+            
+        end
+        
+        %% Calculate optimal solution according to filter of choice
         [sol,Wp,strucObs]   = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input{timeindex},measured,sol,k,it,options);  % Perform the observer update
         [sol,eps]           = MapSolution(Wp.mesh.Nx,Wp.mesh.Ny,sol,k,it,options);   % Map solution to flowfields
         [~,~,~,sol.power,~] = Actuator(Wp,input{timeindex},sol,options);             % Calculate power after analysis update

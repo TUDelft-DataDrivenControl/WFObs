@@ -21,7 +21,7 @@ strucScript = struct(...
     );  
 
 %% Model and observer configuration file
-configName = 'YawCase3_gs.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
+configName = 'WithPrecursor.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%
