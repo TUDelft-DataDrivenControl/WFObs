@@ -9,6 +9,7 @@ WindFarmObserver (WFObs) is a collection of state estimators for the nonlinear d
 
 ## Quick use:
 Make sure you clone the repository recursively, by
+	
 	git clone https://github.com/Bartdoekemeijer/WFObs --recursive
 
 Then, download the revelant high-fidelity measurement data in the respective folders: WFObs/WFSim/data_SOWFA/.... Once downloaded, open WFObs.m with any recent version of MATLAB. Follow the instructions therein to perform offline estimation simulations of various wind farm scenarios.
