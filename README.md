@@ -26,4 +26,4 @@ Then, download the revelant high-fidelity measurement data in the respective fol
 ## Debugging:
 For any serious issues, reach out to us on the Github page. 
 
-All credit goes to the Delft University of Technology. WFObs was written by ir. Bart Doekemeijer with support from ir Sjoerd Boersma, and under the supervision of dr.ir. Jan-Willem van Wingerden.             
+All credit goes to the Delft University of Technology. WFObs was written by ir. Bart Doekemeijer with support from ir Sjoerd Boersma, and under the supervision of dr.ir. Jan-Willem van Wingerden and prof. Lucy Pao.             
