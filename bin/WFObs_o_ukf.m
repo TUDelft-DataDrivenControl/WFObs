@@ -14,7 +14,6 @@ if sol.k==1
         x0 = sol.x;
         P0 = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
         Qx = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
-        
         if options.exportPressures == 1 % Optional: add pressure terms
             P0 = blkdiag(Px,eye(Wp.Np)*strucObs.P_0.p);
             Qx = blkdiag(Qx,eye(Wp.Np)*strucObs.Q_k.p);
@@ -46,37 +45,28 @@ if sol.k==1
     lambda          = strucObs.alpha^2*(L+strucObs.kappa)-L;
     gamma           = sqrt(L+lambda);
     
-    strucObs.nrens  = 2*L+1;
+    strucObs.nrens  = 2*L+1; % number of sigma points
+    strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
+    
+    % Weight vectors for UKF update
     strucObs.Wm     = [lambda/(L+lambda); repmat(1/(2*(L+lambda)),2*L,1)];
     strucObs.Wc     = [lambda/(L+lambda)+(1-strucObs.alpha^2+strucObs.beta); ...
                        repmat(1/(2*(L+lambda)),2*L,1)];
     tempMat         = eye(2*L+1)-repmat(strucObs.Wm,1,2*L+1);
     strucObs.W      = tempMat*diag(strucObs.Wc)*tempMat';
                
+    % Covariance matrices for UKF
     strucObs.Qx     = Qx;
     strucObs.Pk     = P0;
+    strucObs.Rx     = eye(strucObs.nrobs)*strucObs.R_k;
+    
+    % Other UKF-related parameters
     strucObs.L      = L;
     strucObs.lambda = lambda;
     strucObs.gamma  = gamma;
-    strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
-    strucObs.Rx     = eye(strucObs.nrobs)*strucObs.R_k;
-    
-    % Save old inflow settings
-    strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-    strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
-else
-    if strucObs.stateEst
-        % Scale changes in estimated inflow to the ensemble members
-        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
-        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.u_Inf );
-        
-        % Save old inflow settings
-        strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-        strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
-    end
 end
 
-%% Calculate sigma points
+% Calculate sigma points
 if strucObs.stateEst % Write the system states to the sigma points
     strucObs.Aen = repmat(sol.x,1,strucObs.nrens); 
 else
@@ -89,7 +79,7 @@ for iT = 1:length(strucObs.tune.vars)
 end;
 
 % Distribute sigma points around the mean
-Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk); % Deviations from mean
+Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk);
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
 
@@ -98,12 +88,11 @@ Aenf  = zeros(strucObs.L,strucObs.nrens);       % Initialize empty forecast matr
 Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
-    % Initialize empty variables
     syspar   = sys; % Copy system matrices
     solpar   = sol; % Copy solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
    
-    % Import solution and calculate corresponding system matrices
+    % Import solution from sigma point
     if strucObs.stateEst
         % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
@@ -117,11 +106,9 @@ parfor(ji=1:strucObs.nrens)
     end;
 
     % Forward propagation
-    [ solpar,syspar ]    = WFSim_timestepping( solpar, sys, Wppar, options );
-    xf                   = solpar.x(1:strucObs.size_output,1);    
-    
-    % Calculate output vector
-    Yenf(:,ji) =   xf(strucObs.obs_array);
+    [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
+    xf                = solpar.x(1:strucObs.size_output,1);    
+    Yenf(:,ji)        = xf(strucObs.obs_array); % Calculate output vector
     
     if strucObs.stateEst 
         % Write forecasted state to ensemble forecast matrix   
@@ -159,8 +146,8 @@ end
 
 % Update states, either from estimation or through open-loop
 if strucObs.stateEst
-    sol.x    = xSolAll(1:strucObs.size_output);
-    [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
+    sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
+    [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
     [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
 else
     % Note: this is identical to 'sim' case in WFObs_o(..)
