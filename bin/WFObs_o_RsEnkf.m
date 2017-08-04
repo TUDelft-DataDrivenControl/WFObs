@@ -22,29 +22,29 @@ if sol.k==1
     % Determine initial state ensemble for state vector [u; v]
     initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
     initrand.v = (strucObs.W_0.v*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector v
-    initdist   = [bsxfun(@times,initrand.u,ones(Wp.Nu,1));...        % initial distribution matrix
-                  bsxfun(@times,initrand.v,ones(Wp.Nv,1))];    
+    strucObs.dist   = [bsxfun(@times,initrand.u,ones(Wp.Nu,1));...   % initial distribution matrix
+                       bsxfun(@times,initrand.v,ones(Wp.Nv,1))];    
               
-    x0         = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];    
+    sol.x      = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];    
               
     % Optional: add pressure terms
     if options.exportPressures == 1
-        x0         = [x0; vec(sol.p(2:end-1,2:end-1)')];
-        x0         =  x0(1:end-2); % Correction for how pressure is formatted
+        sol.x  = [sol.x; vec(sol.p(2:end-1,2:end-1)')];
+        sol.x  =  sol.x(1:end-2); % Correction for how pressure is formatted
         
         initrand.p = (strucObs.W_0.p*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector p
-        initdist   = [initdist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
+        strucObs.dist = [strucObs.dist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
     end;
     
     % Add model parameters as states for online model adaption
     for iT = 1:length(strucObs.tune.vars)
-        tuneP                 = strucObs.tune.vars{iT};
-        dotLoc                = findstr(tuneP,'.');
-        subStruct             = tuneP(1:dotLoc-1);
-        structVar             = tuneP(dotLoc+1:end);
-        x0                    = [x0; Wp.(subStruct).(structVar)];
-        initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
-        initdist              = [initdist; bsxfun(@times,initrand.(structVar),1)];
+        tuneP                = strucObs.tune.vars{iT};
+        dotLoc               = findstr(tuneP,'.');
+        subStruct            = tuneP(1:dotLoc-1);
+        structVar            = tuneP(dotLoc+1:end);
+        sol.x                = [sol.x; Wp.(subStruct).(structVar)];
+        initrand.(structVar) = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+        strucObs.dist        = [strucObs.dist; bsxfun(@times,initrand.(structVar),1)];
         
         % Save to strucObs for later
         strucObs.tune.subStruct{iT} = subStruct;
@@ -53,7 +53,6 @@ if sol.k==1
 
     % Calculate initial ensemble
     strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
-    strucObs.Aen   = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
 else
     % Scale changes in estimated inflow to the ensemble members
     strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
@@ -64,26 +63,21 @@ end;
 strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
 strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     
+% (Re)distribute the ensemble members
+strucObs.Aen = repmat(sol.x,1,strucObs.nrens) + strucObs.dist;
+
 % Parallelized solving of the EnKF
 Aenf  = zeros(strucObs.size_output+length(strucObs.tune.vars),strucObs.nrens); % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.nrobs+strucObs.measPw*Wp.turbine.N,strucObs.nrens);          % Initialize empty output matrix
 
 for(ji=1:strucObs.nrens)
     % Initialize empty variables
-    syspar   = struct;
-    solpar   = struct;
+    syspar   = sys;
+    solpar   = sol;
     Wppar    = Wp;                       
     sys_full = zeros(strucObs.size_state,1);
     itpar    = Inf; % Do not iterate inside EnKF
-    
-    % Initialize time
-    solpar.k = sol.k;
-    
-    % Initialize empty u, uu, v, vv, p, pp entries in solpar
-    [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    
+        
     % Import solution and calculate corresponding system matrices
     solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
     [solpar,~] = MapSolution(Wppar,solpar,Inf,options); 

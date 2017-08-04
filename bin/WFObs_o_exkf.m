@@ -1,4 +1,4 @@
-function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,it,options)
+function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options)
 %   This script calculates the optimally estimated system state vector
 %   according to the measurement data and the internal model using the
 %   Extended Kalman Filter (ExKF).
@@ -58,7 +58,7 @@ function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,it,options)
         Fk = strucObs.indFsparse .* Fk; 
     end;
     
-    [solf,~] = Computesol(Wp,sys,sol,it,options);   % Compute forecasted solution by standard WFSim function
+    [solf,~] = Computesol(Wp,sys,sol,Inf,options);   % Compute forecasted solution by standard WFSim function
     Pf       = Fk*strucObs.Pk*Fk' + strucObs.Q_k;    % Covariance matrix P for x(k) knowing y(k-1)
     if strucObs.diagP; Pf = diag(diag(Pf)); end;     % Enforce sparsification of Pf
     

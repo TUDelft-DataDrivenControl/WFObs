@@ -23,7 +23,7 @@ else
 end
 
 % Filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'ukf'; % Observer types are outlined below in "Filter settings"
 %strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadRandomSeed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
@@ -33,7 +33,7 @@ strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the
 switch lower(strucObs.filtertype)
     case {'ukf'}
         % Filter settings
-        strucObs.stateEst = false;  % Do state estimation: true/false
+        strucObs.stateEst = true;   % Do state estimation: true/false
         strucObs.R_k   = 0.10;      % Measurement   covariance matrix
         strucObs.Q_k.u = 0.10;      % Process noise covariance matrix
         strucObs.Q_k.v = 0.01;      % Process noise covariance matrix
@@ -51,11 +51,11 @@ switch lower(strucObs.filtertype)
         scriptOptions.Linearversion   = 0;   % Calculate linearized system matrices
         
         % Online model parameter adaption/estimation/tuning
-        strucObs.tune.vars = {'turbine.forcescale','site.mu'}; % If empty {} then no estimation
-        strucObs.tune.Q_k  = [3e-6,3e-4]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [5e-5,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [0.00,0.00]; % Lower bound
-        strucObs.tune.ub   = [6.00,6.00]; % Upper bound
+        strucObs.tune.vars = {};%{'turbine.forcescale','site.mu'}; % If empty {} then no estimation
+        strucObs.tune.Q_k  = [];%[3e-6,3e-4]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [];%[5e-5,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [];%[0.00,0.00]; % Lower bound
+        strucObs.tune.ub   = [];%[6.00,6.00]; % Upper bound
         
     case {'exkf'}
         strucObs.R_k            = 1.0; % Measurement   covariance matrix
@@ -70,7 +70,7 @@ switch lower(strucObs.filtertype)
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
         
     case {'enkf'}
-        strucObs.nrens   =   50;         % Ensemble size
+        strucObs.nrens   =   200;         % Ensemble size
         strucObs.R_e     =   0.10;       % Standard dev. for measurement noise ensemble
         strucObs.Q_e.u   =   0.08;       % Standard dev. for process noise 'u' in m/s
         strucObs.Q_e.v   =   0.02;       % Standard dev. for process noise 'v' in m/s

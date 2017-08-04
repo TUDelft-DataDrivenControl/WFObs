@@ -1,4 +1,4 @@
-function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,it,options)
+function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,options)
 %[ sol, strucObs ] = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,startUniform)
 %   This script selects which function to call for state reconstruction:
 %   the Extended Kalman Filter (ExKF), Ensemble Kalman Filter (EnKF), or
@@ -20,11 +20,11 @@ function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,it,options)
 
 switch lower(strucObs.filtertype)
     case 'exkf'
-        [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,it,options);
+        [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
     case 'enkf'
-        [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,it,options);
+        [Wp,sol,strucObs] = WFObs_o_RsEnkf(strucObs,Wp,sys,sol,options);
     case 'ukf'
-        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,it,options);
+        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
     case 'sim'
         sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
         [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);

@@ -13,36 +13,18 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
 %% Perform time domain simulations
     while sol.k < Wp.sim.NN
-        timerCPU = tic;   % Start iteration timer
-
-        % Reset local convergence parameters
-        it       = 0;
-        eps      = 1e19;
-        epss     = 1e20;
-
-        % Timestep forward
-        sol.k    = sol.k + 1;
-        sol.time = Wp.sim.time(sol.k+1);
+        timerCPU = tic;                 % Start iteration timer
+        sol.k    = sol.k + 1;           % Timestep forward
+        sol.time = Wp.sim.time(sol.k+1);% Timestep forward
 
         % Load measurement data
-        sol.measuredData = WFObs_s_loadmeasurements( strucObs, sol.time );
+        sol.measuredData = WFObs_s_loadmeasurements(strucObs,sol.time);
 
         % Determine freestream inflow properties from SCADA data
-        [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs );
+        [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
 
-        % Iterate towards a solution (flow field)
-        while ( eps > conv_eps && it < max_it && eps < epss )
-            it   = it+1;
-            epss = eps;
-            if sol.k > 1
-                scriptOptions.max_it = scriptOptions.max_it_dyn;
-            end
-
-            % Calculate optimal solution according to filter of choice
-            [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,it,scriptOptions);  % Perform the observer update
-            [sol,eps]         = MapSolution(Wp,sol,it,scriptOptions);           % Map solution to flowfields
-            [~,sol]           = Actuator(Wp,sol,scriptOptions);                 % Recalculate power after analysis update
-        end
+        % Calculate optimal solution according to filter of choice
+        [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
 
         % Display progress in the command window
         sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
