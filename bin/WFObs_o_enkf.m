@@ -1,22 +1,8 @@
-function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)       
-%[ sol, strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
-%   This script calculates the optimally estimated system state vector
-%   according to the measurement data and the internal model using the
-%   Ensemble Kalman Filter (EnKF).
-%
-%    Inputs:
-%     *strucObs        structure containing observer information for time k-1
-%     *Wp              structure containing meshing information
-%     *sys             structure containing system matrices
-%     *sol             flow fields and system state vector for time k-1
-%     *options         structure containing model/script option information
-%
-%    Outputs:
-%     *Wp              structure containing meshing information
-%     *sol             flow fields and system state vector for time k
-%     *strucObs        structure containing observer information for time k
+function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)     
 
-measuredData = sol.measuredData; % Load measurement data
+if strucObs.measPw
+    error('This function is currently not yet supported.');
+end
 
 if sol.k==1
     % Determine initial state ensemble for state vector [u; v]
@@ -51,52 +37,54 @@ if sol.k==1
         strucObs.tune.structVar{iT} = structVar;
     end;
 
+    strucObs.L     = strucObs.size_output+length(strucObs.tune.vars);
+    
     % Calculate initial ensemble
     strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
     strucObs.Aen   = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
+    
+    % Save old inflow settings
+    strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+    strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
 else
     % Scale changes in estimated inflow to the ensemble members
     strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
     strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.u_Inf );
+    
+    % Save old inflow settings
+    strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+    strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
 end;
-
-% Save old inflow settings
-strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     
 % Parallelized solving of the EnKF
-Aenf  = zeros(strucObs.size_output+length(strucObs.tune.vars),strucObs.nrens); % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.nrobs+strucObs.measPw*Wp.turbine.N,strucObs.nrens);          % Initialize empty output matrix
+Aenf  = zeros(strucObs.L,strucObs.nrens); % Initialize empty forecast matrix
+Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
+
+if strucObs.measPw
+    Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
+end;
 
 for(ji=1:strucObs.nrens)
-    % Initialize empty variables
-    syspar   = struct;
-    solpar   = struct;
-    Wppar    = Wp;                       
-    sys_full = zeros(strucObs.size_state,1);
-    itpar    = Inf; % Do not iterate inside EnKF
-    
-    % Initialize time
-    solpar.k = sol.k;
-    
-    % Initialize empty u, uu, v, vv, p, pp entries in solpar
-    [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    
-    % Import solution and calculate corresponding system matrices
-    solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
-    [solpar,~] = MapSolution(Wppar,solpar,Inf,options); 
-    
-    % Update Wp with values from the ensemble
-    for iT = 1:length(strucObs.tune.vars)
-        jtemppar = jtemppar + 1;
-        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = strucObs.Aen(jtemppar,ji);
+    syspar   = sys; % Copy system matrices
+    solpar   = sol; % Copy solution from prev. time instant
+    Wppar    = Wp;  % Copy meshing struct
+   
+    % Import solution from sigma point
+    if strucObs.stateEst
+        % Load sigma point as solpar.x
+        solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
+        [solpar,~] = MapSolution(Wppar,solpar,Inf,options);
     end;
-    
+       
+    % Update Wp with values from the sigma points
+    for iT = 1:length(strucObs.tune.vars)
+        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
+        min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
+    end;
+
     % Forward propagation
     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
-    xf                = solpar.x(1:strucObs.size_output,1); % Cut off pressure terms, if necessary
+    xf                = solpar.x(1:strucObs.size_output,1);    
     
     % Calculate process noise
     Frand = [strucObs.Q_e.u*randn(Wppar.Nu,1); ...
@@ -109,7 +97,7 @@ for(ji=1:strucObs.nrens)
     for iT = 1:length(strucObs.tune.vars)
         Frandtemp = strucObs.tune.Q_e(iT)*randn(1,1);
         xf        = [xf; min([strucObs.tune.ub, max([strucObs.tune.lb,...
-            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) + Frandtemp])])];
+                     Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) + Frandtemp])])];
         Frand     = [Frand; Frandtemp];
     end;
     
@@ -124,11 +112,11 @@ end;
 
 % Create and disturb measurement vector
 Gamma  = strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);                 % artificial measurement noise flow
-Den    = repmat(measuredData.sol(strucObs.obs_array),1,strucObs.nrens) + Gamma; % disturbed measurement ensemble
+Den    = repmat(sol.measuredData.sol(strucObs.obs_array),1,strucObs.nrens) + Gamma; % disturbed measurement ensemble
 
 if strucObs.measPw % Add power measurement noise, if applicable
     Gamma_Pw = [strucObs.R_ePW*randn(Wp.turbine.N,strucObs.nrens)];     % artificial measurement noise turbines
-    Den      = [Den; repmat(measuredData.power,1,strucObs.nrens)+Gamma_Pw]; % Updated measurement vector
+    Den      = [Den; repmat(sol.measuredData.power,1,strucObs.nrens)+Gamma_Pw]; % Updated measurement vector
     Gamma    = [Gamma; Gamma_Pw];                                       % Updated noise matrix
     clear Gamma_Pw
 end;
@@ -233,7 +221,14 @@ Aenf  = Aenf*(1/strucObs.nrens)*ones(strucObs.nrens)+sqrt(strucObs.r_infl)*Aenft
 strucObs.Aen = Aenf + strucObs.cross_corrfactor.*(Aenft*Yenft') * ...
                pinv( strucObs.auto_corrfactor.*(Yenft*Yenft')+ Gamma*Gamma')*Dent;
 
-%% Determine outputs with optimal state
-sol.x    = mean(strucObs.Aen,2);    % Export optimal solution from updated ensemble    
+           
+%% Post-processing
+% Update model parameters with the optimal estimate
+for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
+    Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+end
+
+% Update states from estimation
+sol.x    = mean(strucObs.Aen,2);            % Write optimal estimate to sol
 [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
-[~,sol]  = Actuator(Wp,sol,options);% Recalculate power after analysis update
+[~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update

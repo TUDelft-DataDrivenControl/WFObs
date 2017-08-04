@@ -1,22 +1,4 @@
 function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)       
-%[ sol, strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
-%   This script calculates the optimally estimated system state vector
-%   according to the measurement data and the internal model using the
-%   Ensemble Kalman Filter (EnKF).
-%
-%    Inputs:
-%     *strucObs        structure containing observer information for time k-1
-%     *Wp              structure containing meshing information
-%     *sys             structure containing system matrices
-%     *sol             flow fields and system state vector for time k-1
-%     *options         structure containing model/script option information
-%
-%    Outputs:
-%     *Wp              structure containing meshing information
-%     *sol             flow fields and system state vector for time k
-%     *strucObs        structure containing observer information for time k
-
-measuredData = sol.measuredData; % Load measurement data
 
 if sol.k==1
     % Determine initial state ensemble for state vector [u; v]
@@ -118,11 +100,11 @@ end;
 
 % Create and disturb measurement vector
 Gamma  = strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);                 % artificial measurement noise flow
-Den    = repmat(measuredData.sol(strucObs.obs_array),1,strucObs.nrens) + Gamma; % disturbed measurement ensemble
+Den    = repmat(sol.measuredData.sol(strucObs.obs_array),1,strucObs.nrens) + Gamma; % disturbed measurement ensemble
 
 if strucObs.measPw % Add power measurement noise, if applicable
     Gamma_Pw = [strucObs.R_ePW*randn(Wp.turbine.N,strucObs.nrens)];     % artificial measurement noise turbines
-    Den      = [Den; repmat(measuredData.power,1,strucObs.nrens)+Gamma_Pw]; % Updated measurement vector
+    Den      = [Den; repmat(sol.measuredData.power,1,strucObs.nrens)+Gamma_Pw]; % Updated measurement vector
     Gamma    = [Gamma; Gamma_Pw];                                       % Updated noise matrix
     clear Gamma_Pw
 end;

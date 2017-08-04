@@ -1,6 +1,10 @@
 function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)    
 % WFOBS_O_UKF  Unscented KF algorithm for the WFSim model
 
+if strucObs.measPw
+    error('This function is currently not yet supported.');
+end
+
 if sol.k==1 
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
@@ -87,6 +91,10 @@ strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_d
 Aenf  = zeros(strucObs.L,strucObs.nrens);       % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
 
+if strucObs.measPw
+    Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
+end;
+
 parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
     solpar   = sol; % Copy solution from prev. time instant
@@ -108,16 +116,16 @@ parfor(ji=1:strucObs.nrens)
     % Forward propagation
     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
     xf                = solpar.x(1:strucObs.size_output,1);    
-    Yenf(:,ji)        = xf(strucObs.obs_array); % Calculate output vector
-    
+    Yenf(:,ji)        = xf(strucObs.obs_array); 
+
     if strucObs.stateEst 
         % Write forecasted state to ensemble forecast matrix   
         Aenf(:,ji) = [xf;strucObs.Aen(strucObs.size_output+1:end,ji)];
     else
         % For model parameters, x_k+1 = x_k, so simply copy old values
         Aenf(:,ji) = strucObs.Aen(:,ji);
-    end;
-end;
+    end
+end
 
 %% Analysis update of the Unscented KF
 xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .*Aenf, 2);
