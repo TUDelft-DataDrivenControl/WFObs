@@ -1,4 +1,13 @@
-function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
+function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)       
+    measuredData = sol.measuredData;
+
+% Apply changes to EnKF, if Aen available (k > 1 and EnKF used)
+    if sum(strcmp(fieldnames(strucObs), 'Aen')) > 0
+        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)+(u_Inf-Wp.site.u_Inf);
+        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(v_Inf-Wp.site.v_Inf);
+    end;
+    
+    
 %[ sol, strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
 %   This script calculates the optimally estimated system state vector
 %   according to the measurement data and the internal model using the

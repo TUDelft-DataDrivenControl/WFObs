@@ -1,78 +1,69 @@
+function [ output_args ] = WFObs_core( input_args )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%                      WindFarmObserver (WFObs)                        
-%                                                                                                   
-%  Description:  
-%   WindFarmObserver (WFObs) is a state observer that gives accurate
-%   estimations of the time-varying two-dimensional flow field    
-%   in a wind farm while requiring few measurements (<= 1% of the           
-%   variables of interest) and a low computational cost (<= 1 s). This      
-%   state information can be used in real-time for state-feedback con-
-%   trol algorithms to determine a temporally optimal control policy,
-%   accounting for time-varying atmospheric conditions and unmod-
-%   eled (and stochastic) flow dynamics, both typically neglected in
-%   existing wind farm control methods.
-%                                                       
-%  Publications on WFObs (sorted on from newest to oldest):
-%   1. Doekemeijer, B.M.; Boersma, S.; Pao, L.Y.; van Wingerden, J.W. 'Ensemble Kalman filtering for wind field estimation in wind farms', in proceedings of the American Control Conference (ACC), 2017 
-%   2. Doekemeijer, B.M.; van Wingerden, J.W.; Boersma, S.; Pao, L.Y. 'Enhanced Kalman filtering for a 2D CFD NS wind farm flow model', Journal of Physics: Conference Series, Volume 753, Issue 5, 2016, Pages 052015.
-%  
-%  Recommended usage:
-%   1. Make sure your WFSim and WFObs versions are up-to-date
-%   2. Specify your script     preferences in lines 49 - 59
-%   3. Specify your simulation settings file in line  62
-%     a. To create a simulation case manually, have a look at the ./configurations folder
-%        i.  Use  '/Setup_sensors/WFObs_s_sensors.m' to specify measurement locations 
-%        ii. All WFSim model/site information is contained in '../WFSim/bin/core/meshing.m'
+%%
+%%             WIND FARM OBSERVER (WFOBS) by B.M. Doekemeijer
+%                 Delft University of Technology, 2017
+%              Repo: https://github.com/Bartdoekemeijer/WFObs
 %
-%  Filter options:
-%   1. Ensemble Kalman Filter (EnKF) including localization, inflation,
-%      and parallelization. Best results in both accuracy and speed.
-%   2. Extended Kalman Filter (ExKF) including sparsification options
-%      to reduce computational cost. Good reconstruction results, but slow.
-%   3. Do Nothing (sim), which simply simulates the WFSim model without
-%      using any kind of filtering/reconstruction algorithm.
+%  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
+%%   Quick use:
+%     1. Specify your script preferences in lines 49 - 59
+%     3. Specify your simulation settings file in line  62
+%      a. To create a simulation case manually, have a look at the ./configurations folder
+%          i.  Use  '/Setup_sensors/WFObs_s_sensors.m' to specify measurement locations 
+%          ii. All WFSim model/site information is contained in '../WFSim/bin/core/meshing.m'
+%     3. Press start.
 %
-%  Last updated: 04/07/2017
-%  Author:       Bart Doekemeijer, TUDelft (B.M.Doekemeijer@tudelft.nl)
-%                                                       
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   Relevant input/output variables
+%     - scriptOptions: this struct contains all simulation settings, not
+%     related to the wind farm itself (solution methodology, outputs, etc.)
+%
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%         Wp.Nu:      Number of model states concerning longitudinal flow.
+%         Wp.Nv:      Number of model states concerning lateral flow.
+%         Wp.Np:      Number of model states concerning pressure terms.
+%         Wp.sim:     Substruct containing timestep and simulation length.
+%         Wp.turbine: Substruct containing turbine properties and settings.
+%         Wp.site:    Substruct containing freestream atmospheric properties.
+%         Wp.mesh:    Substruct containing topology and meshing settings.
+%
+%     - sol: this struct contains the system states at a certain timestep.
+%         sol.k:     Discrete timestep  to which these system states belong
+%         sol.time:  Actual time (in s) to which these system states belong
+%         sol.u:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.v:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.p:     Instantaneous pressure field over the mesh (in Pa)
+%         sol.uu:    Same as sol.u, used for convergence.
+%         sol.vv:    Same as sol.v, used for convergence.
+%         sol.pp:    Same as sol.p, used for convergence.
+%         sol.a:     Axial induction factor of each turbine at time sol.k.
+%         sol.power: Generated power (in W) of each turbine at time sol.k.
+%         sol.ct:    Thrust coefficient (-) of each turbine at time sol.k.
+%         sol.x:     True system state (basically flow field excluding bcs).
+%
+%     - sys: this struct contains the system matrices at a certain timestep.
+%         sys.A:     System matrix A in the grand picture: A*sol.x = b
+%         sys.b:     System vector b in the grand picture: A*sol.x = b
+%         sys.pRCM:  Reverse Cuthill-McKee algorithm for solving A*x=b faster.
+%         sys.B1:    Important matrix in the boundary conditions.
+%         sys.B2:    Important matrix in the boundary conditions.
+%         sys.bc:    Important vector in the boundary conditions.
+
+%%   Debugging and contributing:
+%     - First, try to locate any errors by turning all possible outputs
+%       on (printProgress, printConvergence, Animate, plotMesh).
+%     - If you cannot solve your problems, reach out on the Github.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Import libraries
-clear all; close all; clc; tic; 
+tic; 
 addpath bin                           % Observer directory
 addpath WFSim/bin/core                % WFSim model directory
 addpath WFSim/libraries/sparse_null   % Model supplementary library
 addpath WFSim/libraries/export_fig    % Graphics library (get here: http://www.mathworks.com/matlabcentral/fileexchange/23629-export-fig)
-
-%% Define script settings
-% Convergence settings
-scriptOptions.conv_eps          = 1e-6;     % Convergence threshold
-scriptOptions.max_it_dyn        = 1;        % Maximum number of iterations for k > 1
-if scriptOptions.startUniform==1
-    scriptOptions.max_it = 1; 
-else
-    scriptOptions.max_it = 50;
-end
-
-% Display and visualization settings
-scriptOptions.printProgress     = 1;  % Print progress every timestep
-scriptOptions.printConvergence  = 1;  % Print convergence parameters every timestep
-scriptOptions.Animate           = 1;  % Show 2D flow fields every x iterations (0: no plots)
-scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.plotContour       = 0;  % Show flow fields
-scriptOptions.plotPower         = 0;  % Plot true and predicted power capture vs. time
-scriptOptions.plotError         = 0;  % plot RMS and maximum error vs. time
-
-% Saving settings
-scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
-scriptOptions.saveEst           = 0;  % Save estimated flow fields & powers in an external file at each time step
-scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['Results/tmp']; % Destination folder of saved files
-
-
-%% Model and observer configuration file
-configName = 'YawCase3.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%                    Internal code                      %% %%

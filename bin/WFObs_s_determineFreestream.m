@@ -1,4 +1,8 @@
-function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_determineFreestream( Wp,input,measured,sol,strucObs )
+function [ Wp,sol,sys,strucObs ] = WFObs_s_determineFreestream( Wp,sol,sys,strucObs )
+    % Import variables
+    input        = Wp.turbine.input{sol.k};
+    measuredData = sol.measuredData;
+    
     wd = 270.; % wind direction in degrees. should actually be something like:
     % wd = mean(measured.windVaneMeasurements)
     % but currently no anemometer measurements yet from SOWFA...
@@ -12,7 +16,7 @@ function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_determineFreestream( Wp,input,me
         axi = input.beta(turbi)/(1+input.beta(turbi));
         yaw = input.phi(turbi);
         Ar  = 0.25*pi*Wp.turbine.Drotor^2;
-        Pw  = measured.turb.data.Power(turbi);
+        Pw  = measuredData.turb.data.Power(turbi);
         rho = 1.22;
         
         Cp_tmp = 4*axi*(1-axi)^2*eta*cosd(yaw)^1.88;
@@ -33,30 +37,16 @@ function [ sol,Wp,B1,B2,bc,strucObs ] = WFObs_s_determineFreestream( Wp,input,me
     % Define output
     [sol.u,sol.uu] = deal(sol.u+(u_Inf-Wp.site.u_Inf)); % Update all states
     [sol.v,sol.vv] = deal(sol.v+(v_Inf-Wp.site.v_Inf)); % Update all states
-    %[sol.u(1:3,:),sol.uu(1:3,:)] = deal(u_Inf); % Update boundary only
-    %[sol.v(1:3,:),sol.vv(1:3,:)] = deal(v_Inf); % Update boundary only
-    % Apply changes to EnKF, if Aen available (k > 1 and EnKF used)
-    if sum(strcmp(fieldnames(strucObs), 'Aen')) > 0
-        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)+(u_Inf-Wp.site.u_Inf);
-        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(v_Inf-Wp.site.v_Inf);
-    end;
 
     % Update parameters
     Wp.site.u_Inf = u_Inf;
     Wp.site.v_Inf = v_Inf;
-    disp(['Freestream conditions: u_Inf = ' num2str(u_Inf)]);
-    disp(['Freestream conditions: v_Inf = ' num2str(v_Inf)]);
     
     % Save parameters
-    if ismember('saved',fieldnames(Wp))
-        Wp.saved.u_Inf = [Wp.saved.u_Inf, u_Inf];
-        Wp.saved.v_Inf = [Wp.saved.v_Inf, v_Inf];    
-    else
-        Wp.saved.u_Inf = u_Inf;
-        Wp.saved.v_Inf = v_Inf;
-    end;
+    sol.inflow.u_Inf = u_Inf;
+    sol.inflow.v_Inf = v_Inf;    
     
     % Apply changed boundary conditions to update system matrices
-    [B1,B2,bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
-    B2         = 2*B2;
+    [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
+    sys.B2                 = 2*sys.B2;
 end

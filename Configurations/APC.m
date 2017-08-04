@@ -1,3 +1,11 @@
+%  Filter options:
+%   1. Ensemble Kalman Filter (EnKF) including localization, inflation,
+%      and parallelization. Best results in both accuracy and speed.
+%   2. Extended Kalman Filter (ExKF) including sparsification options
+%      to reduce computational cost. Good reconstruction results, but slow.
+%   3. Do Nothing (sim), which simply simulates the WFSim model without
+%      using any kind of filtering/reconstruction algorithm.
+
 % SOWFA source directories and meshing options
 sourcepath      = 'WFSim\Data_SOWFA\APC\9turb_100x50_lin';        % Specify location of SOWFA data (excluding backslash at the end)
 datanroffset    = 22000;                                          % Numbering offset (first filenumber is datanroffset+1)
