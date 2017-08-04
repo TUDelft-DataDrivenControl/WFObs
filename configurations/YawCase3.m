@@ -7,7 +7,7 @@
 %      using any kind of filtering/reconstruction algorithm.
 
 % SOWFA source directories and meshing options
-strucObs.measurementsPath   = 'D:/bmdoekemeijer/My Documents/MATLAB/WFObs/WFSim/data_SOWFA/YawCase3/2turb_50x25_lin'; % Specify location of SOWFA data (excluding backslash at the end)
+strucObs.measurementsPath   = 'WFSim/data_SOWFA/YawCase3/2turb_50x25_lin'; % Specify location of SOWFA data (excluding backslash at the end)
 strucObs.measurementsOffset = 20000;                                       % Numbering offset (first filenumber is datanroffset+1)
 Wp.name                     = 'YawCase3_50x50_lin_OBS';                    % Name of meshing (from "meshing.m")
 strucObs.sensorsPath        = ['yaw_2turb_50x25_2row_downwind.mat'];   %
