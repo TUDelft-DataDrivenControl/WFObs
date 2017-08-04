@@ -1,17 +1,24 @@
 function [ outputData ] = WFObs_core( scriptOptions, configName )
-% WFOBS_CORE  Perform a complete simulation with state estimation
+% WFOBS_CORE  Perform a complete time simulation with state estimation
+%
+%    This code will complete a full wind farm simulation including state
+%    estimation, as set up in meshing.m(...) and in configurations/*.mat.
+%    It will use measurements from data_SOWFA/* to improve the flow
+%    estimations using the WFSim model.
+%
 
-%% Pre-processing: import libraries, set up model, set up observer
+%% Pre-processing
     timerScript = tic;       % Start script timer
     run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 
     % Initialize model and observer variables
-    [Wp,sol,sys,strucObs,scriptOptions,hFigs] = WFObs_s_initialize(scriptOptions,configName);
+    [Wp,sol,sys,strucObs,scriptOptions,hFigs] = ...
+        WFObs_s_initialize(scriptOptions,configName);
     max_it   = scriptOptions.max_it;    % Convergence constraints
     conv_eps = scriptOptions.conv_eps;  % Convergence constraints
     
 
-%% Perform time domain simulations
+%% Core: time domain simulations
     while sol.k < Wp.sim.NN
         timerCPU = tic;                 % Start iteration timer
         sol.k    = sol.k + 1;           % Timestep forward
@@ -31,7 +38,9 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         
         % write to an external file
         if scriptOptions.saveEst
-            save([scriptOptions.savePath '/' strucObs.filtertype '_est' num2str(strucObs.measurementsOffset+sol.k),'.mat'],'sol','sys','Wp','strucObs','scriptOptions'); 
+            save([scriptOptions.savePath '/' strucObs.filtertype ...
+                '_est' num2str(strucObs.measurementsOffset+sol.k),...
+                '.mat'],'sol','sys','Wp','strucObs','scriptOptions'); 
         end;
         
         % Save solution to an array
@@ -59,6 +68,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
     % Print end of simulation statement
     if scriptOptions.printProgress
-        disp([datestr(rem(now,1)) ' __  Completed simulations. Total CPU time: ' num2str(toc(timerScript)) ' s.']);
+        disp([datestr(rem(now,1)) ' __  Completed simulations.' ... 
+            'Total CPU time: ' num2str(toc(timerScript)) ' s.']);
     end
 end

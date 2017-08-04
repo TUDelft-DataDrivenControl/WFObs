@@ -33,7 +33,7 @@ strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the
 switch lower(strucObs.filtertype)
     case {'ukf'}
         % Filter settings
-        strucObs.stateEst = true;   % Do state estimation: true/false
+        strucObs.stateEst = false;  % Do state estimation: true/false
         strucObs.R_k   = 0.10;      % Measurement   covariance matrix
         strucObs.Q_k.u = 0.10;      % Process noise covariance matrix
         strucObs.Q_k.v = 0.01;      % Process noise covariance matrix
@@ -46,16 +46,16 @@ switch lower(strucObs.filtertype)
         
         % Pressure terms and covariances
         scriptOptions.exportPressures = 0;   % Model/predict/filter pressure terms
-        strucObs.Q_k.p          = 1.0; % Process noise covariance matrix
-        strucObs.P_0.p          = 0.5; % Initial state covariance matrix
+        strucObs.Q_k.p                = 1.0; % Process noise covariance matrix
+        strucObs.P_0.p                = 0.5; % Initial state covariance matrix
         scriptOptions.Linearversion   = 0;   % Calculate linearized system matrices
         
         % Online model parameter adaption/estimation/tuning
-        strucObs.tune.vars = {};%{'turbine.forcescale','site.mu'}; % If empty {} then no estimation
-        strucObs.tune.Q_k  = [];%[3e-6,3e-4]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [];%[5e-5,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [];%[0.00,0.00]; % Lower bound
-        strucObs.tune.ub   = [];%[6.00,6.00]; % Upper bound
+        strucObs.tune.vars = {'turbine.forcescale','site.lmu'}; % If empty {} then no estimation
+        strucObs.tune.Q_k  = [3e-6,3e-4]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.P_0  = [5e-5,5e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.00,0.00]; % Lower bound
+        strucObs.tune.ub   = [6.00,6.00]; % Upper bound
         
     case {'exkf'}
         strucObs.R_k            = 1.0; % Measurement   covariance matrix

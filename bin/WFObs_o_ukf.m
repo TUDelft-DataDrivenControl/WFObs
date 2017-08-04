@@ -1,21 +1,26 @@
 function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)    
-if sol.k==1   
+% WFOBS_O_UKF  Unscented KF algorithm for the WFSim model
+
+if sol.k==1 
+    % Initialize state vector
+    sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
+    if options.exportPressures == 1 % Optional: add pressure terms
+        sol.x = [sol.x; vec(sol.p(2:end-1,2:end-1)')];
+        sol.x = sol.x(1:end-2); % Correction for how pressure is formatted
+    end    
+    
+    % If do state estimation, then load covariance matrices
     if strucObs.stateEst
-        % Do state estimation: load cov matrices
-        x0 = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];    
+        x0 = sol.x;
         P0 = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
         Qx = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
         
         if options.exportPressures == 1 % Optional: add pressure terms
-            x0 = [x0; vec(sol.p(2:end-1,2:end-1)')];
-            x0 =  x0(1:end-2); % Correction for how pressure is formatted
             P0 = blkdiag(Px,eye(Wp.Np)*strucObs.P_0.p);
             Qx = blkdiag(Qx,eye(Wp.Np)*strucObs.Q_k.p);
         end
-        sol.x = x0;
     else
         % No state estimation, parameter only
-        sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
         x0    = [];
         P0    = [];
         Qx    = [];
@@ -27,6 +32,7 @@ if sol.k==1
         dotLoc      = findstr(tuneP,'.');
         subStruct   = tuneP(1:dotLoc-1);
         structVar   = tuneP(dotLoc+1:end);
+        x0          = [x0; Wp.(subStruct).(structVar)];
         P0          = blkdiag(P0,strucObs.tune.P_0(iT));
         Qx          = blkdiag(Qx,strucObs.tune.Q_k(iT));
         
@@ -36,7 +42,7 @@ if sol.k==1
     end;
     
     % Calculate initial ensemble
-    L               = length(x0)+length(strucObs.tune.vars);
+    L               = length(x0);
     lambda          = strucObs.alpha^2*(L+strucObs.kappa)-L;
     gamma           = sqrt(L+lambda);
     
@@ -54,17 +60,21 @@ if sol.k==1
     strucObs.gamma  = gamma;
     strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
     strucObs.Rx     = eye(strucObs.nrobs)*strucObs.R_k;
+    
+    % Save old inflow settings
+    strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+    strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
 else
     if strucObs.stateEst
         % Scale changes in estimated inflow to the ensemble members
         strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
         strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.u_Inf );
+        
+        % Save old inflow settings
+        strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+        strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     end
 end
-
-% Save old inflow settings
-strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
 
 %% Calculate sigma points
 if strucObs.stateEst % Write the system states to the sigma points
@@ -89,23 +99,15 @@ Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
     % Initialize empty variables
-    syspar   = sys; %struct;
-    solpar   = sol; %struct;
-    Wppar    = Wp;                       
-    sys_full = zeros(strucObs.size_state,1);
-    itpar    = Inf; % Do not iterate inside UKF
+    syspar   = sys; % Copy system matrices
+    solpar   = sol; % Copy solution from prev. time instant
+    Wppar    = Wp;  % Copy meshing struct
    
     % Import solution and calculate corresponding system matrices
     if strucObs.stateEst
-        % Initialize empty u, uu, v, vv, p, pp entries in solpar
-        [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-        [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-        [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    
+        % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
-        [solpar,~] = MapSolution(Wppar,solpar,itpar,options)
-%     else
-%         solpar = sol; % Load current default state vector
+        [solpar,~] = MapSolution(Wppar,solpar,Inf,options);
     end;
        
     % Update Wp with values from the sigma points
@@ -113,23 +115,24 @@ parfor(ji=1:strucObs.nrens)
         Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
         min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
     end;
-    %
-    %[solpar, syspar]     = Make_Ax_b(Wppar,syspar,solpar,options)
-    %sys_full(sys.pRCM,1) = syspar.A(sys.pRCM,sys.pRCM)\syspar.b(sys.pRCM,1);
+
+    % Forward propagation
     [ solpar,syspar ]    = WFSim_timestepping( solpar, sys, Wppar, options );
     xf                   = solpar.x(1:strucObs.size_output,1);    
     
     % Calculate output vector
     Yenf(:,ji) =   xf(strucObs.obs_array);
     
-    if strucObs.stateEst % Write forecasted state to ensemble forecast matrix   
+    if strucObs.stateEst 
+        % Write forecasted state to ensemble forecast matrix   
         Aenf(:,ji) = [xf;strucObs.Aen(strucObs.size_output+1:end,ji)];
     else
+        % For model parameters, x_k+1 = x_k, so simply copy old values
         Aenf(:,ji) = strucObs.Aen(:,ji);
     end;
 end;
 
-%% Post processing of forecast step
+%% Analysis update of the Unscented KF
 xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .*Aenf, 2);
 dX    = Aenf-repmat(xmean,1,strucObs.nrens);
 Pk    = Aenf*strucObs.W*Aenf' + strucObs.Qx;
@@ -148,23 +151,19 @@ Kk          = Ck * pinv(Sk);
 xSolAll     = xmean + Kk*(sol.measuredData.sol(strucObs.obs_array)-ymean);
 strucObs.Px = Pk - Kk * Sk * Kk';
 
-% Update parameters
+%% Post-processing
+% Update model parameters with the optimal estimate
 for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
     Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
-end;
+end
 
-% Update states, either through estimation or through open-loop
+% Update states, either from estimation or through open-loop
 if strucObs.stateEst
-    sol.x = xSolAll(1:strucObs.size_output);
+    sol.x    = xSolAll(1:strucObs.size_output);
+    [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
+    [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
 else
-    [sol, sys] = Make_Ax_b(Wp,sys,sol,options);
-    [sol,sys]  = Computesol(Wp,sys,sol,it,options);
-%     [sys,power,~,~,~] = Make_Ax_b(Wp,sys,sol,input,B1,B2,bc,k,options); % Create system matrices
-%     [sol,~]           = Computesol(sys,input,sol,k,it,options);         % Compute solution by standard WFSim function
-end;
-
-% Map the solution to flow fields
-[sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
-[~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
-
-disp('');
+    % Note: this is identical to 'sim' case in WFObs_o(..)
+    sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
+    [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
+end
