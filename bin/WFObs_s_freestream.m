@@ -1,4 +1,4 @@
-function [ Wp,sol,sys,strucObs ] = WFObs_s_determineFreestream( Wp,sol,sys,strucObs )
+function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
     % Import variables
     input        = Wp.turbine.input{sol.k};
     measuredData = sol.measuredData;
@@ -7,7 +7,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_determineFreestream( Wp,sol,sys,struc
     % wd = mean(measured.windVaneMeasurements)
     % but currently no anemometer measurements yet from SOWFA...
     
-    upstreamTurbines = WFObs_s_determineUpstream( Wp, wd );
+    upstreamTurbines = WFObs_s_freestream_findUnwaked( Wp, wd );
     
     U_est = [];
     for turbi = upstreamTurbines
@@ -41,11 +41,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_determineFreestream( Wp,sol,sys,struc
     % Update parameters
     Wp.site.u_Inf = u_Inf;
     Wp.site.v_Inf = v_Inf;
-    
-    % Save parameters
-    sol.inflow.u_Inf = u_Inf;
-    sol.inflow.v_Inf = v_Inf;    
-    
+        
     % Apply changed boundary conditions to update system matrices
     [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
     sys.B2                 = 2*sys.B2;

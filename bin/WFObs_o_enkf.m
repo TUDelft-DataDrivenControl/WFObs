@@ -1,13 +1,6 @@
-function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)       
+function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,sol,it,options)       
     measuredData = sol.measuredData;
-
-% Apply changes to EnKF, if Aen available (k > 1 and EnKF used)
-    if sum(strcmp(fieldnames(strucObs), 'Aen')) > 0
-        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)+(u_Inf-Wp.site.u_Inf);
-        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(v_Inf-Wp.site.v_Inf);
-    end;
-    
-    
+  
 %[ sol, strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,options)
 %   This script calculates the optimally estimated system state vector
 %   according to the measurement data and the internal model using the
@@ -30,7 +23,7 @@ function [ sol,Wp,strucObs ] = WFObs_o_enkf(strucObs,Wp,sys,B1,B2,bc,input,measu
 
 solf = sol; % Create a copy solution structure for forecast
 
-if k==1
+if sol.k==1
     % Determine initial state ensemble for state vector [u; v]
     initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
     initrand.v = (strucObs.W_0.v*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector v
@@ -66,8 +59,16 @@ if k==1
     % Calculate initial ensemble
     strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
     strucObs.Aen   = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
+else
+    % Scale changes in estimated inflow to the ensemble members
+    strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
+    strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.u_Inf );
 end;
 
+% Save old inflow settings
+strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
+    
 % Parallelized solving of the EnKF
 Aenf  = zeros(strucObs.size_output+length(strucObs.tune.vars),strucObs.nrens); % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.nrobs+strucObs.measPw*Wp.turbine.N,strucObs.nrens);          % Initialize empty output matrix

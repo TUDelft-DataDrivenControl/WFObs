@@ -28,7 +28,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         sol.measuredData = WFObs_s_loadmeasurements( strucObs, sol.time );
 
         % Determine freestream inflow properties from SCADA data
-        [ Wp,sol,sys,strucObs ] = WFObs_s_determineFreestream( Wp,sol,sys,strucObs );
+        [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs );
 
         % Iterate towards a solution (flow field)
         while ( eps > conv_eps && it < max_it && eps < epss )
@@ -63,7 +63,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 %% Post-processing
     % save workspace, if necessary
     if scriptOptions.saveWorkspace
-        save([scriptOptions.savePath 'workspace.mat']);
+        save([scriptOptions.savePath '/workspace.mat']);
     end
 
     % Put all relevant outputs in one structure

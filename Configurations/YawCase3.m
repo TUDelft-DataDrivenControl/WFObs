@@ -23,7 +23,7 @@ else
 end
 
 % Filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined below in "Filter settings"
+strucObs.filtertype      = 'enkf'; % Observer types are outlined below in "Filter settings"
 %strucObs.obsv_delay      = 000;    % Number of time steps after which the observer is enabled (between 0 and NN-1)
 strucObs.loadRandomSeed  = 1;      % Load a predefined random seed (for one-to-one comparisons between simulation cases)
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
@@ -61,12 +61,13 @@ switch lower(strucObs.filtertype)
         strucObs.R_k            = 1.0; % Measurement   covariance matrix
         strucObs.Q_k            = 1.0; % Process noise covariance matrix
         strucObs.P_0            = 0.5; % Initial state covariance matrix
-        scriptOptions.exportPressures = 0;   % Model/predict/filter pressure terms
         
-        strucObs.diagP        = true;   % Neglect all off-diagonal elements in P
-        strucObs.sparseF      = true;   % Sparsify F matrix to reduce number of operations
-        strucObs.Fthresh      = 0.01;   % Neglect values smaller than [*] in F (if above is set to true)
-        scriptOptions.Linearversion = 1;      % Calculate linearized system matrices
+        strucObs.diagP        = true;    % Neglect all off-diagonal elements in P
+        strucObs.sparseF      = true;    % Sparsify F matrix to reduce number of operations
+        strucObs.Fthresh      = 0.01;    % Neglect values smaller than [*] in F (if above is set to true)
+        
+        scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
+        scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
         
     case {'enkf'}
         strucObs.nrens   =   50;         % Ensemble size

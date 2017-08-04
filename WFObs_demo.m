@@ -30,11 +30,11 @@ scriptOptions.printProgress     = 1;  % Print progress every timestep
 scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
 
 % Visualization settings
-scriptOptions.Animate           = 50; % Show 2D flow fields every x iterations (0: no plots)
-   scriptOptions.plotMesh       = 1;  % Show meshing and turbine locations
+scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
+scriptOptions.Animate           = 0;  % Show results every x iterations (0: no plots)
    scriptOptions.plotContour    = 1;  % Show flow fields
-   scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
-   scriptOptions.plotError      = 1;  % plot RMS and maximum error vs. time
+   scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
+   scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
 
 % Saving settings
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
