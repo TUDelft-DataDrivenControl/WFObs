@@ -22,7 +22,7 @@ switch lower(strucObs.filtertype)
     case 'exkf'
         [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
     case 'enkf'
-        [Wp,sol,strucObs] = WFObs_o_RsEnkf(strucObs,Wp,sys,sol,options);
+        [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
     case 'ukf'
         [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
     case 'sim'

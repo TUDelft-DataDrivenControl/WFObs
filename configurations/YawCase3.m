@@ -70,26 +70,31 @@ switch lower(strucObs.filtertype)
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
         
     case {'enkf'}
-        strucObs.nrens   =   200;         % Ensemble size
-        strucObs.R_e     =   0.10;       % Standard dev. for measurement noise ensemble
-        strucObs.Q_e.u   =   0.08;       % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v   =   0.02;       % Standard dev. for process noise 'v' in m/s
-        strucObs.Q_e.p   =   0.00;       % Standard dev. for process noise 'p' in m/s
-        strucObs.W_0.u   =   0.90;       % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.v   =   0.30;       % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.p   =   0.00;       % Only used for case Projection = 0
         
-        strucObs.measPw       = false;    % Use power measurements from turbines in estimates
+        strucObs.nrens      = 50;    % Ensemble size
+        strucObs.stateEst   = true;  % Estimate model states
+        strucObs.resampling = false; % false = classical EnKF
+        
+        strucObs.R_e   = 0.10; % Standard dev. for measurement noise ensemble
+        strucObs.Q_e.u = 0.08; % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v = 0.02; % Standard dev. for process noise 'v' in m/s
+        strucObs.W_0.u = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.v = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        
+        scriptOptions.exportPressures = false; % Include pressure terms in ensemble members (default: false)
+        strucObs.Q_e.p                = 0.00;  % Standard dev. for process noise 'p' in m/s
+        strucObs.W_0.p                = 0.00;  % Only used for case Projection = 0
+        
+        strucObs.measPw     = false;    % Use power measurements from turbines in estimates
         strucObs.usePwforFlow = false;    % Have direct correlation between states and measured Pw (recommended: off)
         strucObs.pwLocFactor.auto  = 1; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
         strucObs.pwLocFactor.cross = 1; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
         strucObs.R_ePW        = 1e-3;     % Measurement noise for turbine power measurements
-        
-        scriptOptions.exportPressures = false;      % Include pressure terms in ensemble members (default: false)
-        strucObs.r_infl         = 1;          % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
+
+        % Inflation and localization
+        strucObs.r_infl         = 1.025;          % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
         strucObs.f_locl         = 'gaspari';  % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
-        strucObs.l_locl         = 50;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
-        scriptOptions.Linearversion   = 0;          % Calculate linearized system matrices. Do not change, keep this '0'.
+        strucObs.l_locl         = 131;         % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         
         % Online model parameter adaption/estimation/tuning
         strucObs.tune.vars = {};%{'turbine.forcescale','site.Rho'};
@@ -97,6 +102,9 @@ switch lower(strucObs.filtertype)
         strucObs.tune.W_0  = [];%[0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
         strucObs.tune.lb   = [];%[0.00,1.00]; % Lower bound
         strucObs.tune.ub   = [];%[2.00,1.40]; % Upper bound
+        
+        % Other settings
+        scriptOptions.Linearversion   = 0; % Disable unnecessary calculations in model
         
     case {'sim'}
         scriptOptions.exportPressures = 1; % Do not change for sim case.
