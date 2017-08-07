@@ -114,6 +114,7 @@ parfor(ji=1:strucObs.nrens)
     end;
 
     % Forward propagation
+    solpar.k          = solpar.k - 1;
     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
     xf                = solpar.x(1:strucObs.size_output,1);    
     Yenf(:,ji)        = xf(strucObs.obs_array); 

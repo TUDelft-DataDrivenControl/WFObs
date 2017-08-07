@@ -72,29 +72,16 @@ if strucObs.measPw
     Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
 end;
 
-parfor(ji=1:strucObs.nrens)
-    syspar   = struct; % Copy system matrices
-%     solpar   = struct; % Copy solution from prev. time instant
+for(ji=1:strucObs.nrens)
+    syspar   = sys; % Copy system matrices
+    solpar   = sol; % Copy optimal solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
-    sys_full = zeros(strucObs.size_state,1);
-    itpar    = Inf; % Do not iterate inside EnKF
-
-    % Initialize empty u, uu, v, vv, p, pp entries in solpar
-%     [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-%     [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-%     [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-%     
-%     solpar.k = sol.k;
-    solpar = sol;
-    syspar.B1 = sys.B1;
-    syspar.B2 = sys.B2;
-    syspar.bc = sys.bc;
     
     % Import solution from sigma point
     if strucObs.stateEst
         % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
-        [solpar,~] = MapSolution(Wppar,solpar,itpar,options);
+        [solpar,~] = MapSolution(Wppar,solpar,Inf,options);
     end;
        
     % Update Wp with values from the sigma points
@@ -104,11 +91,9 @@ parfor(ji=1:strucObs.nrens)
     end;
 
     % Forward propagation
-    [solpar, syspar]     = Make_Ax_b(Wppar,syspar,solpar,options);
-    sys_full(sys.pRCM,1) = syspar.A(sys.pRCM,sys.pRCM)\syspar.b(sys.pRCM,1);
-    xf                   = sys_full(1:strucObs.size_output,1);    
-%     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
-%     xf                = solpar.x(1:strucObs.size_output,1);    
+    solpar.k          = solpar.k - 1;
+    [ solpar,syspar ] = WFSim_timestepping( solpar, syspar, Wppar, options );
+    xf                = solpar.x(1:strucObs.size_output,1);    
     
     % Calculate process noise
     Frand = [strucObs.Q_e.u*randn(Wppar.Nu,1); ...
