@@ -31,7 +31,7 @@ scriptOptions.printConvergence  = 0;  % Print convergence parameters every times
 
 % Visualization settings
 scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.Animate           = 10; % Show results every x iterations (0: no plots)
+scriptOptions.Animate           = 0;  % Show results every x iterations (0: no plots)
    scriptOptions.plotContour    = 1;  % Show flow fields
    scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
    scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
@@ -39,9 +39,9 @@ scriptOptions.Animate           = 10; % Show results every x iterations (0: no p
 
 % Saving settings
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
-scriptOptions.saveEst           = 0;  % Save estimated flow fields & powers in an external file at each time step
-scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/enkf_loc']; % Destination folder of saved files
+scriptOptions.saveEst           = 1;  % Save estimated flow fields & powers in an external file at each time step
+scriptOptions.saveWorkspace     = 1;  % Save complete workspace at the end of simulation
+scriptOptions.savePath          = ['results/YawCase3_enkf']; % Destination folder of saved files
 
 % Model and observer configuration file
 configName = 'YawCase3.m'; % configuration filename. See './configurations' for options: 'NoPrecursor', 'YawCase3'

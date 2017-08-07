@@ -1,10 +1,60 @@
-function [ hFigs ] = WFObs_s_animations( hFigs,Wp,sol_array,scriptOptions,strucObs )
+function [ hFigs ] = WFObs_s_animations( Wp,sol_array,scriptOptions,strucObs,hFigs )
 % Import variables
 sol          = sol_array{end}; 
 measuredData = sol.measuredData;
 
+   
 % Produce animations
 if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
+    
+    % Create empty figure array if not inputted
+    if nargin <= 4
+        hFigs = {};
+    end
+    
+    % Create figure windows if non-existent
+    if length(hFigs) <= 0 % This is basically k == 1
+        if scriptOptions.plotContour
+            scrsz = get(0,'ScreenSize'); 
+            hFigs{1}=figure('color',[1 1 1],'Position',[50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)], 'MenuBar','none','ToolBar','none','visible', 'on');
+        end; 
+        if scriptOptions.plotPower
+            hFigs{2}=figure;
+        end;
+        if scriptOptions.plotError
+            hFigs{3}=figure;
+        end;
+        if scriptOptions.plotCenterline
+            hFigs{4}=figure;
+        end;        
+    else
+        % Check if all figures are still existent
+        for iFig = 1:length(hFigs)
+            if strcmp(class(hFigs{iFig}),'matlab.ui.Figure')
+                if ishandle(hFigs{iFig}) == 0 % If figure has been closed
+                    button = questdlg(['You closed Figure ' num2str(iFig) '. Reopen?'])
+                    if strcmp(button,'No')
+                        hFigs{iFig} = []; % Remove as figure object
+                        disp(['You closed figure ' num2str(iFig) '. Disabling for further use.'])
+                    elseif strcmp(button,'Yes')
+                        disp(['You closed figure ' num2str(iFig) '. Reopening for further use.'])
+                        if iFig == 1 % Special dimensions for plotContour
+                            scrsz    = get(0,'ScreenSize');
+                            hFigs{1} = figure('color',[1 1 1],'Position',...
+                                [50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)],...
+                                'MenuBar','none','ToolBar','none','visible', 'on');
+                        else
+                            hFigs{iFig} = figure;
+                        end
+                    else
+                        error('Not a valid input. Please choose yes or no.')
+                    end
+                end
+            end
+        end
+    end
+
+
     yaw_angles = .5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input{sol.k}.phi'*pi/180); % applied correction for yaw angle: wake was forming at wrong side
 
     if scriptOptions.plotContour

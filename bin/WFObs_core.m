@@ -7,18 +7,19 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 %    estimations using the WFSim model.
 %
 
-%% Pre-processing
+    %% Pre-processing
     timerScript = tic;       % Start script timer
     run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 
     % Initialize model and observer variables
     [Wp,sol,sys,strucObs,scriptOptions,hFigs] = ...
         WFObs_s_initialize(scriptOptions,configName);
+
     max_it   = scriptOptions.max_it;    % Convergence constraints
     conv_eps = scriptOptions.conv_eps;  % Convergence constraints
-    
 
-%% Core: time domain simulations
+
+    %% Core: time domain simulations
     while sol.k < Wp.sim.NN
         timerCPU = tic;                 % Start iteration timer
         sol.k    = sol.k + 1;           % Timestep forward
@@ -35,30 +36,23 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
         % Display progress in the command window
         sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
-        
-        % ---- START OF TEMP ----
-        % Calculate error with measurements
-        error1tmp = mean(abs(sol.measuredData.solq(strucObs.obs_array)-sol.x(strucObs.obs_array)));
-        error2tmp = mean(abs(sol.measuredData.sol (strucObs.obs_array)-sol.x(strucObs.obs_array)));
-        disp(['Errors with true measurement values (m/s): ' num2str(error1tmp,3) ', perturbed (m/s): ' num2str(error2tmp) '.'])
-        % ---- END OF TEMP ----
-        
-        % write to an external file
+
+        % write relevant outputs to an external file
         if scriptOptions.saveEst
             save([scriptOptions.savePath '/' strucObs.filtertype ...
                 '_est' num2str(strucObs.measurementsOffset+sol.k),...
-                '.mat'],'sol','sys','Wp','strucObs','scriptOptions'); 
-        end;
-        
+                '.mat'],'sol');%'Wp','sys',strucObs','scriptOptions');
+        end
+
         % Save solution to an array
         sol_array{sol.k} = sol;
-        
-        % Display animations on screen
-        hFigs = WFObs_s_animations(hFigs,Wp,sol_array,scriptOptions,strucObs);
-            end;
 
-    
-%% Post-processing
+        % Display animations on screen
+        hFigs = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);
+    end
+
+
+    %% Post-processing
     % save workspace, if necessary
     if scriptOptions.saveWorkspace
         save([scriptOptions.savePath '/workspace.mat']);
@@ -75,7 +69,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
     % Print end of simulation statement
     if scriptOptions.printProgress
-        disp([datestr(rem(now,1)) ' __  Completed simulations. ' ... 
+        disp([datestr(rem(now,1)) ' __  Completed simulations. ' ...
             'Total CPU time: ' num2str(toc(timerScript)) ' s.']);
     end
 end

@@ -15,10 +15,9 @@ function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scri
         disp(' ');
     end;
 
-    % Create destination folder & save filter settings
+    % Create destination folder
     if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
         mkdir(scriptOptions.savePath); 
-        save([scriptOptions.savePath '/' strucObs.filtertype '_filtersettings.mat']); 
     end; 
 
     % Default settings: following WFSim options are never used in WFObs
@@ -54,21 +53,6 @@ function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scri
 
     % Setup blank figure windows
     hFigs = {};
-    if scriptOptions.Animate > 0
-        if scriptOptions.plotContour
-            scrsz = get(0,'ScreenSize'); 
-            hFigs{1}=figure('color',[1 1 1],'Position',[50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)], 'MenuBar','none','ToolBar','none','visible', 'on');
-        end; 
-        if scriptOptions.plotPower
-            hFigs{2}=figure;
-        end;
-        if scriptOptions.plotError
-            hFigs{3}=figure;
-        end;
-        if scriptOptions.plotCenterline
-            hFigs{4}=figure;
-        end;        
-    end
 
     % Create global RCM vector
     soltemp     = sol; soltemp.k = 1;
@@ -77,6 +61,11 @@ function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scri
 
     scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
     scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
+
+    % Save simulation & filter settings
+    if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
+        save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']); 
+    end; 
 
     if scriptOptions.printProgress
         disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);

@@ -31,7 +31,7 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 strucObs.noise_input     = 0.0;    % Noise on input vector beta, enforced by the command "randn*beta"
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = false;  % Estimate freestream u_Inf and v_Inf
+strucObs.U_Inf.estimate  = true;  % Estimate freestream u_Inf and v_Inf
 strucObs.U_inf.intFactor = 0.99;  % LPF (1: do not change, 0: instant change)
 
 switch lower(strucObs.filtertype)
@@ -84,8 +84,8 @@ switch lower(strucObs.filtertype)
         strucObs.R_e   = 0.10; % Standard dev. for measurement noise ensemble
         strucObs.Q_e.u = 0.10; % Standard dev. for process noise 'u' in m/s
         strucObs.Q_e.v = 0.01; % Standard dev. for process noise 'v' in m/s
-        strucObs.W_0.u = 0.60; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.v = 0.20; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.u = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.v = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
                 
         strucObs.measPw     = false;    % Use power measurements from turbines in estimates
         strucObs.usePwforFlow = false;    % Have direct correlation between states and measured Pw (recommended: off)
