@@ -48,7 +48,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         sol_array{sol.k} = sol;
 
         % Display animations on screen
-        hFigs = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);
+        [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);
     end
 
 
