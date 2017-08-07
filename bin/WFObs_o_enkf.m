@@ -72,7 +72,7 @@ if strucObs.measPw
     Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
 end;
 
-for(ji=1:strucObs.nrens)
+parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
     solpar   = sol; % Copy optimal solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
