@@ -158,7 +158,6 @@ if sol.k == 1
         strucObs.cross_corrfactor = ones(size_output,strucObs.nrobs+measPw*Wp.turbine.N);
     else
         disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
-        addpath Setup_sensors
         
         % Generate the locations of all default model states and turbines in Aen
         stateLocArray = [];
