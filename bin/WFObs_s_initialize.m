@@ -65,6 +65,9 @@ function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scri
         if scriptOptions.plotError
             hFigs{3}=figure;
         end;
+        if scriptOptions.plotCenterline
+            hFigs{4}=figure;
+        end;        
     end
 
     % Create global RCM vector

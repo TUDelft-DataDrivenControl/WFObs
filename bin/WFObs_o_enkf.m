@@ -76,7 +76,7 @@ parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
     solpar   = sol; % Copy optimal solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
-    
+
     % Import solution from sigma point
     if strucObs.stateEst
         % Load sigma point as solpar.x
@@ -140,45 +140,45 @@ Dent    = Den - Yenf; % Difference between measurement and predicted output
 if sol.k == 1
     if strcmp(lower(strucObs.f_locl),'off')
         strucObs.auto_corrfactor  = ones(strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
-        strucObs.cross_corrfactor = ones(size_output,strucObs.nrobs+measPw*Wp.turbine.N);
+        strucObs.cross_corrfactor = ones(strucObs.size_output,strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
     else
         disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
         
         % Generate the locations of all default model states and turbines in Aen
-        stateLocArray = [];
+        stateLocArray = zeros(strucObs.size_output,2);
         for iii = 1:strucObs.size_output
-            [~,loci,~]    = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
-            stateLocArray = [stateLocArray;loci.x, loci.y];
-        end;
-        turbLocArray = [];
+            [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
+            stateLocArray(iii,:) = [loci.x, loci.y];
+        end
+        turbLocArray = zeros(Wp.turbine.N,2);
         for iii = 1:Wp.turbine.N
-            turbLocArray = [turbLocArray;Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
-        end;
+            turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
+        end
         
         % Generate the locations of all outputs
-        outputLocArray = [];
+        outputLocArray = zeros(size(Yenf,1),2);
         for iii = 1:size(Yenf,1)
             if iii <= strucObs.nrobs % flow measurements
-                outputLocArray = [outputLocArray;stateLocArray(iii,:)];
+                outputLocArray(iii,:) = stateLocArray(strucObs.obs_array(iii),:);
             else % power measurements
-                outputLocArray = [outputLocArray;turbLocArray(iii-strucObs.nrobs,:)]; 
-            end;
-        end;
+                outputLocArray(iii,:) = turbLocArray(iii-strucObs.nrobs,:); 
+            end
+        end
         
-        % First calculate the cross-correlation between output and default state
-        rho_locl       = struct; % initialize empty structure
+        % First calculate the cross-correlation between output and states
+        rho_locl = struct; % initialize empty structure
         rho_locl.cross = sparse(strucObs.size_output,size(Yenf,1));
-        for(iii = 1:strucObs.size_output) % Loop over all default states
+        for iii = 1:strucObs.size_output % Loop over all default states
             loc1 = stateLocArray(iii,:);
             for jjj = 1:size(outputLocArray,1) % Loop over all measurements
                 loc2 = outputLocArray(jjj,:);
                 dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output               
                 rho_locl.cross(iii,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
-            end;
-        end;
+            end
+        end
         clear iii jjj dx loc1 loc2
         
-        % Then calculate the cross-correlation between output and model tuning parameter
+        % Add cross-correlation between output and model tuning parameters
         for iT = 1:length(strucObs.tune.vars)
             if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
                 crossmat_temp = [];

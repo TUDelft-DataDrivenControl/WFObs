@@ -71,5 +71,9 @@ function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options)
     sol.x       = solf.x + Kgain*(measuredData.sol(strucObs.obs_array)-solf.x(strucObs.obs_array));          % Optimally predicted state vector
     strucObs.Pk = (eye(size(Pf))-Kgain*strucObs.Htt)*Pf;                                                 % State covariance matrix
     if strucObs.diagP; strucObs.Pk = diag(diag(strucObs.Pk)); end;  % Enforce sparsification of Pk
+    
+    % Update states from estimation
+    [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
+    [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
 end
 

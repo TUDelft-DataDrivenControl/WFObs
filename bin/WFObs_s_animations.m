@@ -160,4 +160,26 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         drawnow;
         if scriptOptions.savePlots; export_fig([scriptOptions.savePath '/' strucObs.filtertype '_errorplot'],'-png'); end;
     end;
+    
+    if scriptOptions.plotCenterline
+        yend_left  = min([Wp.mesh.yline{:}]);
+        yend_right = max([Wp.mesh.yline{:}]);
+        centerline_WFSim = mean(sol.u(:,yend_left-1:yend_right),2);
+        centerline_SOWFA = mean(sol.measuredData.uq(:,yend_left-1:yend_right),2);
+        centerline_VAF   = vaf(centerline_SOWFA,centerline_WFSim);
+        centerline_RMS   = sqrt(mean((centerline_WFSim-centerline_SOWFA).^2));
+        
+        % Plot results
+        set(0,'CurrentFigure',hFigs{4}); clf;
+        plot(Wp.mesh.ldxx(:,1),centerline_WFSim,'DisplayName','WFSim'); hold on;
+        plot(Wp.mesh.ldxx(:,1),centerline_SOWFA,'--','DisplayName','SOWFA');
+        title(['Centerline flow speed (m/s). VAF: ' num2str(centerline_VAF,3) ' %. RMS: ' num2str(centerline_RMS) ' m/s.']);
+        xlabel('x (m)');
+        ylabel('Flow speed (m/s)');
+        grid on;
+        ylim([0 10]);
+        legend('-DynamicLegend');
+        drawnow;
+        if scriptOptions.savePlots; export_fig([scriptOptions.savePath '/' strucObs.filtertype '_cline' num2str(strucObs.measurementsOffset+sol.k)]); end;
+    end;    
 end;

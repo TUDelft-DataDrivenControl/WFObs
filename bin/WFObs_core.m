@@ -36,6 +36,13 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         % Display progress in the command window
         sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
         
+        % ---- START OF TEMP ----
+        % Calculate error with measurements
+        error1tmp = mean(abs(sol.measuredData.solq(strucObs.obs_array)-sol.x(strucObs.obs_array)));
+        error2tmp = mean(abs(sol.measuredData.sol (strucObs.obs_array)-sol.x(strucObs.obs_array)));
+        disp(['Errors with true measurement values (m/s): ' num2str(error1tmp,3) ', perturbed (m/s): ' num2str(error2tmp) '.'])
+        % ---- END OF TEMP ----
+        
         % write to an external file
         if scriptOptions.saveEst
             save([scriptOptions.savePath '/' strucObs.filtertype ...
@@ -48,7 +55,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         
         % Display animations on screen
         hFigs = WFObs_s_animations(hFigs,Wp,sol_array,scriptOptions,strucObs);
-    end;
+            end;
 
     
 %% Post-processing

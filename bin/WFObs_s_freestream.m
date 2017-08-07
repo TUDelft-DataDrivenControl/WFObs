@@ -1,4 +1,5 @@
 function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
+if strucObs.U_Inf.estimate    
     % Import variables
     input        = Wp.turbine.input{sol.k};
     measuredData = sol.measuredData;
@@ -27,7 +28,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
     U_inf = mean(U_est);
     
     % Low-pass filter the result
-    k_lpf = 0.99; % Weighted average: 0 = instant updates, 1 = no updates. 0.86 means after 30 seconds, 1% of old solution is left
+    k_lpf = strucObs.U_inf.intFactor; % Weighted average: 0 = instant updates, 1 = no updates. 0.86 means after 30 seconds, 1% of old solution is left
     U_inf = k_lpf*(sqrt(sol.u(1,1)^2+sol.v(1,1)^2))+(1-k_lpf)*U_inf;
     
     % Reformat to x and y direction
@@ -45,4 +46,5 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
     % Apply changed boundary conditions to update system matrices
     [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
     sys.B2                 = 2*sys.B2;
+end
 end
