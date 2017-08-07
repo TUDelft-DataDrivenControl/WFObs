@@ -28,7 +28,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
         sol.measuredData = WFObs_s_loadmeasurements(strucObs,sol.time);
 
         % Determine freestream inflow properties from SCADA data
-        %[ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
+        [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
 
         % Calculate optimal solution according to filter of choice
         [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
@@ -68,7 +68,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
     % Print end of simulation statement
     if scriptOptions.printProgress
-        disp([datestr(rem(now,1)) ' __  Completed simulations.' ... 
+        disp([datestr(rem(now,1)) ' __  Completed simulations. ' ... 
             'Total CPU time: ' num2str(toc(timerScript)) ' s.']);
     end
 end

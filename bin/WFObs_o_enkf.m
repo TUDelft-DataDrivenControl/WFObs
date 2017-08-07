@@ -44,18 +44,21 @@ if sol.k==1
     strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
     strucObs.Aen   = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
     
-%     % Save old inflow settings
-%     strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-%     strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
+    if strucObs.stateEst
+        % Save old inflow settings
+        strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+        strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
+    end
 else
-%     % Scale changes in estimated inflow to the ensemble members
-%     strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
-%     strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.u_Inf );
-%     
-%     % Save old inflow settings
-%     strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
-%     strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
-    
+    % Scale changes in estimated inflow to the ensemble members
+    if strucObs.stateEst
+        strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
+        strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.v_Inf );
+        
+        % Save old inflow settings
+        strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
+        strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
+    end
     if strucObs.resampling
         strucObs.Aen = repmat(sol.x,1,strucObs.nrens) + strucObs.initdist; % Resampling
     end
@@ -71,17 +74,18 @@ end;
 
 parfor(ji=1:strucObs.nrens)
     syspar   = struct; % Copy system matrices
-    solpar   = struct; % Copy solution from prev. time instant
+%     solpar   = struct; % Copy solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
     sys_full = zeros(strucObs.size_state,1);
     itpar    = Inf; % Do not iterate inside EnKF
 
     % Initialize empty u, uu, v, vv, p, pp entries in solpar
-    [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
-    
-    solpar.k = sol.k;
+%     [solpar.u, solpar.uu] = deal(Wppar.site.u_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
+%     [solpar.v, solpar.vv] = deal(Wppar.site.v_Inf * ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
+%     [solpar.p, solpar.pp] = deal(Wppar.site.p_init* ones(Wppar.mesh.Nx,Wppar.mesh.Ny) );
+%     
+%     solpar.k = sol.k;
+    solpar = sol;
     syspar.B1 = sys.B1;
     syspar.B2 = sys.B2;
     syspar.bc = sys.bc;
