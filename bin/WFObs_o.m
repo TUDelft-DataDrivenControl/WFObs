@@ -1,31 +1,67 @@
 function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,options)
-%[ sol, strucObs ] = WFObs_o(strucObs,Wp,sys,B1,B2,bc,input,measured,sol,k,it,startUniform)
-%   This script selects which function to call for state reconstruction:
-%   the Extended Kalman Filter (ExKF), Ensemble Kalman Filter (EnKF), or
-%   no filter at all (sim).
+% WFOBS_O  Header function to call the correct estimation function
 %
-%    Inputs:
-%     *strucObs        structure containing observer information for time k-1
-%     *Wp              structure containing meshing information
-%     *sys             structure containing system matrices
-%     *measuredData    structure containing (SOWFA) measurement information
-%     *sol             flow fields and system state vector for time k-1
-%     *it              current iteration number
-%     *options         structure containing model/script option information
+%   SUMMARY
+%    This code calls the correct estimation function (EnKF, UKF, ExKF, ...)
+%    based on what is specified in strucObs.
 %
-%    Outputs:
-%     *Wp              structure containing meshing information
-%     *sol             flow fields and system state vector for time k
-%     *strucObs        structure containing observer information for time k
-
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%     - strucObs: this struct contains all the observer settings and
+%       (temporary) files used for updates, such as covariance matrices,
+%       ensemble/sigma point sets, measurement noise, etc.
+%
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%         Wp.Nu:      Number of model states concerning longitudinal flow.
+%         Wp.Nv:      Number of model states concerning lateral flow.
+%         Wp.Np:      Number of model states concerning pressure terms.
+%         Wp.sim:     Substruct containing timestep and simulation length.
+%         Wp.turbine: Substruct containing turbine properties and settings.
+%         Wp.site:    Substruct containing freestream atmospheric properties.
+%         Wp.mesh:    Substruct containing topology and meshing settings.
+%
+%     - sys: this struct contains the system matrices at a certain timestep.
+%         sys.A:     System matrix A in the grand picture: A*sol.x = b
+%         sys.b:     System vector b in the grand picture: A*sol.x = b
+%         sys.pRCM:  Reverse Cuthill-McKee algorithm for solving A*x=b faster.
+%         sys.B1:    Important matrix in the boundary conditions.
+%         sys.B2:    Important matrix in the boundary conditions.
+%         sys.bc:    Important vector in the boundary conditions.
+%
+%     - sol: this struct contains the system states at a certain timestep.
+%         sol.k:     Discrete timestep  to which these system states belong
+%         sol.time:  Actual time (in s) to which these system states belong
+%         sol.x:     True system state (basically flow field excluding bcs)
+%         sol.u:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.v:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.p:     Instantaneous pressure field over the mesh (in Pa)
+%         sol.uu:    Same as sol.u, used for convergence
+%         sol.vv:    Same as sol.v, used for convergence
+%         sol.pp:    Same as sol.p, used for convergence
+%         sol.turbine: a struct containing relevant turbine outputs such as
+%         the ax. ind. factor, the generated power, and the ct coefficient
+%         sol.measuredData: a struct containing the true flow field and the
+%         measurements used for estimation
+%         sol.score: a struct containing estimator performance measures
+%         such as the magnitude and location of the maximum flow estimation
+%         error, the RMSE, and the computational cost (CPU time)
+%
+%     - options: this struct contains all simulation settings, not related
+%       to the wind farm itself (solution methodology, outputs, etc.). See
+%       also 'scriptOptions' (options == scriptOptions).
+%       
 switch lower(strucObs.filtertype)
     case 'exkf'
+        % Extended Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
     case 'enkf'
+        % Ensemble Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
     case 'ukf'
+        % Unscented Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
     case 'sim'
+        % Open-loop simulations
         sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
         [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
     otherwise

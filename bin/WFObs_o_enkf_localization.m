@@ -1,6 +1,18 @@
 function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
+% WFOBS_O_ENKF_LOCALIZATION  Localization function for the EnKF
+%
+%   SUMMARY
+%    This code calculates the physical distance between every state and
+%    measurement in the EnKF, and gives a weight to it. Nearby pairs are
+%    given a value close to 1, and distant pairs are given a value close to
+%    0. This is the localization. Furthermore, this code also scales up
+%    these gains through inflation. Localization and inflation are deemed
+%    essential for good performance of the EnKF.
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%      see 'WFObs_o.m' for the complete list.
+%    
 
-   
     function kappa = localizationGain( dx, f_locl, l_locl )
         %[ kappa ] = localizationGain( dx, f_locl, l_locl )
         %   This script calculates the localization factor based on the eulerian
@@ -32,9 +44,14 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
         end
     end
 
-if strcmp(lower(strucObs.f_locl),'off')
-    strucObs.auto_corrfactor  = ones(strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
-    strucObs.cross_corrfactor = ones(strucObs.size_output,strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
+if strcmp(lower(strucObs.f_locl),'off') | strucObs.stateEst == 0
+    % Quick fix for stateEst == 0, should be done more properly down below
+    strucObs.auto_corrfactor  = ones(strucObs.M,strucObs.M);
+    if strucObs.tune.est
+        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M)/strucObs.M;
+    else
+        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);
+    end
 else
     disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
      
@@ -73,28 +90,30 @@ else
     clear iii jjj dx loc1 loc2
     
     % Add cross-correlation between output and model tuning parameters
-    for iT = 1:length(strucObs.tune.vars)
-        if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
-            crossmat_temp = [];
-            for iturb = 1:Wp.turbine.N
-                loc1 = turbLocArray(iturb,:);
-                for jjj = 1:strucObs.M
-                    loc2 = outputLocArray(jjj,:);
-                    dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output
-                    crossmat_temp(iturb,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+    if strucObs.tune.est
+        for iT = 1:length(strucObs.tune.vars)
+            if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
+                crossmat_temp = [];
+                for iturb = 1:Wp.turbine.N
+                    loc1 = turbLocArray(iturb,:);
+                    for jjj = 1:strucObs.M
+                        loc2 = outputLocArray(jjj,:);
+                        dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output
+                        crossmat_temp(iturb,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+                    end;
                 end;
+                if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.tune.vars{iT} '.']); end;
+                rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
+
+            elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
+                %rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
+                rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
+
+            else
+                disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
             end;
-            if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.tune.vars{iT} '.']); end;
-            rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
-            
-        elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
-            %rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
-            rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
-            
-        else
-            disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
         end;
-    end;
+    end
     clear iT dx loc1 loc2 iii jjj crossmat_temp iturb
     
     % Secondly, calculate the autocorrelation of output

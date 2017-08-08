@@ -1,7 +1,22 @@
 function [ unwakedTurbines ] = WFObs_s_determineUpstream( Wp, wd )
-%% Preprocess measurements to determine freestream wind direction and speed
+% WFOBS_S_DETERMINEUPSTREAM  Determine which turbines are upstream
+%
+%   SUMMARY
+%    This code uses a very simple static wake model to determine
+%    approximately the width of wakes. This information, in combination
+%    with the freestream wind direction, allows one to determine which
+%    turbines are operating in the freestream. Credits go to Paul Fleming
+%    from NREL, who took it from another paper (..?)
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%
+%     - Wd: the freestream wind direction, estimated using wind vane
+%           measurements.
+%
 
-    %% Define necessary subfunctions
+% Define necessary subfunctions
     function [alpha] = getAlpha(x0,y0,x1,y1,D)
         dx = abs(x1-x0);
         dy = abs(y1-y0);
@@ -9,14 +24,14 @@ function [ unwakedTurbines ] = WFObs_s_determineUpstream( Wp, wd )
         alpha = 1.3*atan(2.5*D/L+0.15) + pi/180. * 10.;
         alpha = alpha*180./pi;
     end
-        
+
     function [beta] = getBeta(x0,y0,x1,y1)
         beta = atan2(x0-x1,y0-y1)*180./pi;
         if beta < 0.
             beta = beta + 360.;
         end;
     end
-    
+
     function [gamma] = getGamma(beta,theta,alpha)
         if((beta >= 0. && beta < 90.) && (theta > 270. && theta < 360.))
             gamma = abs(beta + 360. - theta) - alpha/2.;
@@ -26,7 +41,7 @@ function [ unwakedTurbines ] = WFObs_s_determineUpstream( Wp, wd )
             gamma = abs(beta - theta) - alpha/2.;
         end;
     end
-        
+
     function [isWaked] = isWaked(x0,y0,x1,y1,D,wd)
         alpha = getAlpha(x0,y0,x1,y1,D);
         beta  = getBeta(x0,y0,x1,y1);
@@ -54,15 +69,15 @@ function [ unwakedTurbines ] = WFObs_s_determineUpstream( Wp, wd )
         isWakedAny = (waked > 0.5);
     end
 
-    %% Determine unwaked turbines
-    unwakedTurbines = [];
-    x  = Wp.turbine.Crx;
-    y  = Wp.turbine.Cry;
-    D  = Wp.turbine.Drotor;
-    
-    for j = 1:length(x)
-        if isWakedAny(j,D,wd,x,y) == false
-            unwakedTurbines = [unwakedTurbines, j];
-        end;
-    end;
+% Determine unwaked turbines
+unwakedTurbines = [];
+x  = Wp.turbine.Crx;
+y  = Wp.turbine.Cry;
+D  = Wp.turbine.Drotor;
+
+for j = 1:length(x)
+    if isWakedAny(j,D,wd,x,y) == false
+        unwakedTurbines = [unwakedTurbines, j];
+    end
+end
 end

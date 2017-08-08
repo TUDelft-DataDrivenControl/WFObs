@@ -1,4 +1,32 @@
 function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
+% WFOBS_S_FREESTREAM  Estimate the freestream conditions u_Inf and v_Inf
+%
+%   SUMMARY
+%    This code estimates the freestream flow speed and direction in 2D
+%    using the power measurements from the most upstream row of turbines.
+%    It uses wind vane measurements to determine the WD and thereby the
+%    most upstream turbines. Then, it uses power to determine WS.
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%         Wp.site:    Substruct containing freestream atmospheric properties.
+%
+%     - sol: this struct contains the system states at a certain timestep.
+%         sol.u:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.v:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.uu:    Same as sol.u, used for convergence
+%         sol.vv:    Same as sol.v, used for convergence
+%
+%     - sys: this struct contains the system matrices at a certain timestep.
+%         sys.B1:    Important matrix in the boundary conditions.
+%         sys.B2:    Important matrix in the boundary conditions.
+%         sys.bc:    Important vector in the boundary conditions.
+%
+%       - *.strucObs: this struct contains all the observer settings and
+%       (temporary) files used for updates, such as covariance matrices,
+%       ensemble/sigma point sets, measurement noise, etc.
+%
 if strucObs.U_Inf.estimate    
     % Import variables
     input        = Wp.turbine.input{sol.k};

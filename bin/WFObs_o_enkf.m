@@ -1,11 +1,29 @@
 function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)     
-    
+% WFOBS_O_ENKF  Ensemble KF algorithm for recursive state estimation
+%
+%   SUMMARY
+%    This code performs state estimation using the Ensemble Kalman filter
+%    (EnKF) algorithm. It uses high-fidelity measurements
+%    (sol.measuredData) to improve the flow estimation compared to
+%    open-loop simulations with WFSim. It uses localization, inflation, and
+%    includes model parameter estimation, too.
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%      see 'WFObs_o.m' for the complete list.
+%    
+
 if strucObs.measPw
     error('This function is currently not yet supported.');
 end
 
 %% Initialization step of the Ensemble KF (at k == 1)
 if sol.k==1
+    % Check EnKF settings
+    if strucObs.stateEst == 0 && strucObs.tune.est == 0
+        error(['Please turn on state and/or parameter estimation.'...
+            'Alternatively, select "sim" for open-loop simulations.']);
+    end
+    
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
     if options.exportPressures == 1 % Optional: add pressure terms

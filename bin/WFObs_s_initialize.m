@@ -1,73 +1,100 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 'WFObs_s_initialize.m'
-%  This script loads the model and observer settings. It also prepares
-%  the meshing and all variables required for simulation.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scriptOptions,configName )
-    run(configName);    % Load configuration file
+% WFOBS_S_INITIALIZE  Initialize the WFSim model and the estimator settings
+%
+%   SUMMARY
+%    This code does the necessary initializations for the WFSim model, for
+%    the estimator, and for the relevant script settings.
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%     - configName: name of the simulation case that is to be simulated.
+%     All simulation scenarios can be found in the '/configurations/'
+%     folder as seperate files. The default case is 'YawCase3.m'.
+%
+%     - scriptOptions: this struct contains all simulation settings, not
+%     related to the wind farm itself (solution methodology, outputs, etc.)
+%
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%
+%     - sol: this struct contains the system states at a certain timestep.
+%         sol.u:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.v:     Instantaneous longitudinal flow field over the mesh (in m/s)
+%         sol.uu:    Same as sol.u, used for convergence
+%         sol.vv:    Same as sol.v, used for convergence
+%
+%     - sys: this struct contains the system matrices at a certain timestep.
+%         sys.pRCM:  Reverse Cuthill-McKee algorithm for solving A*x=b faster.
+%         sys.B1:    Important matrix in the boundary conditions.
+%         sys.B2:    Important matrix in the boundary conditions.
+%         sys.bc:    Important vector in the boundary conditions.
+%
+%     - hFigs: cell array of Figures to (re)plot figures into.
+%
 
-    if scriptOptions.printProgress
-        disp(' WindFarmObserver (WFObs)');
-        disp(' ');
-        disp(['     Meshing:   ' Wp.name ]);
-        disp(['     Observer: ' strucObs.filtertype ]);
-        disp(' ');
-    end;
+% Load configuration file from the 'configurations' folder
+run(configName);    
 
-    % Create destination folder
-    if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
-        mkdir(scriptOptions.savePath); 
-    end; 
+if scriptOptions.printProgress
+    disp(' WindFarmObserver (WFObs)');
+    disp(' ');
+    disp(['     Meshing:   ' Wp.name ]);
+    disp(['     Observer: ' strucObs.filtertype ]);
+    disp(' ');
+end;
 
-    % Default settings: following WFSim options are never used in WFObs
-    scriptOptions.Projection      = 0;    % Use projection
-    scriptOptions.exportLinearSol = 0;    % Export linear solution
-    scriptOptions.Derivatives     = 0;    % Calculate derivatives/gradients for system
+% Create destination folder for output files
+if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
+    mkdir(scriptOptions.savePath);
+end;
 
-    if scriptOptions.printProgress
-        disp([datestr(rem(now,1)) ' __  Initializing simulation model.']); 
-    end;
+% Default settings: following WFSim options are never used in WFObs
+scriptOptions.Projection      = 0;    % Use projection
+scriptOptions.exportLinearSol = 0;    % Export linear solution
+scriptOptions.Derivatives     = 0;    % Calculate derivatives/gradients for system
 
-    [Wp,sol,sys] = InitWFSim(Wp,scriptOptions); % Initialize model
+if scriptOptions.printProgress
+    disp([datestr(rem(now,1)) ' __  Initializing simulation model.']);
+end;
 
-    % Add noise to initial conditions
-    [sol.u,sol.uu]  = deal(sol.u + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
-    [sol.v,sol.vv]  = deal(sol.v + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
+[Wp,sol,sys] = InitWFSim(Wp,scriptOptions); % Initialize model
 
-    % load a default random seed for consistency
-    if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
-    if scriptOptions.saveEst; save([scriptOptions.savePath '/' strucObs.filtertype '_est' num2str(strucObs.measurementsOffset) '.mat'],'sol'); end; 
+% Add noise to initial conditions
+[sol.u,sol.uu]  = deal(sol.u + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
+[sol.v,sol.vv]  = deal(sol.v + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
 
-    % Define what the system should predict (with or without pressures)
-    strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
-    if scriptOptions.exportPressures == 0
-        strucObs.size_output = Wp.Nu + Wp.Nv;
-    else
-        strucObs.size_output = Wp.Nu + Wp.Nv + Wp.Np;
-    end;
+% load a default random seed for consistency
+if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
+if scriptOptions.saveEst; save([scriptOptions.savePath '/' strucObs.filtertype '_est' num2str(strucObs.measurementsOffset) '.mat'],'sol'); end;
 
-    % Define measurement locations
-    sensorsfile        = load(strucObs.sensorsPath);
-    strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+% Define what the system should predict (with or without pressures)
+strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
+if scriptOptions.exportPressures == 0
+    strucObs.size_output = Wp.Nu + Wp.Nv;
+else
+    strucObs.size_output = Wp.Nu + Wp.Nv + Wp.Np;
+end;
 
-    % Setup blank figure windows
-    hFigs = {};
+% Define measurement locations
+sensorsfile        = load(strucObs.sensorsPath);
+strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
 
-    % Create global RCM vector
-    soltemp     = sol; soltemp.k = 1;
-    [~, sysRCM] = Make_Ax_b(Wp,sys,soltemp,scriptOptions);
-    sys.pRCM    = sysRCM.pRCM;  clear sysRCM soltemp;
+% Setup blank figure windows
+hFigs = {};
 
-    scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
-    scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
+% Create global RCM vector
+soltemp     = sol; soltemp.k = 1;
+[~, sysRCM] = Make_Ax_b(Wp,sys,soltemp,scriptOptions);
+sys.pRCM    = sysRCM.pRCM;  clear sysRCM soltemp;
 
-    % Save simulation & filter settings
-    if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
-        save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']); 
-    end; 
+scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
+scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
 
-    if scriptOptions.printProgress
-        disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
-    end;
+% Save simulation & filter settings
+if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
+    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
+end;
+
+if scriptOptions.printProgress
+    disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
+end;
 end

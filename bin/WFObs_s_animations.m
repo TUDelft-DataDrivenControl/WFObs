@@ -1,13 +1,49 @@
 function [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,sol_array,scriptOptions,strucObs,hFigs )
+% WFOBS_S_ANIMATIONS  Show progress by plotting several figures
+%
+%   SUMMARY
+%    This code creates plots of the flow fields, error scores, flow
+%    centerline, and generated power, if specified.
+%
+%   RELEVANT INPUT/OUTPUT VARIABLES
+%     - Wp: this struct contains all the simulation settings related to the
+%           wind farm, the turbine inputs, the atmospheric properties, etc.
+%
+%     - sol_array: this cell array contains the system states at every
+%       simulated time instant. Each cell entry contains a sol struct.
+%       See WFSim.m for a more elaborate description of 'sol'. In
+%       addition to the entries described in WFSim.m, each 'sol' struct
+%       contains in addition:
+%         *.sol.score: a struct containing estimation performance scores
+%         such as the maximum estimation error, the RMS error, and the
+%         computational cost (CPU time).
+%         *.sol.measuredData: a struct containing the true (to be
+%         estimated) values, and the measurement data fed into the
+%         estimation algorithm.
+%
+%     - scriptOptions: this struct contains all simulation settings, not
+%       related to the wind farm itself (solution methodology, outputs, etc.)
+%
+%     - strucObs: this struct contains all the observer settings and
+%       (temporary) files used for updates, such as covariance matrices,
+%       ensemble/sigma point sets, measurement noise, etc.
+%
+%     - hFigs: cell array of Figures to (re)plot figures into. One can call
+%       the function without specifying hFigs, and it will generate the
+%       necessary figures. Alternatively, one can call it by using hFigs =
+%       {}, and it will also generate the figures. Furthermore, if one closes
+%       a figure, it will show a dialog window asking to keep it closed, or
+%       to re-open it.
+%
+
 % Import variables
 sol          = sol_array{end}; 
 measuredData = sol.measuredData;
 
-   
-% Produce animations
+% Produce figures
 if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
     
-    % Create empty figure array if not inputted
+    % Create empty figure array if hFigs is unspecified
     if nargin <= 4
         hFigs = {};
     end
@@ -28,9 +64,11 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             hFigs{4}=figure;
         end;       
     end
+    
+    % applied correction for yaw angle: wake was forming at wrong side
+    yaw_angles = .5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input{sol.k}.phi'*pi/180); 
 
-    yaw_angles = .5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input{sol.k}.phi'*pi/180); % applied correction for yaw angle: wake was forming at wrong side
-
+    % Plot contour flow fields
     if scriptOptions.plotContour
         % Check if figure has been closed
         if ishandle(hFigs{1}) == 0 % If figure has been closed
@@ -150,6 +188,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end;
     
+    % Plot generated and estimated power for each turbine (W)
     if scriptOptions.plotPower
         % Check if figure has been closed
         if ishandle(hFigs{2}) == 0 % If figure has been closed
@@ -190,6 +229,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end
     
+    % Plot flow estimation error (RMSE and maximum) in m/s
     if scriptOptions.plotError
         % Check if figure has been closed
         if ishandle(hFigs{3}) == 0 % If figure has been closed
@@ -224,6 +264,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end;
     
+    % Plot flow centerline velocity, RMSE and VAF
     if scriptOptions.plotCenterline
         % Check if figure has been closed
         if ishandle(hFigs{4}) == 0 % If figure has been closed
