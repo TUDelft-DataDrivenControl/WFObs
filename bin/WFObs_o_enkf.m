@@ -136,6 +136,10 @@ parfor(ji=1:strucObs.nrens)
     
     % Import solution from sigma point
     if strucObs.stateEst
+        % Reset boundary conditions (found to be necessary for stability)
+        [solpar.u,solpar.uu] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.u_Inf);
+        [solpar.v,solpar.vv] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.v_Inf);
+        
         % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
         [solpar,~] = MapSolution(Wppar,solpar,Inf,options);

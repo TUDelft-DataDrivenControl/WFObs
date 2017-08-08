@@ -40,7 +40,6 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 
 %% Pre-processing
 timerScript = tic;       % Start script timer
-run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 
 % Initialize model and observer variables
 [Wp,sol,sys,strucObs,scriptOptions,hFigs] = ...

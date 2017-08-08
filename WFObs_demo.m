@@ -60,7 +60,7 @@ scriptOptions.printConvergence  = 0;  % Print convergence parameters every times
 
 % Visualization settings
 scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.Animate           = 10;  % Show results every x iterations (0: no plots)
+scriptOptions.Animate           = 20;  % Show results every x iterations (0: no plots)
    scriptOptions.plotContour    = 1;  % Show flow fields
    scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
    scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
