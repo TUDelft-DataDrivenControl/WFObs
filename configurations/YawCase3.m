@@ -90,18 +90,18 @@ switch lower(strucObs.filtertype)
     case {'enkf'}
         % General settings
         strucObs.nrens      = 50; % Ensemble size
-        strucObs.stateEst   = 1;  % Estimate model states
         strucObs.resampling = 0;  % Redistribute particles every timestep. false = classical EnKF.
         scriptOptions.exportPressures = 0; % Include pressure terms in ensemble members (default: false)
         
-        % Covariances
-        strucObs.R_e   = 0.10; % Standard dev. for measurement noise ensemble
-        strucObs.Q_e.u = 0.10; % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v = 0.01; % Standard dev. for process noise 'v' in m/s
-        strucObs.Q_e.p = 0.00;  % Standard dev. for process noise 'p' in m/s        
-        strucObs.W_0.u = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.v = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.p = 0.00;  % Only used for case Projection = 0
+        % Model state covariances
+        strucObs.stateEst = 1;  % Estimate model states
+        strucObs.R_e      = 0.10; % Standard dev. for measurement noise ensemble
+        strucObs.Q_e.u    = 0.10; % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v    = 0.01; % Standard dev. for process noise 'v' in m/s
+        strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
+        strucObs.W_0.u    = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.v    = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.p    = 0.00;  % Only used for case Projection = 0
         
         % Power as measurement
         strucObs.measPw       = 0;      % Use power measurements from turbines in estimates
@@ -115,12 +115,13 @@ switch lower(strucObs.filtertype)
         strucObs.f_locl         = 'gaspari'; % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
         strucObs.l_locl         = 131;    % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         
-        % Online model parameter adaption/estimation/tuning
-        strucObs.tune.vars = {};%{'turbine.forcescale','site.Rho'};
-        strucObs.tune.Q_e  = [];%[0.01,0.01]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.W_0  = [];%[0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [];%[0.00,1.00]; % Lower bound
-        strucObs.tune.ub   = [];%[2.00,1.40]; % Upper bound
+        % Parameter estimation settings
+        strucObs.tune.est  = true; % Estimate model parameters
+        strucObs.tune.vars = {'turbine.forcescale','site.lmu'};
+        strucObs.tune.Q_e  = [0.01,0.01]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.W_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.00,0.50]; % Lower bounds
+        strucObs.tune.ub   = [2.00,2.50]; % Upper bounds
         
         % Other settings
         scriptOptions.Linearversion   = 0; % Disable unnecessary calculations in model

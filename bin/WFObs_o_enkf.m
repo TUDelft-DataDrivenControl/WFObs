@@ -1,54 +1,92 @@
 function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)     
-
+    
 if strucObs.measPw
     error('This function is currently not yet supported.');
 end
 
+%% Initialization step of the Ensemble KF (at k == 1)
 if sol.k==1
-    % Determine initial state ensemble for state vector [u; v]
-    initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
-    initrand.v = (strucObs.W_0.v*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector v
-    initdist   = [bsxfun(@times,initrand.u,ones(Wp.Nu,1));...        % initial distribution matrix
-                  bsxfun(@times,initrand.v,ones(Wp.Nv,1))];    
-              
-    x0         = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];    
-              
-    % Optional: add pressure terms
-    if options.exportPressures == 1
-        x0         = [x0; vec(sol.p(2:end-1,2:end-1)')];
-        x0         =  x0(1:end-2); % Correction for how pressure is formatted
-        
-        initrand.p = (strucObs.W_0.p*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector p
-        initdist   = [initdist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
-    end;
-    
-    % Add model parameters as states for online model adaption
-    for iT = 1:length(strucObs.tune.vars)
-        tuneP                 = strucObs.tune.vars{iT};
-        dotLoc                = findstr(tuneP,'.');
-        subStruct             = tuneP(1:dotLoc-1);
-        structVar             = tuneP(dotLoc+1:end);
-        x0                    = [x0; Wp.(subStruct).(structVar)];
-        initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
-        initdist              = [initdist; bsxfun(@times,initrand.(structVar),1)];
-        
-        % Save to strucObs for later
-        strucObs.tune.subStruct{iT} = subStruct;
-        strucObs.tune.structVar{iT} = structVar;
-    end;
-
-    strucObs.L        = strucObs.size_output+length(strucObs.tune.vars);
-    strucObs.initdist = initdist;
-    
-    % Calculate initial ensemble
-    strucObs.nrobs = length(strucObs.obs_array);             % number of measurements
-    strucObs.Aen   = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
+    % Initialize state vector
+    sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
+    if options.exportPressures == 1 % Optional: add pressure terms
+        sol.x = [sol.x; vec(sol.p(2:end-1,2:end-1)')];
+        sol.x = sol.x(1:end-2); % Correction for how pressure is formatted
+    end
     
     if strucObs.stateEst
-        % Save old inflow settings
+        x0         = sol.x;
+        
+        % Determine initial particle distribution for state vector [u; v]
+        initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
+        initrand.v = (strucObs.W_0.v*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector v
+        initdist   = [bsxfun(@times,initrand.u,ones(Wp.Nu,1));...        % initial distribution matrix
+                      bsxfun(@times,initrand.v,ones(Wp.Nv,1))];    
+
+        % Determine process and measurement noise for this system
+        FStateGen = @() [strucObs.Q_e.u*randn(Wp.Nu,1); strucObs.Q_e.v*randn(Wp.Nv,1)]; 
+        
+        % Determine particle distribution and noise generators for pressure terms
+        if options.exportPressures == 1
+            initrand.p = (strucObs.W_0.p*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector p
+            initdist   = [initdist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
+            FStateGen  = @() [FrandGen(); strucObs.Q_e.p*randn(Wppar.Np,1)];
+        end
+        
+        strucObs.FStateGen = FStateGen;
+    else
+        x0       = [];
+        initdist = [];
+    end
+    
+    % Add model parameters as states for online model adaption
+    if strucObs.tune.est
+        FParamGen = [];
+        for iT = 1:length(strucObs.tune.vars)
+            tuneP                 = strucObs.tune.vars{iT};
+            dotLoc                = findstr(tuneP,'.');
+            subStruct             = tuneP(1:dotLoc-1);
+            structVar             = tuneP(dotLoc+1:end);
+            x0                    = [x0; Wp.(subStruct).(structVar)];
+            initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+            initdist              = [initdist; bsxfun(@times,initrand.(structVar),1)];
+
+            % Add parameter process noise to generator function
+            FParamGen = @() [FParamGen(); strucObs.tune.Q_e(iT)*randn(1,1)];
+            
+            % Save to strucObs for later usage
+            strucObs.tune.subStruct{iT} = subStruct;
+            strucObs.tune.structVar{iT} = structVar;
+        end
+        strucObs.FParamGen = FParamGen;
+    end
+
+    strucObs.L        = length(x0); % Number of elements in each particle
+    strucObs.nrobs    = length(strucObs.obs_array); % number of state measurements
+    strucObs.M        = strucObs.nrobs+strucObs.measPw*Wp.turbine.N; % total length of measurements
+    strucObs.initdist = initdist;   % Initial distribution of particles
+    
+    % Calculate initial particle distribution
+    strucObs.Aen = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
+
+    % Determine output noise generator
+    if strucObs.measPw
+        strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);...
+                                  strucObs.R_ePW*randn(Wp.turbine.N,strucObs.nrens)];
+    else
+        strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens)];
+    end
+
+    % Calculate localization (and inflation) auto-corr. and cross-corr. matrices
+    strucObs = WFObs_o_enkf_localization( Wp,strucObs );
+
+    % Save old inflow settings
+    if strucObs.stateEst
         strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
         strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     end
+    
+    % Turn off warning for unitialized variable
+    warning('off','MATLAB:mir_warning_maybe_uninitialized_temporary')
 else
     % Scale changes in estimated inflow to the ensemble members
     if strucObs.stateEst
@@ -58,185 +96,114 @@ else
         % Save old inflow settings
         strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
         strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
-    end
-    if strucObs.resampling
-        strucObs.Aen = repmat(sol.x,1,strucObs.nrens) + strucObs.initdist; % Resampling
+
+        % Resampling: redistribute particles around optimal solution of t = k-1
+        if strucObs.resampling
+            strucObs.Aen(1:size_output,:) = repmat(sol.x,1,strucObs.nrens) + strucObs.initdist; 
+        end        
     end
 end
 
-% Parallelized solving of the EnKF
-Aenf  = zeros(strucObs.L,strucObs.nrens); % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
 
-if strucObs.measPw
-    Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
-end;
+%% Parallelized solving of the forward propagation step in the EnKF
+Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
+Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
+
+tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
 
 parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
     solpar   = sol; % Copy optimal solution from prev. time instant
     Wppar    = Wp;  % Copy meshing struct
-
+    
     % Import solution from sigma point
     if strucObs.stateEst
         % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
         [solpar,~] = MapSolution(Wppar,solpar,Inf,options);
-    end;
+    end
        
     % Update Wp with values from the sigma points
-    for iT = 1:length(strucObs.tune.vars)
-        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
-        min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
-    end;
+    if strucObs.tune.est
+        tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
+        for iT = 1:length(strucObs.tune.vars)
+            % Threshold using min-max to avoid crossing lb/ub
+            tuneParam_tmp(iT) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),...
+                                strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
+            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = tuneParam_tmp(iT);
+        end
+    end
 
     % Forward propagation
-    solpar.k          = solpar.k - 1;
-    [ solpar,syspar ] = WFSim_timestepping( solpar, syspar, Wppar, options );
-    xf                = solpar.x(1:strucObs.size_output,1);    
+    solpar.k     = solpar.k - 1;
+    [ solpar,~ ] = WFSim_timestepping( solpar, syspar, Wppar, options );
     
-    % Calculate process noise
-    Frand = [strucObs.Q_e.u*randn(Wppar.Nu,1); ...
-             strucObs.Q_e.v*randn(Wppar.Nv,1)]; 
-    if options.exportPressures
-        Frand = [Frand; strucObs.Q_e.p*randn(Wppar.Np,1)];  % Add process noise
-    end;
-    xf = xf + Frand;
+    % Add process noise to model states and/or model parameters
+    if strucObs.stateEst
+        FState = strucObs.FStateGen(); % Use generator to determine noise
+        xf = solpar.x(1:strucObs.size_output); % Forecasted particle state
+        xf = xf + FState;
+        yf = xf(strucObs.obs_array);
+    else
+        xf = [];
+        yf = solpar.x(strucObs.obs_array);
+    end
+    if strucObs.tune.est
+        FParam = strucObs.FParamGen(); % Use generator to determine noise
+        xf     = [xf; tuneParam_tmp + FParam];
+    end
     
-    for iT = 1:length(strucObs.tune.vars)
-        Frandtemp = strucObs.tune.Q_e(iT)*randn(1,1);
-        xf        = [xf; min([strucObs.tune.ub, max([strucObs.tune.lb,...
-                     Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) + Frandtemp])])];
-        Frand     = [Frand; Frandtemp];
-    end;
+    % Write forecasted augmented state to ensemble forecast matrix
+    Aenf(:,ji) = xf; 
     
     % Calculate output vector
     if strucObs.measPw
-        Yenf(:,ji) = [xf(strucObs.obs_array); Pwpar'];
+        Yenf(:,ji) = [yf; Pwpar'];
     else
-        Yenf(:,ji) =  xf(strucObs.obs_array);
-    end;
-    Aenf(:,ji)  = xf; % Write forecasted state to ensemble forecast matrix   
-end;
+        Yenf(:,ji) =  yf;
+    end
+end
 
-% Create and disturb measurement vector
-Gamma  = strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);                 % artificial measurement noise flow
-Den    = repmat(sol.measuredData.sol(strucObs.obs_array),1,strucObs.nrens) + Gamma; % disturbed measurement ensemble
 
-if strucObs.measPw % Add power measurement noise, if applicable
-    Gamma_Pw = [strucObs.R_ePW*randn(Wp.turbine.N,strucObs.nrens)];     % artificial measurement noise turbines
-    Den      = [Den; repmat(sol.measuredData.power,1,strucObs.nrens)+Gamma_Pw]; % Updated measurement vector
-    Gamma    = [Gamma; Gamma_Pw];                                       % Updated noise matrix
-    clear Gamma_Pw
-end;
+%% Analysis update of the Ensemble KF
+% Create and disturb measurement ensemble
+if strucObs.measPw
+    y_meas = [sol.measuredData.sol(strucObs.obs_array);sol.measuredData.power];
+else
+    y_meas = [sol.measuredData.sol(strucObs.obs_array)];
+end
+RNoise = strucObs.RNoiseGen();
+Den    = repmat(y_meas,1,strucObs.nrens) + RNoise;
 
 % Calculate deviation matrices
 Aenft   = Aenf-repmat(mean(Aenf,2),1,strucObs.nrens); % Deviation in state
 Yenft   = Yenf-repmat(mean(Yenf,2),1,strucObs.nrens); % Deviation in output
 Dent    = Den - Yenf; % Difference between measurement and predicted output
 
-%% Localization
-% Calculate localization multiplication matrix and transformation matrix
-if sol.k == 1
-    if strcmp(lower(strucObs.f_locl),'off')
-        strucObs.auto_corrfactor  = ones(strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
-        strucObs.cross_corrfactor = ones(strucObs.size_output,strucObs.nrobs+strucObs.measPw*Wp.turbine.N);
-    else
-        disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
-        
-        % Generate the locations of all default model states and turbines in Aen
-        stateLocArray = zeros(strucObs.size_output,2);
-        for iii = 1:strucObs.size_output
-            [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
-            stateLocArray(iii,:) = [loci.x, loci.y];
-        end
-        turbLocArray = zeros(Wp.turbine.N,2);
-        for iii = 1:Wp.turbine.N
-            turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
-        end
-        
-        % Generate the locations of all outputs
-        outputLocArray = zeros(size(Yenf,1),2);
-        for iii = 1:size(Yenf,1)
-            if iii <= strucObs.nrobs % flow measurements
-                outputLocArray(iii,:) = stateLocArray(strucObs.obs_array(iii),:);
-            else % power measurements
-                outputLocArray(iii,:) = turbLocArray(iii-strucObs.nrobs,:); 
-            end
-        end
-        
-        % First calculate the cross-correlation between output and states
-        rho_locl = struct; % initialize empty structure
-        rho_locl.cross = sparse(strucObs.size_output,size(Yenf,1));
-        for iii = 1:strucObs.size_output % Loop over all default states
-            loc1 = stateLocArray(iii,:);
-            for jjj = 1:size(outputLocArray,1) % Loop over all measurements
-                loc2 = outputLocArray(jjj,:);
-                dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output               
-                rho_locl.cross(iii,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
-            end
-        end
-        clear iii jjj dx loc1 loc2
-        
-        % Add cross-correlation between output and model tuning parameters
-        for iT = 1:length(strucObs.tune.vars)
-            if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
-                crossmat_temp = [];
-                for iturb = 1:size(turbLocArray,1)
-                    loc1 = turbLocArray(iturb,:);
-                    for jjj = 1:size(outputLocArray,1)
-                        loc2 = outputLocArray(jjj,:);
-                        dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output   
-                        crossmat_temp(iturb,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
-                    end;
-                end;
-                if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.tune.vars{iT} '.']); end;
-                rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
-                
-            elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
-                rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
-                
-            else
-                disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
-            end;   
-        end;
-        clear iT dx loc1 loc2 iii jjj crossmat_temp iturb
-        
-        % Secondly, calculate the autocorrelation of output
-        rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
-        for(iii = 1:size(outputLocArray,1)) % for each output
-            loc1 = outputLocArray(iii,:);
-            for jjj = iii:size(Yenf,1) % for each output
-                loc2 = outputLocArray(jjj,:);
-                dx = sqrt(sum((loc1-loc2).^2));
-                rho_locl.auto(iii,jjj) = WFObs_o_enkf_localization( dx, strucObs.f_locl, strucObs.l_locl );
-            end;
-        end;
-        clear rho_locl_t dx loc1 loc2 iii jjj
-        
-        % Implement the effect of covariance inflation on localization
-        strucObs.auto_corrfactor  = rho_locl.auto * strucObs.r_infl;
-        strucObs.cross_corrfactor = rho_locl.cross* strucObs.r_infl;
-    end;
-end;
-
-%% Inflation
-% Implement the effect of covariance inflation on the ensemble
+% Implement the effect of covariance inflation on the forecasted ensemble
 Aenf  = Aenf*(1/strucObs.nrens)*ones(strucObs.nrens)+sqrt(strucObs.r_infl)*Aenft;
 
-%% KF update
-% analysis update: incorporate measurements in WFSim for optimal estimate
-strucObs.Aen = Aenf + strucObs.cross_corrfactor.*(Aenft*Yenft') * ...
-               pinv( strucObs.auto_corrfactor.*(Yenft*Yenft')+ Gamma*Gamma')*Dent;
+strucObs.Aen = Aenf + strucObs.cross_corrfactor.* (Aenft*Yenft') * ...
+                pinv( strucObs.auto_corrfactor .* (Yenft*Yenft') + RNoise*RNoise')*Dent;
+xSolAll = mean(strucObs.Aen,2);
 
-           
+
 %% Post-processing
-% Update model parameters with the optimal estimate
-for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-    Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+if strucObs.tune.est
+    % Update model parameters with the optimal estimate
+    for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
+        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(...
+            strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+    end
 end
 
-% Update states from estimation
-sol.x    = mean(strucObs.Aen,2);            % Write optimal estimate to sol
-[sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
-[~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
+% Update states, either from estimation or through open-loop
+if strucObs.stateEst
+    sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
+    [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
+    [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
+else
+    % Note: this is identical to 'sim' case in WFObs_o(..)
+    sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
+    [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
+end

@@ -5,6 +5,7 @@ if strucObs.measPw
     error('This function is currently not yet supported.');
 end
 
+%% Initialization step of the Unscented KF (at k == 1)
 if sol.k==1 
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
@@ -30,19 +31,21 @@ if sol.k==1
     end;
     
     % Add model parameters as states for online model adaption
-    for iT = 1:length(strucObs.tune.vars)
-        tuneP       = strucObs.tune.vars{iT};
-        dotLoc      = findstr(tuneP,'.');
-        subStruct   = tuneP(1:dotLoc-1);
-        structVar   = tuneP(dotLoc+1:end);
-        x0          = [x0; Wp.(subStruct).(structVar)];
-        P0          = blkdiag(P0,strucObs.tune.P_0(iT));
-        Qx          = blkdiag(Qx,strucObs.tune.Q_k(iT));
-        
-        % Save to strucObs for later
-        strucObs.tune.subStruct{iT} = subStruct;
-        strucObs.tune.structVar{iT} = structVar;
-    end;
+    if strucObs.tune.est
+        for iT = 1:length(strucObs.tune.vars)
+            tuneP       = strucObs.tune.vars{iT};
+            dotLoc      = findstr(tuneP,'.');
+            subStruct   = tuneP(1:dotLoc-1);
+            structVar   = tuneP(dotLoc+1:end);
+            x0          = [x0; Wp.(subStruct).(structVar)];
+            P0          = blkdiag(P0,strucObs.tune.P_0(iT));
+            Qx          = blkdiag(Qx,strucObs.tune.Q_k(iT));
+
+            % Save to strucObs for later
+            strucObs.tune.subStruct{iT} = subStruct;
+            strucObs.tune.structVar{iT} = structVar;
+        end
+    end
     
     % Calculate initial ensemble
     L               = length(x0);
@@ -68,6 +71,7 @@ if sol.k==1
     strucObs.L      = L;
     strucObs.lambda = lambda;
     strucObs.gamma  = gamma;
+    strucObs.M      = strucObs.nrobs+strucObs.measPw*Wp.turbine.N; % total length of measurements
 end
 
 % Calculate sigma points
@@ -78,22 +82,21 @@ else
 end;
 
 % Append the sigma points with model parameters
-for iT = 1:length(strucObs.tune.vars) 
-    strucObs.Aen = [strucObs.Aen; repmat(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),1,strucObs.nrens)];
-end;
+if strucObs.tune.est
+    for iT = 1:length(strucObs.tune.vars) 
+        strucObs.Aen = [strucObs.Aen; repmat(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),1,strucObs.nrens)];
+    end
+end
 
 % Distribute sigma points around the mean
 Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk);
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
 
-% Parallelized solving of the UKF
-Aenf  = zeros(strucObs.L,strucObs.nrens);       % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.nrobs,strucObs.nrens);   % Initialize empty output matrix
 
-if strucObs.measPw
-    Yenf = [Yenf; zeros(Wp.turbine.N,strucObs.nrens)];
-end;
+%% Parallelized solving of the forward propagation step in the UKF
+Aenf  = zeros(strucObs.L,strucObs.nrens);   % Initialize empty forecast matrix
+Yenf  = zeros(strucObs.M,strucObs.nrens);   % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
@@ -108,25 +111,39 @@ parfor(ji=1:strucObs.nrens)
     end;
        
     % Update Wp with values from the sigma points
-    for iT = 1:length(strucObs.tune.vars)
-        Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
-        min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
-    end;
+    if strucObs.tune.est
+        tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
+        for iT = 1:length(strucObs.tune.vars)
+            % Threshold using min-max to avoid crossing lb/ub
+            tuneParam_tmp(iT) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),...
+                                strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
+            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = tuneParam_tmp(iT);
+        end
+    end
 
     % Forward propagation
     solpar.k          = solpar.k - 1;
     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
-    xf                = solpar.x(1:strucObs.size_output,1);    
-    Yenf(:,ji)        = xf(strucObs.obs_array); 
-
+    
+    xf = [];
     if strucObs.stateEst 
-        % Write forecasted state to ensemble forecast matrix   
-        Aenf(:,ji) = [xf;strucObs.Aen(strucObs.size_output+1:end,ji)];
+        xf = [xf; solpar.x(1:strucObs.size_output,1)];
+    end
+    if strucObs.tune.est
+        xf = [xf; tuneParam_tmp];
+    end
+
+    % Write forecasted state to ensemble forecast matrix   
+    Aenf(:,ji) = xf
+    
+    % Calculate output vector
+    if strucObs.measPw
+        Yenf(:,ji) = [solpar.x(strucObs.obs_array); Pwpar'];
     else
-        % For model parameters, x_k+1 = x_k, so simply copy old values
-        Aenf(:,ji) = strucObs.Aen(:,ji);
+        Yenf(:,ji) =  solpar.x(strucObs.obs_array);
     end
 end
+
 
 %% Analysis update of the Unscented KF
 xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .*Aenf, 2);
@@ -147,10 +164,14 @@ Kk          = Ck * pinv(Sk);
 xSolAll     = xmean + Kk*(sol.measuredData.sol(strucObs.obs_array)-ymean);
 strucObs.Px = Pk - Kk * Sk * Kk';
 
+
 %% Post-processing
-% Update model parameters with the optimal estimate
-for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-    Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+if strucObs.tune.est
+    % Update model parameters with the optimal estimate
+    for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
+        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(...
+            strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+    end
 end
 
 % Update states, either from estimation or through open-loop
