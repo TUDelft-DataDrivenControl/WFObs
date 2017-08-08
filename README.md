@@ -17,6 +17,7 @@ Then, download the revelant high-fidelity measurement data in the respective fol
 ## Folder hierarchy:
 
 	/bin/:            contains all the functions and scripts used by WFObs.
+	/cluster_jobs/:   contains a folder with a demo code to run WFObs on a Linux cluster
 	/configurations/: contains the settings files for various simulation scenarios
 	/dev_tools/:      contains scripts to analyse results, useful for debugging and development
 	/setup_sensors/:  contains scripts that will allow you to set up the location of measurements, and generate the relevant input file
