@@ -89,7 +89,7 @@ else
             
         elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
             %rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
-            rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalize to reduce sensitivity
+            rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
             
         else
             disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
