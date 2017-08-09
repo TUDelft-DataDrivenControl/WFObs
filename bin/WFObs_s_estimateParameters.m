@@ -1,45 +1,95 @@
-    %         %% Pre-processing: parameter estimation
-    %         paramUpdateFreq = 200;
-    %         if ~rem(k,paramUpdateFreq)
-    %             for i = 1:paramUpdateFreq
-    %                 t_tmp               = Wp.sim.time(i+k-paramUpdateFreq+1);
-    %                 measured_tmp        = WFObs_s_loadmeasurements(sourcepath,datanroffset,t_tmp,0);
-    %                 solq_tmp(:,i)       = measured.solq(strucObs.obs_array);
-    %                 solq_tAvg           = mean(solq_tmp,2); % Column average
-    %                 
-    %                 input_tmp.beta(:,i) = [input{i+k-paramUpdateFreq}.beta];
-    %                 input_tmp.phi(:,i)  = [input{i+k-paramUpdateFreq}.phi];
-    %                 input_tAvg.beta     = mean( input_tmp.beta,2 );
-    %                 input_tAvg.phi      = mean( input_tmp.phi, 2 );
-    %                 
-    %                 Wp_tAvg             = Wp;
-    %                 Wp_tAvg.site.u_Inf  = mean(Wp.saved.u_Inf(k-paramUpdateFreq:k));
-    %                 Wp_tAvg.site.v_Inf  = mean(Wp.saved.v_Inf(k-paramUpdateFreq:k));
-    %                 Wp_tAvg.sim.h       = Inf; % Steady-state simulation
-    %                 
-    %                 % Apply changed boundary conditions to update system matrices
-    %                 [B1_tAvg,B2_tAvg,bc_tAvg] = Compute_B1_B2_bc(Wp_tAvg);
-    %                 B2_tAvg                   = 2*B2_tAvg;
-    %             end
-    %             clear i sol_tmp t_tmp measured_tmp % Remove old variables
-    %             
-    %             % Cost function
-    %             function J = costFunction(x,Wp_tAvg,input_tAvg,solq_tAvg,B1_tAvg,B2_tAvg,bc_tAvg )
-    %                 global strucObs sys options
-    %                 Wp_tAvg.turbine.forcescale = x(1);
-    %                 
-    %                 it        = 0;
-    %                 eps       = 1e19;
-    %                 epss      = 1e20;
-    % 
-    %                 while ( eps>conv_eps && it<max_it && eps<epss )
-    %                     it   = it+1;
-    %                     epss = eps;
-    %                     
-    %                     %% Calculate optimal solution according to filter of choice
-    %                     [sol,Wp,strucObs]   = WFObs_o(strucObs,Wp_tAvg,sys,B1_tAvg,B2_tAvg,bc_tAvg,input_tAvg,[],struct(),1,it_tmp,options);  % Perform the observer update
-    %                     [sol,eps]           = MapSolution(Wp.mesh.Nx,Wp.mesh.Ny,sol,k,it,options);   % Map solution to flowfields
-    %                 end;
-    %             end
-    %             
-    %         end
+function [ WpUpdated ] = WFObs_s_estimateParameters( Wp,sol_array,sys,strucObs,scriptOptions )
+
+WpUpdated = Wp;
+
+% Cost function
+    function J = costFunction(x,yTrue,Wp_in,sol_in,sys_in,options,subStructs,varNames)
+        for j = 1:length(subStructs)
+            Wp_in.(subStructs{j}).(varNames{j}) = x(j);
+        end
+        [ sol_out,~ ] = WFSim_timestepping( sol_in, sys_in, Wp_in, options );
+        yMeas         = sol_out.x(strucObs.obs_array);
+        J             = sqrt(mean((yMeas-yTrue).^2));
+    end
+
+%% Periodic model parameter adaption
+skipInitial     = 250;
+paramUpdateFreq = 200;
+if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skipInitial
+    disp('Updating model parameters using time-averaged data.');
+    
+    % Init variables
+    yTrue          = zeros(length(strucObs.obs_array),1);
+    input_tmp.beta = zeros(Wp.turbine.N,1);
+    input_tmp.phi  = zeros(Wp.turbine.N,1);
+    u_Inf          = 0;
+    v_Inf          = 0;
+    
+    % Gather time-averaged quantities
+    for i = 1:paramUpdateFreq
+        measured_tmp = sol_array{end-i+1}.measuredData;
+        yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array);
+        
+        input_tmp.beta = input_tmp.beta + Wp.turbine.input{end-i+1}.beta;
+        input_tmp.phi  = input_tmp.phi  + Wp.turbine.input{end-i+1}.phi;
+        
+        u_Inf  = u_Inf + sol_array{end-i+1}.u(1,1);
+        v_Inf  = v_Inf + sol_array{end-i+1}.v(1,1);
+    end
+    
+    % Set up measurement data
+    yTrue = yTrue / paramUpdateFreq;
+    
+    % Set up input data
+    input_tmp.beta = input_tmp.beta / paramUpdateFreq;
+    input_tmp.phi  = input_tmp.phi  / paramUpdateFreq;
+    
+    % Update inflow conditions
+    Wp_tmp       = Wp;
+    Wp_tmp.sim.h = Inf; % deltaT = Inf
+    Wp_tmp.site.u_Inf = u_Inf / paramUpdateFreq;
+    Wp_tmp.site.v_Inf = v_Inf / paramUpdateFreq;
+    Wp_tmp.turbine.input = {input_tmp}; % Only leave one cell: time-avgd
+    
+    % Apply changed boundary conditions to update system matrices
+    sys_tmp = sys;
+    [sys_tmp.B1,sys_tmp.B2,sys_tmp.bc] = Compute_B1_B2_bc(Wp_tmp);
+    sys_tmp.B2 = 2*sys_tmp.B2;
+    
+    % Set up initial conditions
+    sol_init.k    = 0;
+    sol_init.time = 0;
+    [sol_init.u,sol_init.uu] = deal(Wp_tmp.site.u_Inf  * ones(Wp.mesh.Nx,Wp.mesh.Ny));
+    [sol_init.v,sol_init.vv] = deal(Wp_tmp.site.v_Inf  * ones(Wp.mesh.Nx,Wp.mesh.Ny));
+    [sol_init.p,sol_init.pp] = deal(Wp_tmp.site.p_init * ones(Wp.mesh.Nx,Wp.mesh.Ny) );
+    
+    % other settings
+    options            = scriptOptions;
+    options.max_it     = 100;
+    options.max_it_dyn = 100;
+    options.printConvergence  = 0;  % Disable printing
+    
+    % Parameter estimation settings
+    subStructs   = {'turbine',   'site'};
+    varNames     = {'forcescale','lmu'};
+    x0           = [1.0, 1.0];
+    lb           = [0.5, 0.5];
+    ub           = [2.5, 2.5];
+    plotOptim    = false; % Display optimization progress and results
+    
+    % Optimize variables
+    cost         = @(x) costFunction(x,yTrue,Wp_tmp,sol_init,sys_tmp,options,subStructs,varNames);
+    if plotOptim
+        optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{@optimplotx, @optimplotfval} ); % Display convergence
+    else
+        optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{} );
+    end
+    xopt         = fmincon(cost,x0,[],[],[],[],lb,ub,[],optimOptions);
+    
+    % Overwrite Wp parameters with optimized ones
+    for jt = 1:length(subStructs)
+        disp([datestr(rem(now,1)) ' __  ' varNames{jt} ' estimated as ' num2str(xopt(jt),'%10.2f\n') '.']);
+        WpUpdated.(subStructs{jt}).(varNames{jt}) = xopt(jt);
+    end
+end
+end

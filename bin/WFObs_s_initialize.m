@@ -36,9 +36,7 @@ run(configName);
 
 if scriptOptions.printProgress
     disp(' WindFarmObserver (WFObs)');
-    disp(' ');
-    disp(['     Meshing:   ' Wp.name ]);
-    disp(['     Observer: ' strucObs.filtertype ]);
+    disp([' Case:  ' configName ]);
     disp(' ');
 end;
 

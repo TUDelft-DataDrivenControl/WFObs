@@ -61,6 +61,11 @@ while sol.k < Wp.sim.NN
     % Determine freestream inflow properties from SCADA data
     [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
     
+    % Adapt model parameters
+    if sol.k > 1 
+        Wp = WFObs_s_estimateParameters(Wp,sol_array,sys,strucObs,scriptOptions);
+    end
+    
     % Calculate optimal solution according to filter of choice
     [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
     
@@ -83,9 +88,10 @@ end
 
 
 %% Post-processing
-% save workspace, if necessary
+% save workspace variables, if necessary
 if scriptOptions.saveWorkspace
-    save([scriptOptions.savePath '/workspace.mat']);
+    save([scriptOptions.savePath '/workspace.mat'],'configName',...
+        'Wp','sys','sol_array','scriptOptions','strucObs');
 end
 
 % Put all relevant outputs in one structure
