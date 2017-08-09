@@ -62,7 +62,7 @@ while sol.k < Wp.sim.NN
     [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
     
     % Adapt model parameters
-    if sol.k > 1 
+    if strucObs.tune.estimate && sol.k > 1
         Wp = WFObs_s_estimateParameters(Wp,sol_array,sys,strucObs,scriptOptions);
     end
     

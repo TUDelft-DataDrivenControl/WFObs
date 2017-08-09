@@ -1,11 +1,15 @@
 function [ WpUpdated ] = WFObs_s_estimateParameters( Wp,sol_array,sys,strucObs,scriptOptions )
 
-WpUpdated = Wp;
+% Import variables
+k           = sol_array{end}.k;
+updateFreq  = strucObs.tune.updateFreq;
+skipInitial = strucObs.tune.skipInitial;
+WpUpdated   = Wp;
 
-% Cost function
-    function J = costFunction(x,yTrue,Wp_in,sol_in,sys_in,options,subStructs,varNames)
-        for j = 1:length(subStructs)
-            Wp_in.(subStructs{j}).(varNames{j}) = x(j);
+% Define the to-be-optimized cost function
+    function J = costFunction(x,yTrue,Wp_in,sol_in,sys_in,options)
+        for j = 1:length(strucObs.tune.subStructs)
+            Wp_in.(strucObs.tune.subStructs{j}).(strucObs.tune.varNames{j}) = x(j);
         end
         [ sol_out,~ ] = WFSim_timestepping( sol_in, sys_in, Wp_in, options );
         yMeas         = sol_out.x(strucObs.obs_array);
@@ -13,12 +17,13 @@ WpUpdated = Wp;
     end
 
 %% Periodic model parameter adaption
-skipInitial     = 150;
-paramUpdateFreq = 300;
-if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skipInitial
+if ~rem(k - skipInitial,updateFreq) && k > skipInitial
     disp('Updating model parameters using time-averaged data.');
     
     % Init variables
+    varNames   = strucObs.tune.varNames;
+    subStructs = strucObs.tune.subStructs;
+    
     yTrue          = zeros(length(strucObs.obs_array),1);
     input_tmp.beta = zeros(Wp.turbine.N,1);
     input_tmp.phi  = zeros(Wp.turbine.N,1);
@@ -26,7 +31,7 @@ if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skip
     v_Inf          = 0;
     
     % Gather time-averaged quantities
-    for i = 1:paramUpdateFreq
+    for i = 1:updateFreq
         measured_tmp = sol_array{end-i+1}.measuredData;
         yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array);
         
@@ -38,17 +43,17 @@ if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skip
     end
     
     % Set up measurement data
-    yTrue = yTrue / paramUpdateFreq;
+    yTrue = yTrue / updateFreq;
     
     % Set up input data
-    input_tmp.beta = input_tmp.beta / paramUpdateFreq;
-    input_tmp.phi  = input_tmp.phi  / paramUpdateFreq;
+    input_tmp.beta = input_tmp.beta / updateFreq;
+    input_tmp.phi  = input_tmp.phi  / updateFreq;
     
     % Update inflow conditions
     Wp_tmp       = Wp;
     Wp_tmp.sim.h = Inf; % deltaT = Inf
-    Wp_tmp.site.u_Inf = u_Inf / paramUpdateFreq;
-    Wp_tmp.site.v_Inf = v_Inf / paramUpdateFreq;
+    Wp_tmp.site.u_Inf = u_Inf / updateFreq;
+    Wp_tmp.site.v_Inf = v_Inf / updateFreq;
     Wp_tmp.turbine.input = {input_tmp}; % Only leave one cell: time-avgd
     
     % Apply changed boundary conditions to update system matrices
@@ -64,27 +69,19 @@ if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skip
     [sol_init.p,sol_init.pp] = deal(Wp_tmp.site.p_init * ones(Wp.mesh.Nx,Wp.mesh.Ny) );
     
     % other settings
-    options            = scriptOptions;
-    options.max_it     = 100;
-    options.max_it_dyn = 100;
-    options.printConvergence  = 0;  % Disable printing
-    
-    % Parameter estimation settings
-    subStructs   = {'turbine',   'site'};
-    varNames     = {'forcescale','lmu'};
-    x0           = [1.00, 1.00];
-    lb           = [0.50, 0.50];
-    ub           = [5.00, 10.0];
-    plotOptim    = false; % Display optimization progress and results
-    
+    options                  = scriptOptions;
+    options.max_it           = 100;
+    options.max_it_dyn       = 100;
+    options.printConvergence = 0;  % Disable printing
+
     % Optimize variables
-    cost         = @(x) costFunction(x,yTrue,Wp_tmp,sol_init,sys_tmp,options,subStructs,varNames);
-    if plotOptim
+    cost         = @(x) costFunction(x,yTrue,Wp_tmp,sol_init,sys_tmp,options);
+    if strucObs.tune.plotOptim
         optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{@optimplotx, @optimplotfval} ); % Display convergence
     else
         optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{} );
     end
-    xopt         = fmincon(cost,x0,[],[],[],[],lb,ub,[],optimOptions);
+    xopt         = fmincon(cost,strucObs.tune.x0,[],[],[],[],strucObs.tune.lb,strucObs.tune.ub,[],optimOptions);
     
     % Overwrite Wp parameters with optimized ones
     for jt = 1:length(subStructs)

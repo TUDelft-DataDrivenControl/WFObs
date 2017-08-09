@@ -27,6 +27,17 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
+% Estimate model parameters
+strucObs.tune.estimate    = true;
+strucObs.tune.skipInitial = 2;
+strucObs.tune.updateFreq  = 5;
+strucObs.tune.subStructs  = {'turbine',   'site'};
+strucObs.tune.varNames    = {'forcescale','lmu'};
+strucObs.tune.x0          = [1.00, 1.00];
+strucObs.tune.lb          = [0.50, 0.50];
+strucObs.tune.ub          = [5.00, 10.0];
+strucObs.tune.plotOptim   = false; % Display optimization progress and results
+    
 % Kalman filter settings
 strucObs.filtertype      = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
