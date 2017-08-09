@@ -20,7 +20,7 @@ scriptOptions.Animate           = 0;  % Show results every x iterations (0: no p
 
 % Saving settings
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
-scriptOptions.saveEst           = 1;  % Save estimated flow fields & powers in an external file at each time step
+scriptOptions.saveEst           = 0;  % Save estimated flow fields & powers in an external file at each time step
 scriptOptions.saveWorkspace     = 1;  % Save complete workspace at the end of simulation
 
 

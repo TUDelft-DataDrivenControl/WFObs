@@ -13,8 +13,8 @@ WpUpdated = Wp;
     end
 
 %% Periodic model parameter adaption
-skipInitial     = 250;
-paramUpdateFreq = 200;
+skipInitial     = 150;
+paramUpdateFreq = 300;
 if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skipInitial
     disp('Updating model parameters using time-averaged data.');
     
@@ -72,9 +72,9 @@ if ~rem(sol_array{end}.k-skipInitial,paramUpdateFreq) && sol_array{end}.k > skip
     % Parameter estimation settings
     subStructs   = {'turbine',   'site'};
     varNames     = {'forcescale','lmu'};
-    x0           = [1.0, 1.0];
-    lb           = [0.5, 0.5];
-    ub           = [2.5, 2.5];
+    x0           = [1.00, 1.00];
+    lb           = [0.50, 0.50];
+    ub           = [5.00, 10.0];
     plotOptim    = false; % Display optimization progress and results
     
     % Optimize variables

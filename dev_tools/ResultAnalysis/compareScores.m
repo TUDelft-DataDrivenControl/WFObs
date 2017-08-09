@@ -1,14 +1,23 @@
-clear all; close all; clc;
+clear all;
 
 data = {};
 
 %% OPEN-LOOP SIMS
+% data{end+1} = struct(...
+%     'name','Sim (no param tuning)',...
+%     'path','../../results/sim_noParamTuning/workspace.mat');
+
+%% Periodic parameter tuning
+% data{end+1} = struct(...
+%     'name','Sim (with param tuning)',...
+%     'path','../../results/sim_paramTuning/workspace.mat');
 data{end+1} = struct(...
-    'name','Sim (no param tuning)',...
-    'path','../../results/sim_noParamTuning/workspace.mat');
+    'name','EnKF (with param tuning)',...
+    'path','../../results/YawCase3_EnKF_n50_periodicParamEstimation/workspace.mat');
 data{end+1} = struct(...
-    'name','Sim (with param tuning)',...
-    'path','../../results/sim_paramTuning/workspace.mat');
+    'name','EnKF (nominal)',...
+    'path','../../results/YawCase3_EnKF_n50_nominal/workspace.mat');
+
 
 %% UKF: FEW MEASUREMENTS
 % data{end+1} =  struct(...
@@ -90,8 +99,8 @@ for di = 1:length(data)
 end
 
 
-% Produce figure
-close all;
+% Produce figure and print mean values
+close all; clc;
 for si = 1:length(scoreFields)
     hFigs{si} = figure;
     for di = 1:length(data)
@@ -102,4 +111,10 @@ for si = 1:length(scoreFields)
     legend('-dynamicLegend');
     xlabel('Time (k)');
     grid on;
+    
+    disp(['Mean(' scoreFields{si} '):'])
+    for di = 1:length(data)
+        disp(['  ' data{di}.name ': ' num2str(mean(data{di}.(scoreFields{si}))) '.']);
+    end
+    disp(' ')
 end

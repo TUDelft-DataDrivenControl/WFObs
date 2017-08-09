@@ -28,7 +28,7 @@ strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Kalman filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined next
+strucObs.filtertype      = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
