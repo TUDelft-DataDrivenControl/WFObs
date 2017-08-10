@@ -1,28 +1,3 @@
-%
-%                           SOWFA_import.m
-%
-% This script allows one to import and map raw SOWFA data onto a uniform
-% mesh such that it can be used in combination with WFSim. Note that
-% currently it only supports linear meshing, but it is soon to be extended
-% to exponential meshing, too.
-%
-% It is compatible for topologies with multiple turbines, multiple meshing
-% resoutions and different topology layouts. Assumed is that the source
-% meshing and topology do not change with time.
-%
-% This script generates a unique file for each time instant and for each
-% meshing resolution. The corresponding mapping and the new mesh grid
-% points are included in these files. Furthermore, "export_settings.mat"
-% is generated at the beginning of mapping, which includes the relevant
-% settings. Finally, "meshing.txt" is generated, to be included in WFSim
-% "meshing.m" for further usage of mapped data.
-%
-%
-%       author: B.M. Doekemeijer        date: October 19th, 2016
-%                                       Delft University of Technology
-%
-%
-
 clear all; clc; close all;
 addpath '..\export_fig'
 
