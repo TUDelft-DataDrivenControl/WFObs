@@ -4,6 +4,7 @@ function [ WpUpdated ] = WFObs_s_estimateParameters( Wp,sol_array,sys,strucObs,s
 k           = sol_array{end}.k;
 updateFreq  = strucObs.tune.updateFreq;
 skipInitial = strucObs.tune.skipInitial;
+pastWindow  = strucObs.tune.pastWindow;
 WpUpdated   = Wp;
 
 % Define the to-be-optimized cost function
@@ -17,7 +18,7 @@ WpUpdated   = Wp;
     end
 
 %% Periodic model parameter adaption
-if ~rem(k - skipInitial,updateFreq) && k > skipInitial
+if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pastWindow
     disp('Updating model parameters using time-averaged data.');
     
     % Init variables
@@ -31,7 +32,7 @@ if ~rem(k - skipInitial,updateFreq) && k > skipInitial
     v_Inf          = 0;
     
     % Gather time-averaged quantities
-    for i = 1:updateFreq
+    for i = 1:pastWindow
         measured_tmp = sol_array{end-i+1}.measuredData;
         yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array);
         
@@ -43,17 +44,17 @@ if ~rem(k - skipInitial,updateFreq) && k > skipInitial
     end
     
     % Set up measurement data
-    yTrue = yTrue / updateFreq;
+    yTrue = yTrue / pastWindow;
     
     % Set up input data
-    input_tmp.beta = input_tmp.beta / updateFreq;
-    input_tmp.phi  = input_tmp.phi  / updateFreq;
+    input_tmp.beta = input_tmp.beta / pastWindow;
+    input_tmp.phi  = input_tmp.phi  / pastWindow;
     
     % Update inflow conditions
     Wp_tmp       = Wp;
     Wp_tmp.sim.h = Inf; % deltaT = Inf
-    Wp_tmp.site.u_Inf = u_Inf / updateFreq;
-    Wp_tmp.site.v_Inf = v_Inf / updateFreq;
+    Wp_tmp.site.u_Inf = u_Inf / pastWindow;
+    Wp_tmp.site.v_Inf = v_Inf / pastWindow;
     Wp_tmp.turbine.input = {input_tmp}; % Only leave one cell: time-avgd
     
     % Apply changed boundary conditions to update system matrices

@@ -29,8 +29,9 @@ strucObs.U_inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant chang
 
 % Estimate model parameters
 strucObs.tune.estimate    = true;
-strucObs.tune.skipInitial = 2;
-strucObs.tune.updateFreq  = 5;
+strucObs.tune.skipInitial = 150;
+strucObs.tune.updateFreq  = 20;
+strucObs.tune.pastWindow  = 300;
 strucObs.tune.subStructs  = {'turbine',   'site'};
 strucObs.tune.varNames    = {'forcescale','lmu'};
 strucObs.tune.x0          = [1.00, 1.00];

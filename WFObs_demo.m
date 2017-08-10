@@ -70,7 +70,7 @@ scriptOptions.Animate           = 0;  % Show results every x iterations (0: no p
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
 scriptOptions.saveEst           = 0;  % Save estimated flow fields & powers in an external file at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/sim_tmp']; % Destination folder of saved files
+scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
 
 % Configuration file
 configName = 'YawCase3.m'; % See './configurations' for options: i.e., 'APC.m' or 'YawCase3.m'
