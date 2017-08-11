@@ -4,8 +4,9 @@ filesInFolder = natsortfiles(filesInFolder); % Sort numerically
 
 % Import and verify grid (does not change over time)
 [dataType,cellCenters,~] = importVTK(filesInFolder{1});
-[flowDataRaw.xu,flowDataRaw.xv] = deal(cellCenters(:,1));
-[flowDataRaw.yu,flowDataRaw.yv] = deal(cellCenters(:,2));
+[flowDataRaw.xu,flowDataRaw.xv] = deal(cellCenters(:,2)); % x is horizontal in SOWFA
+[flowDataRaw.yu,flowDataRaw.yv] = deal(cellCenters(:,1)); % y is vertical in SOWFA
+% this way, x is vertical and y is horizontal
 z = cellCenters(:,3);
 if abs(min(z) - max(z)) > 1 % This is more than just a horizontal slice
     error('Horizontal slice expected.');
@@ -24,8 +25,9 @@ for j = 1:length(filesInFolder)
     disp(['Loading SOWFA file ' jFile ' ...'])
     if ~isempty(strfind(jFile,'.vtk')) % if contains .vtk, load as flow file
         [~,~,cellData]     = importVTK(jFile);
-        flowDataRaw.u(j,:) = cellData(:,1);
-        flowDataRaw.v(j,:) = cellData(:,2);
+        flowDataRaw.u(j,:) = cellData(:,2); % in SOWFA, bottom to top 'v'
+        flowDataRaw.v(j,:) = cellData(:,1); % in SOWFA, left to right is 'u'
+        % Formatted this way: u is bottom -> top, v is left -> right
     elseif ~isempty(strfind(lower(jFile),'uperconout')) % superCONOUT file
         if exist('SCO')
             error('Multiple SuperCONOUT files detected.')

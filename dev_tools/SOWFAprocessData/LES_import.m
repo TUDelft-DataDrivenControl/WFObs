@@ -4,15 +4,21 @@ clear all; clc; close all;
 % Source files
 scriptOptions.plotMapping = true; % Plot mapping at time k == 1  (validation)
 % scriptOptions.sourcePath  = ['D:/bmdoekemeijer/My Documents/MATLAB/WFObs/WFSim/data_PALM/2turb_adm_long'];
-scriptOptions.sourcePath  = ['D:\Yawexcitationcase3\sliceDataInstant'];
+scriptOptions.sourcePath  = ['D:/Yawexcitationcase3/firstTenSlices'];%sliceDataInstant'];
 
 % Turbine properties directly from PALM
 % (x,y)   = [1226.3, 1342.0; 1773.7, 1658.0];  % MS Thesis case original (x,y)
 % (x,y)   = [1118.1, 1279.5; 1881.9, 1720.5]; % Yaw case 1-3 original (x,y)
-% PALM: rawTurbData.Crx       = [5700, 6456];   % Raw (inertial frame) in (m)
-% PALM: rawTurbData.Cry       = [1175, 1175];   % Raw (inertial frame) in (m)
-rawTurbData.Crx       = [1118.1, 1881.9];   % Raw (inertial frame) in (m)
-rawTurbData.Cry       = [1279.5, 1720.5];   % Raw (inertial frame) in (m)
+% rawTurbData.Crx       = [5700, 6456];   % Raw (inertial frame) in (m) PALM
+% rawTurbData.Cry       = [1175, 1175];   % Raw (inertial frame) in (m) PALM
+rawTurbData.Cry       = [1118.1, 1881.9];   % Raw turbine locations in (m) SOWFA
+rawTurbData.Crx       = [1279.5, 1720.5];   % Raw turbine locations in (m) SOWFA
+% Frame is
+%
+%    ^
+%  x |
+%    |_ _ >  y
+%
 rawTurbData.hubHeight = 90.0;               % Hub height in (m)
 
 % Desired output settings
@@ -44,7 +50,6 @@ if nnz(cell2mat(strfind(filesInFolder,'.nc'))) > 0
 elseif nnz(cell2mat(strfind(filesInFolder,'.vtk'))) > 0
     % load SOWFA data
     disp('Found a .vtk file. Assuming this is SOWFA data.')
-    filesInFolder = {filesInFolder{[1, 2, 5, end]}}; % To quicken things up for debug..
     [ flowDataRaw,turbDataRaw ] = loadSOWFAdata(filesInFolder);
 else
     error('Did not find any SOWFA/PALM data in the folder.');
@@ -65,45 +70,28 @@ for j = 1:length(fieldNamesListTurb)
     turbDataResampled.(fieldNamesListTurb{j}) = turbDataRaw.(fieldNamesListTurb{j})(k_raw,:);
 end
 turbDataResampled.t = time;
-clear j k_raw fieldNamesListTurb
+clear j k_raw fieldNamesListTurb flowDataRaw turbDataRaw
 
 
 % Normalize variables
-flowData    = flowDataResampled;
-flowData.xu = flowData.xu - min(flowData.xu);
-flowData.xv = flowData.xv - min(flowData.xu);
-flowData.yu = flowData.yu - min(flowData.yu);
-flowData.yv = flowData.yv - min(flowData.yu);
+flowData = flowDataResampled;
+turbData = turbDataResampled;
+clear flowDataResampled turbDataResampled
 
-turbData        = turbDataResampled;
-turbData.Crx    = rawTurbData.Crx - min(flowData.xu);
-turbData.Cry    = rawTurbData.Cry - min(flowData.yu);
+turbData.Crx    = rawTurbData.Crx;% - min(flowData.xu);
+turbData.Cry    = rawTurbData.Cry;% - min(flowData.yu);
+clear rawTurbData
 
 % Determine freestream conditions flow field by checking all corners
 disp('Rotating and translating grid according to u_Inf and v_Inf...')
-u_Inf = 8.0;
-v_Inf = 0.0;
-% U_Inf = 0;
-% for i = [1 size(flowData.u,2)]
-%     for j = [1 size(flowData.u,3)]
-%         tmp_u = mean(flowData.u(:,i,j));
-%         tmp_v = mean(flowData.v(:,i,j));
-%         tmp_U = sqrt(tmp_u^2 + tmp_v^2);
-%         if U_Inf < tmp_U
-%             u_Inf = tmp_u; 
-%             v_Inf = tmp_v;
-%             U_Inf = tmp_U;
-%         end
-%     end
-% end
-clear tmp_u tmp_v tmp_U i j
+u_Inf = median(flowData.u(:));
+v_Inf = median(flowData.v(:));
 
 % Rotate wind field
-windDirection = atan(v_Inf/u_Inf); % in radians
-if windDirection > deg2rad(2.5)
-    % Rotate flow field
-    error('Code not yet written -- has not appeared necessary yet.');
-    % ...
+U_inf = sqrt(u_Inf^2+v_Inf^2);
+WD = atan(v_Inf/u_Inf); % in radians
+if abs(WD) > deg2rad(2.5) 
+    [flowData,turbData] = rotateTranslate(flowData,turbData,WD);
 end
 
 % Preprocessing for translation: check if even possible
@@ -132,11 +120,15 @@ end
 clear xMax yMax xTurbSeperation
 
 % Translation
-flowData.xv = flowData.xv - min(turbData.Crx) + meshSetup.distance_S;
-flowData.xu = flowData.xu - min(turbData.Crx) + meshSetup.distance_S;
-flowData.yu = flowData.yu - min(turbData.Cry) + meshSetup.distance_W;
-flowData.yv = flowData.yv - min(turbData.Cry) + meshSetup.distance_W;
-        
+[~,UpstrIndx] = min(turbData.Crx); % Find most upstream turbine
+flowData.xv = flowData.xv - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+flowData.xu = flowData.xu - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+flowData.yu = flowData.yu - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+flowData.yv = flowData.yv - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+turbData.Crx = turbData.Crx - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+turbData.Cry = turbData.Cry - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+clear UpstrIndx
+
 % Determine target meshing (simplified meshing.m code)
 Wp.ldx   = linspace(0,Wp.Lx,meshSetup.Nx);
 Wp.ldy   = linspace(0,Wp.Ly,meshSetup.Ny);
@@ -155,7 +147,7 @@ Wp.Ny    = meshSetup.Ny;
 %% Perform remesh for every timestep
 NN      = length(time);
 [u,v]   = deal(zeros(NN,meshSetup.Nx,meshSetup.Ny));
-for k = 1:5%NN
+for k = 1:NN
     disp(['Performing remesh for k = ' num2str(k) '...']);
     
     % u-velocity
@@ -172,20 +164,26 @@ for k = 1:5%NN
     u(k,:,:) = reshape(uk_remeshed,Wp.Nx,Wp.Ny);
     v(k,:,:) = reshape(vk_remeshed,Wp.Nx,Wp.Ny);
         
-    if k == 1 && scriptOptions.plotMapping
+    if scriptOptions.plotMapping
         clf;
         subplot(1,2,1);
-        tri = delaunay(flowDataRaw.yu,flowDataRaw.xu);
-        h = trisurf(tri, flowDataRaw.yu, flowDataRaw.xu, uk_raw);
+        tri = delaunay(flowData.yu,flowData.xu);
+        h = trisurf(tri, flowData.yu, flowData.xu, uk_raw);
+%         h = trisurf(tri, flowData.yu, flowData.xu, vk_raw);
         lighting none; shading flat
         l = light('Position',[-50 -15 29]); view(0,90);
         caxis([min(min(uk_raw)) max(max(uk_raw))+.01]);  hold on; 
+%         caxis([min(vk_raw) max(vk_raw)+.01]);  hold on; 
         axis equal; axis tight; colorbar; 
+        % Draw submesh area
+        plot3([0, Wp.Ly Wp.Ly 0 0],[0 0 Wp.Lx Wp.Lx 0], [1e3*ones(5,1)],'k--' ) 
+        % Draw turbines
         for jTurb = 1:length(turbData.Crx)
-            plot3(rawTurbData.Cry(jTurb)+[-60,60],rawTurbData.Crx(jTurb)*[1,1],[1e3 1e3],'k-');
+            plot3(turbData.Cry(jTurb)+[-60,60],turbData.Crx(jTurb)*[1,1],[1e3 1e3],'k-');
         end
         ylabel('x-direction (m)'); xlabel('y-direction (m)');
-        title('RAW $u$ [m/s]','interpreter','latex');
+        %title('RAW $u$ [m/s]','interpreter','latex');
+        title('RAW $v$ [m/s]','interpreter','latex');
 
         subplot(1,2,2);
         tri = delaunay(Wp.ldyy2(:),Wp.ldxx(:));
@@ -193,7 +191,7 @@ for k = 1:5%NN
         lighting none; shading flat
         l = light('Position',[-50 -15 29]); view(0,90);
         caxis([min(min(uk_raw)) max(max(uk_raw))+.01]);  hold on; 
-        axis equal; colorbar; 
+        axis equal tight; colorbar; 
         for jTurb = 1:length(turbData.Crx)
             plot3(turbData.Cry(jTurb)+[-60,60],turbData.Crx(jTurb)*[1,1],[10 10],'k-');
         end
@@ -201,12 +199,13 @@ for k = 1:5%NN
         title('REMESHED $u$ [m/s]','interpreter','latex');
         
         clear jTurb tri l 
+        drawnow
     end
 end
 clear Nx_raw Ny_raw k uk_raw uk_remeshed vk_raw vk_remeshed
 
-% Save output data
-disp('Saving output data...');
-[fname,pth] = uiputfile('.mat');
-save([pth fname],'time','u','v','xu','yu','xv','yv','turbData','Wp')
+% % Save output data
+% disp('Saving output data...');
+% [fname,pth] = uiputfile('.mat');
+% save([pth fname],'time','u','v','xu','yu','xv','yv','turbData','Wp')
 toc
