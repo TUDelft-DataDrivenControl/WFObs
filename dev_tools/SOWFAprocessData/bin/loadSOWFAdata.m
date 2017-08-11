@@ -74,9 +74,7 @@ end
 disp('Imported everything. Process turbDataRaw')
 turbDataOut.time  = turbDataRaw.time;
 for j = 1:length(turbDataRaw.data)
-%     turbDataOut.Ur(:,j)    = turbDataRaw.data{j}(:,1);
-%     turbDataOut.CT         = M(:,4);
-%     turbDataOut.a          = M(:,5);
+    turbDataOut.Mz(:,j)       = turbDataRaw.data{j}(:,37);
     turbDataOut.phi(:,j)      = turbDataRaw.data{j}(:,21);
     turbDataOut.yawerror(:,j) = turbDataRaw.data{j}(:,22);
     turbDataOut.gentorq(:,j)  = turbDataRaw.data{j}(:,4);
