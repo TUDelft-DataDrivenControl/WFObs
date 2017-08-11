@@ -5,18 +5,18 @@ addpath bin
 %% Set-up
 % Source files
 scriptOptions.plotFrequency = 5; % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
-% scriptOptions.sourcePath  = ['D:/bmdoekemeijer/My Documents/MATLAB/WFObs/WFSim/data_PALM/2turb_adm_long'];
-scriptOptions.sourcePath  = ['D:/Yawexcitationcase3/sliceDataInstant'];%firstTenSlices'];
-scriptOptions.saveMemory  = true; % turn on if you are having memory issues
+scriptOptions.sourcePath  = ['D:/bmdoekemeijer/My Documents/MATLAB/WFObs/WFSim/data_PALM/2turb_adm_long'];
+% scriptOptions.sourcePath  = ['D:/Yawexcitationcase3/sliceDataInstant'];%firstTenSlices'];
+scriptOptions.saveMemory  = false; % turn on if you are having memory issues (SOWFA data only)
 
 % Turbine properties directly from PALM
 % (x,y)   = [1226.3, 1342.0; 1773.7, 1658.0];  % MS Thesis case original (x,y)
 % (x,y)   = [1118.1, 1279.5; 1881.9, 1720.5]; % Yaw case 1-3 original (x,y)
-% rawTurbData.Crx       = [5700, 6456];   % Raw (inertial frame) in (m) PALM
-% rawTurbData.Cry       = [1175, 1175];   % Raw (inertial frame) in (m) PALM
+rawTurbData.Crx       = [5700, 6456];   % Raw (inertial frame) in (m) PALM
+rawTurbData.Cry       = [1175, 1175];   % Raw (inertial frame) in (m) PALM
 rawTurbData.Drotor    = [126.4, 126.4];
-rawTurbData.Crx       = [1279.5, 1720.5];   % Raw turbine locations in (m) SOWFA
-rawTurbData.Cry       = [1118.1, 1881.9];   % Raw turbine locations in (m) SOWFA
+% rawTurbData.Crx       = [1279.5, 1720.5];   % Raw turbine locations in (m) SOWFA
+% rawTurbData.Cry       = [1118.1, 1881.9];   % Raw turbine locations in (m) SOWFA
 rawTurbData.hubHeight = 90.0;               % Hub height in (m)
 rawTurbData.tau       = 3; % Time constant tau in low pass filter 1/(tau*s+1)
 % Frame is
@@ -51,10 +51,8 @@ filesInFolder = {filesInFolder(3:end).name};   % Remove '.' and '..'
 % Decide whether this is SOWFA or PALM data
 if nnz(cell2mat(strfind(filesInFolder,'.nc'))) > 0
     disp('Found a .nc file. Assuming this is PALM data.')
-    addpath(genpath('mexcdf'));
     [ flowData,turbData ] = loadPALMdata( filesInFolder, rawTurbData.hubHeight );
     CT_given              = true;
-    
 elseif nnz(cell2mat(strfind(filesInFolder,'.vtk'))) > 0
     % load SOWFA data
     disp('Found a .vtk file. Assuming this is SOWFA data.')
@@ -66,8 +64,8 @@ end
 
 % Low-pass filter and resample turbine data
 disp('Filtering and resampling turbine and flow data...')
-time         = meshSetup.dt:meshSetup.dt:min([flowData.time(end),turbData.time(end)]);
-turbData     = resampleTurbData(turbData,rawTurbData.tau,time);
+time            = meshSetup.dt:meshSetup.dt:min([flowData.time(end),turbData.time(end)]);
+turbData        = resampleTurbData(turbData,rawTurbData.tau,time);
 turbData.Crx    = rawTurbData.Crx;
 turbData.Cry    = rawTurbData.Cry;
 turbData.Drotor = rawTurbData.Drotor;
@@ -87,6 +85,8 @@ v_Inf = median(flowData.v(:));
 WD = atan(v_Inf/u_Inf); % Wind direction [rad]
 if abs(WD) > deg2rad(2.5) % Only rotate if mismatch > 2.5 degrees 
     [flowData,turbData] = rotateTranslate(flowData,turbData,WD);
+    turbData.phi = turbData.phi*pi/180; % from deg to radians
+    turbData.phi = turbData.phi - pi/2 + WD; % rotate to new field
 end
 
 % Translation
@@ -119,10 +119,12 @@ Wp.Ny    = meshSetup.Ny;
 NN         = length(time);
 [u,v]      = deal(zeros(NN,meshSetup.Nx,meshSetup.Ny));
 intpMethod = 'linear';
-figure;
+figure; ticIt = tic;
 for k = 1:NN
-    disp(['Performing remesh for k = ' num2str(k) '...']);
-    
+    elapsedTime = toc(ticIt); % Timer and ETA calculator (sec)
+    if k == 1; ETA = 'N/A'; else; ETA = num2str(round((NN-k+1)*(elapsedTime/(k-1)))); end;    
+    disp(['Performing remesh for k = ' num2str(k) '. ETA: ' ETA ' s.']);
+
     % Grab velocity component at time k
     uk_raw      = flowData.u(k,:);   
     vk_raw      = flowData.v(k,:);  
@@ -144,8 +146,10 @@ for k = 1:NN
         if CT_given == false
             rho        = 1.20;
             rotorPts.N = 50; % number of interpolation points over rotor
-            rotorPts.y = turbData.Cry(j)+turbData.Drotor(j)*linspace(-0.5,0.5,rotorPts.N);
-            rotorPts.x = ones(1,rotorPts.N)*turbData.Crx(j);                      
+            for j = 1:length(turbData.Crx)
+                rotorPts.x{j} = ones(1,rotorPts.N)*turbData.Crx(j);  
+                rotorPts.y{j} = turbData.Cry(j)+turbData.Drotor(j)*linspace(-0.5,0.5,rotorPts.N);
+            end
             CT_prime   = zeros(NN,length(turbData.Crx));  
         end
     end
@@ -153,7 +157,7 @@ for k = 1:NN
     % Check if at least 'a' or/and 'CT' exist. If not: calculate from flow data
     if CT_given == false
         for j = 1:length(turbData.Crx)
-            rotorVelocity = griddata(flowData.yu,flowData.xu,uk_raw,rotorPts.y,rotorPts.x, 'linear');
+            rotorVelocity = griddata(flowData.yu,flowData.xu,uk_raw,rotorPts.y{j},rotorPts.x{j}, 'linear');
             rotorVelocityMean = mean(rotorVelocity);
             CT_prime(k,j) = 2*turbData.Mz(k,j)/(rho*rotorVelocityMean^2 ...
                              *0.25*pi*turbData.Drotor(j)^2*turbData.HH);
@@ -194,7 +198,6 @@ for k = 1:NN
         drawnow
     end
 end
-clear Nx_raw Ny_raw k uk_raw uk_remeshed vk_raw vk_remeshed jTurb l h
 
 if CT_given
     % Determine Ct' (Ct' = Ct/(1-a)^2, by Goit et al.)
@@ -205,8 +208,21 @@ else
     clear CT_prime
 end
 
+% % Format inputs
+turbDataFields = fieldnames(turbData);
+for j = 1:NN
+    for jField = 1:length(turbDataFields)
+        jField = turbDataFields{jField};
+        inputData(j).t(:,1)        = turbData.time(j);
+        inputData(j).phi(:,1)      = turbData.phi(j,:);
+        inputData(j).CT_prime(:,1) = turbData.CT_prime(j,:);
+    end
+end
+clear turbDataFields Nx_raw Ny_raw k uk_raw uk_remeshed ...
+      vk_raw vk_remeshed jTurb l h tri triremeshed j jField
+
 % % Save output data
 disp('Saving output data...');
 [fname,pth] = uiputfile('.mat');
-save([pth fname],'time','u','v','xu','yu','xv','yv','turbData','Wp')
+save([pth fname],'time','u','v','inputData','turbData','Wp')
 toc

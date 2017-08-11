@@ -1,5 +1,5 @@
 function [ flowDataRaw,turbDataOut ] = loadSOWFAdata( filesInFolder,saveMemory )
-addpath('natsortfiles'); % Natural sorter library
+addpath('bin/natsortfiles'); % Natural sorter library
 filesInFolder = natsortfiles(filesInFolder); % Sort numerically
 
 % Import and verify grid (does not change over time)

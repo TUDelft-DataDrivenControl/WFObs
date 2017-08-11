@@ -1,17 +1,28 @@
 function [ turbDataOut ] = resampleTurbData( turbData, tau, time_target )
 
+fieldNamesListTurb = fieldnames(turbData);
+
 % Check sampling time from raw data
 if var(diff(turbData.time)) < 1e-5
-    dtRawTurb = mean(diff(turbData.time));
+     dtRawTurb = mean(diff(turbData.time));
 else
-    error('Cannot deal with time-varying timestep sizes, as for now.');
+    disp('Detected time-varying timestep sizes in turbData. Resampling at smallest dt.');
+    dtRawTurb = min(diff(turbData.time));
+    time_new  = turbData.time(1):dtRawTurb:turbData.time(end);
+    for jField = 1:length(fieldNamesListTurb)
+        jField = fieldNamesListTurb{jField};
+        for jTurb = 1:size(turbData.(jField),2)
+            turbDataOut.(jField)(:,jTurb) = interp1(turbData.time,turbData.(jField)(:,jTurb),time_new);
+        end
+    end
+    turbData = turbDataOut; 
+    clear turbDataOut
 end
 
 % Create low pass filter function
 t_lpf = [1:length(turbData.time)]*dtRawTurb;
 LPF   = c2d(1/(tau*tf('s')+1),dtRawTurb,'tustin');
 
-fieldNamesListTurb = fieldnames(turbData);
 orderSubPlots      = numSubplots(length(fieldNamesListTurb)-1);
 
 % Low-pass filter all variables for each turbine
@@ -35,9 +46,11 @@ for j = 1:length(fieldNamesListTurb)
             % Plot results
             plot(t_lpf,y_in,'displayName',['raw T' num2str(jTurb)]); hold on;
             plot(time_target,y_out,'--','displayName',['filtered T' num2str(jTurb)]);
-            legend('-DynamicLegend');
+            legend('-DynamicLegend'); grid on;
+            xlabel('Time (s)');
             ylabel(fieldNamesListTurb{j});
         end
     end
 end
+drawnow;
 end

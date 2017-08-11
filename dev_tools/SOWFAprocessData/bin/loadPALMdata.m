@@ -1,29 +1,31 @@
 function [ flowDataRaw,turbDataRaw ] = loadPALMdata( filesInFolder,hubHeight )
-    % Internal function for loading turbine data
+% Internal function for loading turbine data
     function turbDataOut = loadTurbData(fileName)
         M = load(fileName);
         % [Time   UR  Uinf  Ct_adm  a Yaw Thrust Power  WFPower]
         turbDataOut.time  = M(:,1);
         turbDataOut.Ur    = M(:,2);
-%         turbDataOut.Uinf  = M(:,3);
+        %         turbDataOut.Uinf  = M(:,3);
         turbDataOut.CT    = M(:,4);
         turbDataOut.a     = M(:,5);
         turbDataOut.phi   = M(:,6);
         turbDataOut.power = M(:,8);
     end
 
-    % Internal function for loading flow data
+% Internal function for loading flow data
     function flowDataOut = loadFlowData(fileName)
         flowDataOut.time  = double(nc_varget(fileName,'time'));
         flowDataOut.u     = double(nc_varget(fileName,'u'));
         flowDataOut.v     = double(nc_varget(fileName,'v'));
-        flowDataOut.xu    = double(nc_varget(fileName,'xu'));        
+        flowDataOut.xu    = double(nc_varget(fileName,'xu'));
         flowDataOut.xv    = double(nc_varget(fileName,'x'));
         flowDataOut.yu    = double(nc_varget(fileName,'y'));
         flowDataOut.yv    = double(nc_varget(fileName,'yv'));
-%         flowDataOut.zw_3d = double(nc_varget(fileName,'zw_3d'));
+        %         flowDataOut.zw_3d = double(nc_varget(fileName,'zw_3d'));
         flowDataOut.zu_3d = double(nc_varget(fileName,'zu_3d'));
     end
+
+addpath(genpath('bin/mexcdf'));
 
 % Loop over all files
 for jFile = filesInFolder
@@ -52,11 +54,12 @@ end
 
 % Convert array of structs 'turbData' to single struct 'turbData'
 fieldNamesListTurb = fieldnames(turbDataRaw);
-for j = 1:length(fieldNamesListTurb) 
+for j = 1:length(fieldNamesListTurb)
     jName = fieldNamesListTurb{j};
     turbDataTmp.(jName) = [turbDataRaw.(jName)];
 end
-turbDataRaw = turbDataTmp;
+turbDataRaw      = turbDataTmp;
+turbDataRaw.time = turbDataRaw.time(:,1); % Make vector
 
 % Find z-index closest to turbine hub-height to export horizontal slice
 nz = round(interp1(flowDataRaw.zu_3d,1:length(flowDataRaw.zu_3d),hubHeight));
