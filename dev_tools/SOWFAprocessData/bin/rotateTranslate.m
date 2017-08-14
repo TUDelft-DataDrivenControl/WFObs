@@ -1,33 +1,21 @@
-function [ flowDataOut,turbDataOut ] = rotateTranslate( flowDataIn,turbDataIn,WD )
+function [ flowData,turbData,u_Inf,v_Inf ] = rotateTranslate( flowData,turbData,meshSetup )
+% Determine freestream conditions flow field by checking all corners
+disp('Rotating and translating grid according to u_Inf and v_Inf...')
+u_Inf = median(flowData.u(:));
+v_Inf = median(flowData.v(:));
+WD = atan(v_Inf/u_Inf); % Wind direction [rad]
+if abs(WD) > deg2rad(2.5) % Only rotate if mismatch > 2.5 degrees 
+    [flowData,turbData] = rotateMesh(flowData,turbData,WD);
+    turbData.phi = turbData.phi*pi/180; % from deg to radians
+    turbData.phi = turbData.phi - pi/2 + WD; % rotate to new field
+end
 
-% Rotation in the frame from x to x', positive
-%
-%   / \     _ x'
-%    |      /|
-% x  | WD  /
-%    |    /
-%    |   /
-%    |  /
-%    |_/_ _ _ _ > y
-%     \
-%     _\| y'
-%
-
-flowDataOut = flowDataIn;
-turbDataOut = turbDataIn;
-
-% Rotated turbine locations
-turbDataOut.Crx = cos(WD)*turbDataIn.Crx+sin(WD)*turbDataIn.Cry;
-turbDataOut.Cry = cos(WD)*turbDataIn.Cry-sin(WD)*turbDataIn.Crx;
-
-% Rotated mesh
-flowDataOut.xu = +cos(WD) * flowDataIn.xu + sin(WD) * flowDataIn.yu;
-flowDataOut.yu = -sin(WD) * flowDataIn.xu + cos(WD) * flowDataIn.yu;
-flowDataOut.xv = +cos(WD) * flowDataIn.xv + sin(WD) * flowDataIn.yv;
-flowDataOut.yv = -sin(WD) * flowDataIn.xv + cos(WD) * flowDataIn.yv;
-% figure;plot(flowDataOut.yu,flowDataOut.xu,'.'); hold on; plot(turbDataOut.Cry,turbDataOut.Crx,'ro')
-
-% Rotated flow fields
-flowDataOut.u  = cos(WD)*flowDataIn.u+sin(WD)*flowDataIn.v;
-flowDataOut.v  = cos(WD)*flowDataIn.v-sin(WD)*flowDataIn.u;
+% Translation
+[~,UpstrIndx] = min(turbData.Crx); % Find most upstream turbine
+flowData.xv = flowData.xv   - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+flowData.xu = flowData.xu   - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+flowData.yu = flowData.yu   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+flowData.yv = flowData.yv   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+turbData.Crx = turbData.Crx - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
+turbData.Cry = turbData.Cry - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
 end
