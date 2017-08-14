@@ -4,7 +4,7 @@ addpath bin
 
 %% Set-up
 % Source files
-scriptOptions.plotFrequency = 5; % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
+scriptOptions.plotFrequency = 50; % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
 scriptOptions.sourcePath  = ['D:/bmdoekemeijer/My Documents/MATLAB/WFObs/WFSim/data_PALM/2turb_adm_long'];
 % scriptOptions.sourcePath  = ['D:/Yawexcitationcase3/sliceDataInstant'];%firstTenSlices'];
 scriptOptions.saveMemory  = false; % turn on if you are having memory issues (SOWFA data only)
@@ -122,8 +122,14 @@ intpMethod = 'linear';
 figure; ticIt = tic;
 for k = 1:NN
     elapsedTime = toc(ticIt); % Timer and ETA calculator (sec)
-    if k == 1; ETA = 'N/A'; else; ETA = num2str(round((NN-k+1)*(elapsedTime/(k-1)))); end;    
-    disp(['Performing remesh for k = ' num2str(k) '. ETA: ' ETA ' s.']);
+    if k == 1 
+        ETA   = 'N/A';
+        k_len = floor(log10(NN))+1;
+    else
+        ETA = secs2timestr((NN-k+1)*(elapsedTime/(k-1))); 
+    end;
+    disp(['Performing remesh for k = ' num2str(k,['%0' num2str(k_len) 'd']) ...
+          '. Progress: ' num2str(floor(100*(k-1)/NN),'%02d') '%. ETA: ' ETA ' s.']);
 
     % Grab velocity component at time k
     uk_raw      = flowData.u(k,:);   

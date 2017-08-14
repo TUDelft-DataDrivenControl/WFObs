@@ -1,56 +1,56 @@
-function [ turbDataOut ] = resampleTurbData( turbData, tau, time_target )
+function [ turbDataOut ] = resampleTurbData( turbDataIn, tau, time_target )
 
-fieldNamesListTurb = fieldnames(turbData);
+fieldNamesListTurb = fieldnames(turbDataIn);
+NF                 = length(fieldNamesListTurb); % Number of datapoints
+NT                 = size(turbDataIn.power,2);   % Number of turbines
 
-% Check sampling time from raw data
-if var(diff(turbData.time)) < 1e-5
-     dtRawTurb = mean(diff(turbData.time));
+% Resample data to smallest dt, if necessary
+if var(diff(turbDataIn.time)) < 1e-6
+    dtRaw       = mean(diff(turbDataIn.time));
+    turbDataRaw = turbDataIn;
 else
     disp('Detected time-varying timestep sizes in turbData. Resampling at smallest dt.');
-    dtRawTurb = min(diff(turbData.time));
-    time_new  = turbData.time(1):dtRawTurb:turbData.time(end);
-    for jField = 1:length(fieldNamesListTurb)
+    dtRaw = min(diff(turbDataIn.time));
+    time_raw  = turbDataIn.time(1):dtRaw:turbDataIn.time(end);
+    for jField = 1:NF
         jField = fieldNamesListTurb{jField};
-        for jTurb = 1:size(turbData.(jField),2)
-            turbDataOut.(jField)(:,jTurb) = interp1(turbData.time,turbData.(jField)(:,jTurb),time_new);
+        if strcmp(jField,'time')
+            turbDataRaw.time = time_raw;
+        else
+            for jTurb = 1:NT
+                turbDataRaw.(jField)(:,jTurb) = interp1(turbDataIn.time,turbDataIn.(jField)(:,jTurb),time_raw);
+            end
         end
     end
-    turbData = turbDataOut; 
-    clear turbDataOut
 end
 
-% Create low pass filter function
-t_lpf = [1:length(turbData.time)]*dtRawTurb;
-LPF   = c2d(1/(tau*tf('s')+1),dtRawTurb,'tustin');
+% create empty figure and calculate optimal dimensions
+figure; jPlot = 0; 
+np = numSubplots(NF-1);
 
-orderSubPlots      = numSubplots(length(fieldNamesListTurb)-1);
-
-% Low-pass filter all variables for each turbine
-figure % create empty figure
-jPlot = 0;
-for j = 1:length(fieldNamesListTurb)
+% average and resample data
+k_mm = ceil(10./dtRaw); % width of sliding window
+turbDataOut.time = time_target;
+for j = 1:NF
     jField = fieldNamesListTurb{j};
-    if strcmp(jField,'time') % add any non-filtered fields here
-        turbDataOut.(jField) = time_target;
-    else
+    if strcmp(jField,'time') == false
         jPlot = jPlot+1;
-        subplot(orderSubPlots(1),orderSubPlots(2),jPlot);
-        for jTurb = 1:size(turbData.(jField),2)
-            y_in  = turbData.(jField)(:,jTurb);
-            y_fil = lsim(LPF,y_in,t_lpf);
-            
-            % Resample to desired time
-            y_out = interp1(turbData.time,y_fil,time_target,'linear');
-            turbDataOut.(fieldNamesListTurb{j})(:,jTurb) = y_out;
+        subplot(np(1),np(2),jPlot);
+        for jTurb = 1:NT
+            y_in  = turbDataRaw.(jField)(:,jTurb);
+            y_mm  = movmean(y_in,k_mm); % moving mean average
+            y_out = interp1(turbDataRaw.time,y_mm,time_target,'linear'); % Resample to desired time
+            turbDataOut.(jField)(:,jTurb) = y_out;
             
             % Plot results
-            plot(t_lpf,y_in,'displayName',['raw T' num2str(jTurb)]); hold on;
-            plot(time_target,y_out,'--','displayName',['filtered T' num2str(jTurb)]);
+            plot(turbDataRaw.time,y_in, '-', 'displayName',['raw T' num2str(jTurb)]); hold on;
+            plot(turbDataOut.time,y_out,'--','displayName',['filtered T' num2str(jTurb)]);
             legend('-DynamicLegend'); grid on;
             xlabel('Time (s)');
-            ylabel(fieldNamesListTurb{j});
+            ylabel(jField);
         end
     end
 end
-drawnow;
+drawnow
+
 end

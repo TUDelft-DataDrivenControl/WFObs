@@ -40,8 +40,12 @@ NF = length(filesInFolder);
 for j = 1:NF
     jFile = lower(filesInFolder{j});
     elapsedTime = toc(ticIt); % Timer and ETA calculator
-    if j == 1; ETA = 'N/A'; else; ETA = num2str(round((NF-j+1)*(elapsedTime/(j-1)))); end;
-    disp(['Loading SOWFA file ' num2str(j) '/' num2str(NF) ' with filename "' jFile '". ETA: ' ETA ' s.'])
+    if j == 1
+        ETA = 'N/A';
+    else
+        ETA = secs2timestr((NF-j+1)*(elapsedTime/(j-1)));
+    end
+    disp(['Loading SOWFA file ' num2str(j) '/' num2str(NF) '(' num2str(round(100*(j-1)/NF)) '%) with filename "' jFile '". ETA: ' ETA '.'])
     if ~isempty(strfind(jFile,'.vtk')) % if contains .vtk, load as flow file
         [~,~,cellData]     = importVTK(jFile);
         
