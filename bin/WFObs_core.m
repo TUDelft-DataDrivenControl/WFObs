@@ -71,14 +71,7 @@ while sol.k < Wp.sim.NN
     
     % Display progress in the command window
     sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
-    
-    % write relevant outputs to an external file
-    if scriptOptions.saveEst
-        save([scriptOptions.savePath '/' strucObs.filtertype ...
-            '_est' num2str(strucObs.measurementsOffset+sol.k),...
-            '.mat'],'sol');%'Wp','sys',strucObs','scriptOptions');
-    end
-    
+       
     % Save solution to an array
     sol_array{sol.k} = sol;
     

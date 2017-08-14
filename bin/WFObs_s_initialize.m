@@ -41,7 +41,7 @@ if scriptOptions.printProgress
 end;
 
 % Create destination folder for output files
-if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
     mkdir(scriptOptions.savePath);
 end;
 
@@ -62,7 +62,6 @@ end;
 
 % load a default random seed for consistency
 if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
-if scriptOptions.saveEst; save([scriptOptions.savePath '/' strucObs.filtertype '_est' num2str(strucObs.measurementsOffset) '.mat'],'sol'); end;
 
 % Define what the system should predict (with or without pressures)
 strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
@@ -88,7 +87,7 @@ scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacin
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
 
 % Save simulation & filter settings
-if (scriptOptions.savePlots + scriptOptions.saveEst + scriptOptions.saveWorkspace > 0)
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
     save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
 end;
 
