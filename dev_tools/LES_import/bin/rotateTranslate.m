@@ -18,4 +18,8 @@ flowData.yu = flowData.yu   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
 flowData.yv = flowData.yv   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
 turbData.Crx = turbData.Crx - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
 turbData.Cry = turbData.Cry - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+
+% Align freestream conditions 
+u_Inf = sqrt(u_Inf^2 + v_Inf^2);
+v_Inf = 0;
 end
