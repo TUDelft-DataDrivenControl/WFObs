@@ -38,7 +38,7 @@ end
 ticIt = tic;
 NF = length(filesInFolder);
 for j = 1:NF
-    jFile = lower(filesInFolder{j});
+    jFile = filesInFolder{j};
     elapsedTime = toc(ticIt); % Timer and ETA calculator
     if j == 1
         ETA = 'N/A';
@@ -46,7 +46,7 @@ for j = 1:NF
         ETA = secs2timestr((NF-j+1)*(elapsedTime/(j-1)));
     end
     disp(['Loading SOWFA file ' num2str(j) '/' num2str(NF) '(' num2str(round(100*(j-1)/NF)) '%) with filename "' jFile '". ETA: ' ETA '.'])
-    if ~isempty(strfind(jFile,'.vtk')) % if contains .vtk, load as flow file
+    if ~isempty(strfind(lower(jFile),'.vtk')) % if contains .vtk, load as flow file
         [~,~,cellData]     = importVTK(jFile);
         
         if saveMemory
@@ -69,7 +69,6 @@ for j = 1:NF
         disp(['Skipping file with name ' jFile '.'])
     end
 end
-% load('SOWFA_flowDataRaw_turbDataRaw') % Temporary replacement
 
 if exist('turbDataRaw') == 0
     error(['No superCONOUT file found. Please place it' ...
