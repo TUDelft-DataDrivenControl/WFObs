@@ -8,30 +8,20 @@ clear all; close all; clc;
 % with [x] defined as the variable 'expFreq'.
 %
 %
-expFreq = 10; % Export figure for every * steps
+time_vec = [400 800 1200];
+plotError   = false; % Export final contour, centerline, power-time and error-time plots
+plotPower   = false;
+plotContour = true;
+plotCline   = false;
 
 % Data sources
 data = {};
 data{end+1} = struct(...
-    'name','Sim (nominal)',...
-    'path','../../results/YawCase3_sim_nominal/workspace.mat');
+    'name','New input',...
+    'path','../../results/NoPrecursor_newMesh/workspace.mat');
 data{end+1} = struct(...
-    'name','Sim (tuned)',...
-    'path','../../results/YawCase3_sim_tuned/workspace.mat');
-% Periodic parameter tuning
-data{end+1} = struct(...
-    'name','UKF (nominal)',...
-    'path','../../results/YawCase3_UKF_nominal/workspace.mat');
-data{end+1} = struct(...
-    'name','UKF (tuned)',...
-    'path','../../results/YawCase3_UKF_tuned/workspace.mat');
-data{end+1} = struct(...
-    'name','EnKF (nominal)',...
-    'path','../../results/YawCase3_EnKF_nominal/workspace.mat');
-data{end+1} = struct(...
-    'name','EnKF (tuned)',...
-    'path','../../results/YawCase3_EnKF_tuned/workspace.mat');
-
+    'name','Old input',...
+    'path','../../results/NoPrecursor_newMesh_oldInput/workspace.mat');
 
 % Add libraries
 addpath('../../bin'); % Add binary files from WFObs for plotting
@@ -39,22 +29,21 @@ addpath('../../WFSim/libraries/export_fig'); % Add export_fig library
 addpath('libraries'); % Add libraries for VAF calculations
 addpath('../LES_import/bin'); % Used for 'secs2timestr.m'
 
-hFigs = {};
 for di = 1:length(data)
     WS_tmp = load(data{di}.path);
     Wp_import  = WS_tmp.Wp;
     Wp         = Wp_import; 
-    Wp.turbine = rmfield(Wp.turbine,'input'); 
-    for j = 1:1794
-        Wp.turbine.input(j) = Wp_import.turbine.input{j};
-    end
+%     Wp.turbine = rmfield(Wp.turbine,'input'); 
+%     for j = 1:1794
+%         Wp.turbine.input(j) = Wp_import.turbine.input{j};
+%     end
     strucObs      = WS_tmp.strucObs;
     scriptOptions = WS_tmp.scriptOptions;
     
     % Format figures
     scriptOptions.Animate        = 1;
-    scriptOptions.plotContour    = 1;
-    scriptOptions.plotCenterline = 1;
+    scriptOptions.plotContour    = plotContour;
+    scriptOptions.plotCenterline = plotCline;
     scriptOptions.plotPower      = 0;
     scriptOptions.plotError      = 0;
     scriptOptions.savePlots      = 1;
@@ -65,17 +54,18 @@ for di = 1:length(data)
     
     % Export figures 
     ticLoop = tic;
-    time_vec = 1:expFreq:length(WS_tmp.sol_array);
     NN       = length(time_vec);
     for k = 1:NN
         t = time_vec(k);
         sol_array = {WS_tmp.sol_array{1:t}};
-        [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,sol_array,scriptOptions,strucObs,hFigs );
+        [ ~,scriptOptions ] = WFObs_s_animations( Wp,sol_array,scriptOptions,strucObs );
         elapsedTime = toc(ticLoop);
         ETA = ceil((NN-k)*(elapsedTime/k));
         disp([data{di}.name ': k = ' num2str(k) '/' num2str(NN) '.  ETA: ' secs2timestr(ETA) '.']);
     end
-    scriptOptions.plotPower = 1;
-    scriptOptions.plotError = 1;    
-    [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,WS_tmp.sol_array,scriptOptions,strucObs,hFigs );
+    if plotPower + plotError > 0
+        scriptOptions.plotPower = plotPower;
+        scriptOptions.plotError = plotError;    
+        [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,WS_tmp.sol_array,scriptOptions,strucObs,hFigs );
+    end
 end

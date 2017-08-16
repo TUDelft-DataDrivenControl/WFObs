@@ -17,6 +17,7 @@ for i = 1:length(configurations)
     run(['configurations/' configurations{i}])
     
     % Core code
+    clear u v turbData meshingOut
     [ time,u,v,turbData,meshingOut ] = LES_import_core( scriptOptions,rawTurbData,meshSetup );
 
     % Save output data
