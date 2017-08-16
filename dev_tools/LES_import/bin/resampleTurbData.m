@@ -1,4 +1,4 @@
-function [ turbDataOut ] = resampleTurbData( turbDataIn, tau, time_target )
+function [ turbDataOut ] = resampleTurbData( turbDataIn, time_target )
 
 fieldNamesListTurb = fieldnames(turbDataIn);
 NF                 = length(fieldNamesListTurb); % Number of datapoints

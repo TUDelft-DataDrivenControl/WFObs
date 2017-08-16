@@ -8,7 +8,7 @@ tic;
 % Filter and resample turbine data
 disp('Filtering and resampling turbine and flow data...')
 time            = meshSetup.dt:meshSetup.dt:min([flowData.time(end),turbData.time(end)]);
-turbData        = resampleTurbData(turbData,rawTurbData.tau,time);
+turbData        = resampleTurbData(turbData,time);
 turbData.Crx    = rawTurbData.Crx;
 turbData.Cry    = rawTurbData.Cry;
 turbData.Drotor = rawTurbData.Drotor;
