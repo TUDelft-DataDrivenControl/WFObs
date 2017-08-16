@@ -1,4 +1,14 @@
-function [ flowData,turbData,u_Inf,v_Inf ] = rotateTranslate( flowData,turbData,meshSetup )
+function [ flowData,turbData,u_Inf,v_Inf,cornerPoints ] = rotateTranslate( flowData,turbData,meshSetup )
+% Keep track of corner points
+minIdxY = min(flowData.yu)==flowData.yu;
+minIdxX = min(flowData.xu)==flowData.xu;
+maxIdxY = max(flowData.yu)==flowData.yu;
+maxIdxX = max(flowData.xu)==flowData.xu;
+blc = [find(minIdxY+minIdxX==2)]; % bottom-left idx
+brc = [find(maxIdxY+minIdxX==2)]; % bottom-right idx
+trc = [find(maxIdxY+maxIdxX==2)]; % top-right idx
+tlc = [find(minIdxY+maxIdxX==2)]; % top-left idx
+
 % Determine freestream conditions flow field by checking all corners
 disp('Rotating and translating grid according to u_Inf and v_Inf...')
 u_Inf = median(flowData.u(:));
@@ -22,4 +32,10 @@ turbData.Cry = turbData.Cry - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
 % Align freestream conditions 
 u_Inf = sqrt(u_Inf^2 + v_Inf^2);
 v_Inf = 0;
+
+% Determine corner points of rotated and translated mesh
+cornerPoints = [flowData.yu(blc), flowData.xu(blc);...
+                flowData.yu(brc), flowData.xu(brc);...
+                flowData.yu(trc), flowData.xu(trc);...
+                flowData.yu(tlc), flowData.xu(tlc)];
 end
