@@ -1,0 +1,14 @@
+# Windows default autosave extension
+*.asv
+
+# OSX / *nix default autosave extension
+*.m~
+*.mat 
+
+# Compiled MEX binaries (all platforms)
+*.mex*
+
+# Session info
+octave-workspace
+Results*
+Results/*
