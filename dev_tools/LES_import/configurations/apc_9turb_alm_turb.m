@@ -1,8 +1,8 @@
 % Source files
-scriptOptions.outputFilename = 'APC_FixedTLocs_100x50_SaveMemory';
-scriptOptions.plotFrequency  = 100;   % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
-scriptOptions.saveMemory     = true;  % turn on if you are having memory issues (SOWFA data only)
-scriptOptions.sourcePath     = 'D:/APC_12_wake_noyaw_pitch_agc_50/sliceDataInstant';
+scriptOptions.outputFilename = 'apc_9turb_alm_turb';
+scriptOptions.plotFrequency  = 1e9;   % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
+scriptOptions.saveMemory     = false;  % turn on if you are having memory issues (SOWFA data only)
+scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/SOWFA/APC_12_wake_noyaw_pitch_agc_50/sliceDataInstant'
 
 % Turbine properties directly from PALM or SOWFA. The reference frame is 
 %   x (vertical, upwards pos.) - y (horizontal, rightwards pos.).
@@ -23,9 +23,9 @@ rawTurbData.hubHeight = 90.0;            % Hub height in (m)
 % Desired output settings
 meshSetup.dt          = 1.0 ; % Timestep in seconds
 meshSetup.rho         = 1.20; % Air density (kg m^-3)
-meshSetup.distance_S  = 300 ; % distance (m) upwind   first  turbine to export
+meshSetup.distance_S  = 400 ; % distance (m) upwind   first  turbine to export
 meshSetup.distance_N  = 850 ; % distance (m) downwind  last  turbine to export
-meshSetup.distance_W  = 300 ; % distance (m) west most left  turbine (from hub) to export
-meshSetup.distance_E  = 300 ; % distance (m) east most right turbine (from hub) to export
+meshSetup.distance_W  = 400 ; % distance (m) west most left  turbine (from hub) to export
+meshSetup.distance_E  = 400 ; % distance (m) east most right turbine (from hub) to export
 meshSetup.Nx          = 100 ; % Number of grid points in x-direction (-)
-meshSetup.Ny          = 50  ; % Number of grid points in y-direction (-)
+meshSetup.Ny          = 42   % Number of grid points in y-direction (-)

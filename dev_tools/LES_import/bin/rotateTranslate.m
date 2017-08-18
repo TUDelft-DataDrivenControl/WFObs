@@ -16,8 +16,8 @@ v_Inf = median(flowData.v(:));
 WD = atan(v_Inf/u_Inf); % Wind direction [rad]
 if abs(WD) > deg2rad(2.5) % Only rotate if mismatch > 2.5 degrees 
     [flowData,turbData] = rotateMesh(flowData,turbData,WD);
-    turbData.phi = turbData.phi*pi/180; % from deg to radians
-    turbData.phi = turbData.phi - pi/2 + WD; % rotate to new field
+    disp('TURBINE YAW ROTATION ONLY VALID FOR (OLD) SOWFA SIMULATIONS!!')
+    turbData.phi = turbData.phi - pi/2 + WD; % rotate to new field (SOWFA only)
 end
 
 % Translation

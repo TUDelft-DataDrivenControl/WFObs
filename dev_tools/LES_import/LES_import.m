@@ -1,6 +1,6 @@
 clear all; clc; close all;
 
-configurationName = 'APC.m'; % use '-all' to do a batch run over all configurations
+configurationName = '-all'; % use '-all' to do a batch run over all configurations
 
 % Organize file names
 if strcmp(lower(configurationName),'-all')

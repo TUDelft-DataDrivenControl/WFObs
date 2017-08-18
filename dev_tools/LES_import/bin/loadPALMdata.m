@@ -1,7 +1,11 @@
 function [ flowDataRaw,turbDataRaw ] = loadPALMdata( filesInFolder,hubHeight )
 % Internal function for loading turbine data
     function turbDataOut = loadTurbData(fileName)
-        M = load(fileName);
+        M = importdata(fileName);
+        if class(M) == 'struct'
+            M = M.data; % Compatibility with different headers
+        end
+        
         % [Time   UR  Uinf  Ct_adm  a Yaw Thrust Power  WFPower]
         turbDataOut.time  = M(:,1);
         turbDataOut.Ur    = M(:,2);

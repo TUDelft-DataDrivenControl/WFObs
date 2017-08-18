@@ -152,20 +152,20 @@ for j = 1:NN
 end
 
 % Write properties for meshing
-meshingOut.type   = 'lin';
-meshingOut.Lx     = Wp.Lx;
-meshingOut.Ly     = Wp.Ly;
-meshingOut.Nx     = Wp.Nx;
-meshingOut.Ny     = Wp.Ny;
-meshingOut.Crx    = turbData.Crx;
-meshingOut.Cry    = turbData.Cry;
-meshingOut.h      = meshSetup.dt;
-meshingOut.L      = time(end);
-meshingOut.Drotor = turbData.Drotor;
-meshingOut.input  = inputData;
-meshingOut.u_Inf  = u_Inf;
-meshingOut.v_Inf  = v_Inf;
-meshingOut.Rho    = meshSetup.rho;
+meshingOut.gridType  = 'lin';
+meshingOut.Lx        = Wp.Lx;
+meshingOut.Ly        = Wp.Ly;
+meshingOut.Nx        = Wp.Nx;
+meshingOut.Ny        = Wp.Ny;
+meshingOut.Crx       = turbData.Crx;
+meshingOut.Cry       = turbData.Cry;
+meshingOut.h         = meshSetup.dt;
+meshingOut.L         = time(end);
+meshingOut.Drotor    = turbData.Drotor;
+meshingOut.turbInput = inputData;
+meshingOut.u_Inf     = u_Inf;
+meshingOut.v_Inf     = v_Inf;
+meshingOut.Rho       = meshSetup.rho;
 
 toc
 end
