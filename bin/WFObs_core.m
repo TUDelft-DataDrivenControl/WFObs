@@ -67,7 +67,7 @@ while sol.k < Wp.sim.NN
     end
     
     % Calculate optimal solution according to filter of choice
-    [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
+    [Wp,sol,strucObs,sys] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
     
     % Display progress in the command window
     sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);

@@ -87,9 +87,9 @@ LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
 hFigs = {};
 
 % Create global RCM vector
-soltemp     = sol; soltemp.k = 1;
-[~, sysRCM] = Make_Ax_b(Wp,sys,soltemp,scriptOptions);
-sys.pRCM    = sysRCM.pRCM;  clear sysRCM soltemp;
+% soltemp     = sol; soltemp.k = 1;
+% [~, sysRCM] = Make_Ax_b(Wp,sys,soltemp,scriptOptions);
+% sys.pRCM    = sysRCM.pRCM;  clear sysRCM soltemp;
 
 scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length

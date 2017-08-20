@@ -1,4 +1,4 @@
-function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,options)
+function [ Wp,sol,strucObs,sys ] = WFObs_o(strucObs,Wp,sys,sol,options)
 % WFOBS_O  Header function to call the correct estimation function
 %
 %   SUMMARY
@@ -62,8 +62,9 @@ switch lower(strucObs.filtertype)
         [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
     case 'sim'
         % Open-loop simulations
-        sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
-        [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
+        sol.k      = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
+        sol.time   = Wp.sim.time(sol.k+1);% Timestep backward
+        [sol,sys]  = WFSim_timestepping(sol,sys,Wp,options);
     otherwise
         error('not a valid filter specified.');
 end;
