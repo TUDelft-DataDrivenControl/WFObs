@@ -1,4 +1,4 @@
-function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scriptOptions,configName )
+function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initialize( scriptOptions,configName )
 % WFOBS_S_INITIALIZE  Initialize the WFSim model and the estimator settings
 %
 %   SUMMARY
@@ -12,6 +12,9 @@ function [ Wp,sol,sys,strucObs,scriptOptions, hFigs ] = WFObs_s_initialize( scri
 %
 %     - scriptOptions: this struct contains all simulation settings, not
 %     related to the wind farm itself (solution methodology, outputs, etc.)
+%
+%     - LESData: this struct contains all the flow fields and turbine data
+%                from the LES data.
 %
 %     - Wp: this struct contains all the simulation settings related to the
 %           wind farm, the turbine inputs, the atmospheric properties, etc.
@@ -74,6 +77,11 @@ end;
 % Define measurement locations
 sensorsfile        = load(strucObs.sensorsPath);
 strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+
+% Load measurements from LES simulation (*.mat file)
+LESData    = load(Wp.sim.measurementFile); % Load measurements
+LESData.ud = LESData.u + strucObs.noise_obs*randn(size(LESData.u)); % Add noise
+LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
 
 % Setup blank figure windows
 hFigs = {};

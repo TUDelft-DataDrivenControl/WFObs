@@ -42,7 +42,7 @@ function [ outputData ] = WFObs_core( scriptOptions, configName )
 timerScript = tic;       % Start script timer
 
 % Initialize model and observer variables
-[Wp,sol,sys,strucObs,scriptOptions,hFigs] = ...
+[Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs] = ...
     WFObs_s_initialize(scriptOptions,configName);
 
 max_it   = scriptOptions.max_it;    % Convergence constraints
@@ -56,7 +56,7 @@ while sol.k < Wp.sim.NN
     sol.time = Wp.sim.time(sol.k+1);% Timestep forward
     
     % Load measurement data
-    sol.measuredData = WFObs_s_loadmeasurements(strucObs,sol.time);
+    sol.measuredData = WFObs_s_loadmeasurements(LESData,sol.k);
     
     % Determine freestream inflow properties from SCADA data
     [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
