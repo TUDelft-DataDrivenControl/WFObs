@@ -15,7 +15,7 @@ turbData.Drotor = rawTurbData.Drotor;
 turbData.HH     = rawTurbData.hubHeight;
 
 % Resample flow data
-k_raw = interp1([0; flowData.time],[1 1:length(flowData.time)],time,'nearest');
+k_raw = interp1(flowData.time,1:length(flowData.time),time,'nearest');
 flowData.time = time;
 for j = {'u','v'}
     flowData.(j{1}) = flowData.(j{1})(k_raw,:);

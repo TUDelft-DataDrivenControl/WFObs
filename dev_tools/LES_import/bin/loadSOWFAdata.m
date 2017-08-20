@@ -75,7 +75,7 @@ if exist('turbDataRaw') == 0
            ' in your source folder, next to the .vtk files.']);
 end
 disp('Imported everything. Process turbDataRaw')
-turbDataOut.time  = turbDataRaw.time;
+turbDataOut.time  = turbDataRaw.time-turbDataRaw.time(1); % Start at 0
 for j = 1:length(turbDataRaw.data)
     turbDataOut.Mz(:,j)       = turbDataRaw.data{j}(:,37);
     turbDataOut.phi(:,j)      = turbDataRaw.data{j}(:,21);

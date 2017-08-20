@@ -1,8 +1,10 @@
 function [ flowData,turbData,CT_given ] = loadLESData( scriptOptions,HH )
 % Sort and import files from PALM data folder
 disp('Sorting and importing files from source folder...')
-addpath(scriptOptions.sourcePath); % Add source folder to directory
 rawFileList = dir(scriptOptions.sourcePath); % Gather all files from PALM/SOWFA folder
+if length(rawFileList) < 3
+    error('The specified directory does not exist/has no LES files.');
+end
 for j = 1:length(rawFileList)-2
     filesInFolder{j} = [rawFileList(j+2).folder '/' rawFileList(j+2).name];   % Remove '.' and '..'
 end

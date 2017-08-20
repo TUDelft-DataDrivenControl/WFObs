@@ -7,7 +7,7 @@ function [ flowDataRaw,turbDataRaw ] = loadPALMdata( filesInFolder,hubHeight )
         end
         
         % [Time   UR  Uinf  Ct_adm  a Yaw Thrust Power  WFPower]
-        turbDataOut.time  = M(:,1);
+        turbDataOut.time  = M(:,1)-M(1,1); % Normalized to start at 0
         turbDataOut.Ur    = M(:,2);
         %         turbDataOut.Uinf  = M(:,3);
         turbDataOut.CT    = M(:,4);
@@ -19,13 +19,14 @@ function [ flowDataRaw,turbDataRaw ] = loadPALMdata( filesInFolder,hubHeight )
 % Internal function for loading flow data
     function flowDataOut = loadFlowData(fileName)
         flowDataOut.time  = double(nc_varget(fileName,'time'));
+        flowDataOut.time  = flowDataOut.time-flowDataOut.time(1); % Normalize to start at 0
         flowDataOut.u     = double(nc_varget(fileName,'u'));
         flowDataOut.v     = double(nc_varget(fileName,'v'));
         flowDataOut.xu    = double(nc_varget(fileName,'xu'));
         flowDataOut.xv    = double(nc_varget(fileName,'x'));
         flowDataOut.yu    = double(nc_varget(fileName,'y'));
         flowDataOut.yv    = double(nc_varget(fileName,'yv'));
-        %         flowDataOut.zw_3d = double(nc_varget(fileName,'zw_3d'));
+        % flowDataOut.zw_3d = double(nc_varget(fileName,'zw_3d'));
         flowDataOut.zu_3d = double(nc_varget(fileName,'zu_3d'));
     end
 
