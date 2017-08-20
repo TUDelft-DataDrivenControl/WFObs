@@ -1,8 +1,6 @@
 %% SOWFA source directories, meshing and measurement options
-strucObs.measurementsPath   = 'WFSim/data_SOWFA/YawCase3/2turb_50x25_lin';  % Specify location of SOWFA data (excluding backslash at the end)
-strucObs.measurementsOffset = 20000; % Numbering offset (i.e., first filenumber is datanroffset+1)
-Wp.name                     = 'YawCase3_50x50_lin_OBS';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
-strucObs.sensorsPath        = 'yaw_2turb_50x25_2row_downwind'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+Wp.name                     = 'yaw_2turb_alm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+strucObs.sensorsPath        = 'sensors_yaw_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
 
 
 %% WFSim model settings
@@ -24,11 +22,11 @@ strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data 
 strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Estimate model parameters
-strucObs.tune.estimate    = true;
+strucObs.tune.estimate    = false;
 strucObs.tune.skipInitial = 150;
 strucObs.tune.updateFreq  = 20;
 strucObs.tune.pastWindow  = 300;
@@ -40,7 +38,7 @@ strucObs.tune.ub          = [5.00, 10.0];
 strucObs.tune.plotOptim   = false; % Display optimization progress and results
     
 % Kalman filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined next
+strucObs.filtertype      = 'sim'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
