@@ -4,7 +4,10 @@ figure(hg); clf;
 if strcmp(winddir,'u'); hi = 1; else hi = 2; end; % define wind direction
 plot(Y{hi}(:),X{hi}(:),'.','DisplayName',['Grid points']); hold on;
 plot(BCs{hi}(:,1),BCs{hi}(:,2),'blackx','DisplayName','BCs'); % plot BCs
-plot([Wp.turbine.Cry'-Wp.turbine.Drotor/2 Wp.turbine.Cry'+Wp.turbine.Drotor/2]',[Wp.turbine.Crx; Wp.turbine.Crx],'DisplayName','Turbine','LineWidth',3);
+for j = 1:length(Wp.turbine.Cry)
+    plot([Wp.turbine.Cry(j)+ [-0.5, 0.5]*Wp.turbine.Drotor]',[Wp.turbine.Crx(j)*[1 1]],'DisplayName',['Turbine' num2str(j)],'LineWidth',3);
+    text(Wp.turbine.Cry(j),Wp.turbine.Crx(j),num2str(j));
+end
 
 if length(sensors{hi}.grid)>0
     plot(y{hi}(sensors{hi}.grid(:,2)),x{hi}(sensors{hi}.grid(:,1)),'ro','DisplayName','Sensors');
@@ -174,10 +177,15 @@ btn6 = uicontrol('Style', 'pushbutton', 'String', 'Load file',...
         sensors{1}.grid = sensorstemp{1}.grid;
         sensors{2}.grid = sensorstemp{2}.grid;
         clear sensorstemp;
-        if (abs(Wp.Lx-Wp_templ.Lx) + abs(Wp.Ly-Wp_templ.Ly) + ...
-            abs(Wp.mesh.Nx-Wp_templ.Nx) + abs(Wp.mesh.Ny-Wp_templ.Ny) + ...
-            sum(abs(Wp.turbine.Crx-Wp_templ.Crx)) + sum(abs(Wp.turbine.Cry-Wp_templ.Cry)) > 1e-5  )
-            error('Loaded file is incompatible.');
+        if (sum(abs(Wp.mesh.Lx-Wp_templ.mesh.Lx)) > 1e-5 || ...
+            sum(abs(Wp.mesh.Ly-Wp_templ.mesh.Ly)) > 1e-5 || ...
+            sum(abs(Wp.turbine.Crx-Wp_templ.turbine.Crx)) > 1e-5 || ...
+            sum(abs(Wp.turbine.Cry-Wp_templ.turbine.Cry)) > 1e-5)
+            disp('WARNING: Meshing from file does not match current mesh.');
+        end
+        if(sum(abs(Wp.mesh.Nx-Wp_templ.mesh.Nx)) > 1e-5 || ...
+           sum(abs(Wp.mesh.Ny-Wp_templ.mesh.Ny)) > 1e-5)
+            error('Loaded file is incompatible (Nx/Ny do not match).');
         end;
         WFObs_s_sensors_plot( Wp,BCs,Y,X,y,x,winddir,sensors,hg,get(gca,{'xlim','ylim'}) ); % Update figure
     end

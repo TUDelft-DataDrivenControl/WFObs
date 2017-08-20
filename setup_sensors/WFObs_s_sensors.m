@@ -12,12 +12,11 @@
 clear all; close all; clc;
 addpath WFSim\bin\core
 
-%Wp.name = 'apc_3x3turb_noyaw_9turb_100x50_lin';  % Define meshing
-Wp.name = 'APC_3x3turb_noyaw_9turb_100x50_lin';
+Wp.name = 'apc_9turb_alm_turb';
 
 
 %% Internal code
-[ Wp, ~ ] = meshing( Wp, 0, 0 )
+[ Wp ] = meshing( Wp.name, 0, 0 )
 
 % Meshing and boundary conditions for u
 X{1} = Wp.mesh.ldxx2;  Y{1} = Wp.mesh.ldyy;
