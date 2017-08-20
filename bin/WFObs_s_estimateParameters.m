@@ -26,8 +26,8 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
     subStructs = strucObs.tune.subStructs;
     
     yTrue          = zeros(length(strucObs.obs_array),1);
-    input_tmp.beta = zeros(Wp.turbine.N,1);
-    input_tmp.phi  = zeros(Wp.turbine.N,1);
+    input_tmp.CT_prime = zeros(Wp.turbine.N,1);
+    input_tmp.phi      = zeros(Wp.turbine.N,1);
     u_Inf          = 0;
     v_Inf          = 0;
     
@@ -36,8 +36,8 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
         measured_tmp = sol_array{end-i+1}.measuredData;
         yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array);
         
-        input_tmp.beta = input_tmp.beta + Wp.turbine.input{end-i+1}.beta;
-        input_tmp.phi  = input_tmp.phi  + Wp.turbine.input{end-i+1}.phi;
+        input_tmp.CT_prime = input_tmp.CT_prime + Wp.turbine.input(end-i+1).CT_prime;
+        input_tmp.phi      = input_tmp.phi  + Wp.turbine.input(end-i+1).phi;
         
         u_Inf  = u_Inf + sol_array{end-i+1}.u(1,1);
         v_Inf  = v_Inf + sol_array{end-i+1}.v(1,1);
@@ -47,7 +47,7 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
     yTrue = yTrue / pastWindow;
     
     % Set up input data
-    input_tmp.beta = input_tmp.beta / pastWindow;
+    input_tmp.CT_prime = input_tmp.CT_prime / pastWindow;
     input_tmp.phi  = input_tmp.phi  / pastWindow;
     
     % Update inflow conditions
@@ -55,7 +55,7 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
     Wp_tmp.sim.h = Inf; % deltaT = Inf
     Wp_tmp.site.u_Inf = u_Inf / pastWindow;
     Wp_tmp.site.v_Inf = v_Inf / pastWindow;
-    Wp_tmp.turbine.input = {input_tmp}; % Only leave one cell: time-avgd
+    Wp_tmp.turbine.input = input_tmp; % Only leave one cell: time-avgd
     
     % Apply changed boundary conditions to update system matrices
     sys_tmp = sys;

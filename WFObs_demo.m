@@ -59,12 +59,12 @@ scriptOptions.printProgress     = 1;  % Print progress every timestep
 scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
 
 % Visualization settings
-scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.Animate           = 1;  % Show results every x iterations (0: no plots)
+scriptOptions.plotMesh          = 1;  % Show meshing and turbine locations
+scriptOptions.Animate           = 50; % Show results every x iterations (0: no plots)
    scriptOptions.plotContour    = 1;  % Show flow fields
-   scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
+   scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
    scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
-   scriptOptions.plotCenterline = 0;  % Plot centerline speed of the wake (m/s)
+   scriptOptions.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
 
 % Saving settings
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
@@ -72,7 +72,7 @@ scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of si
 scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
 
 % Configuration file
-configName = 'YawCase3.m'; % See './configurations' for options: i.e., 'APC.m' or 'YawCase3.m'
+configName = 'axi_2turb_adm_noturb'; % See './configurations' for options
 
 
 %% Execute the WFObs core code

@@ -29,7 +29,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 %
 if strucObs.U_Inf.estimate    
     % Import variables
-    input        = Wp.turbine.input{sol.k};
+    input        = Wp.turbine.input(sol.k);
     measuredData = sol.measuredData;
     
     wd = 270.; % wind direction in degrees. should actually be something like:
