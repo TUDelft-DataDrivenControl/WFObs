@@ -23,7 +23,7 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 
 % Estimate freestream conditions
 strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
-strucObs.U_inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
+strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Estimate model parameters
 strucObs.tune.estimate    = false;

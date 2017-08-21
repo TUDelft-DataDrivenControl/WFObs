@@ -72,8 +72,9 @@ while sol.k < Wp.sim.NN
     % Display progress in the command window
     sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
        
-    % Save solution to an array
-    sol_array{sol.k} = sol;
+    % Save reduced-size solution to an array
+    sol.measuredData = rmfield(sol.measuredData,{'u','v','sol'});
+    sol_array{sol.k} = rmfield(sol,{'uu','vv','pp','uk','vk'});
     
     % Display animations on screen
     [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);

@@ -301,7 +301,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             xlabel('x (m)');
             ylabel('Flow speed (m/s)');
             grid on;
-            ylim([0 ceil(max([cline_LES{1};cline_WFSim{1}]))]);
+            ylim([floor(max([cline_LES{1};cline_WFSim{1}])/3) ceil(max([cline_LES{1};cline_WFSim{1}]))]);
             legend('-DynamicLegend');            
         end
 
