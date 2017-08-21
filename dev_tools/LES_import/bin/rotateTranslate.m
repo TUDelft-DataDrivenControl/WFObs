@@ -1,4 +1,4 @@
-function [ flowData,turbData,u_Inf,v_Inf,cornerPoints ] = rotateTranslate( flowData,turbData,meshSetup )
+function [ flowData,turbData,u_Inf,v_Inf,WD,cornerPoints ] = rotateTranslate( flowData,turbData,meshSetup )
 % Keep track of corner points
 minIdxY = min(flowData.yu)==flowData.yu;
 minIdxX = min(flowData.xu)==flowData.xu;
