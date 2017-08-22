@@ -31,7 +31,7 @@ end
 
 NN = size(datapoints,2);
 disp(['Simulating a total of NN = ' num2str(NN) ' points.']);
-for j = 1:NN
+parfor j = 1:NN
     lmu = datapoints(1,j);
     fsc = datapoints(2,j);
     m   = datapoints(3,j);

@@ -79,7 +79,11 @@ while sol.k < Wp.sim.NN
        
     % Save reduced-size solution to an array
     sol.measuredData = rmfield(sol.measuredData,{'u','v','sol'});
-    sol_array(sol.k) = rmfield(sol,{'uu','vv','pp','uk','vk'});
+    if nnz(strcmp(fieldnames(sol),'uk')) >= 1
+        sol_array(sol.k) = rmfield(sol,{'uu','vv','pp','uk','vk'});
+    else
+        sol_array(sol.k) = rmfield(sol,{'uu','vv','pp'});
+    end
     
     % Display animations on screen
     [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);
