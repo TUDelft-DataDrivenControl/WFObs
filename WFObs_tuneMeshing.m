@@ -67,7 +67,7 @@ parfor j = 1:NN
         score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
         score.mVAF_power    = vaf([measuredData.power],powerWFSim);
         
-        parsave([outputDir '/' num2str(j) '.mat'],'WpOverwrite','score')
+        parsave([outputDir '/' num2str(j) '.mat'],WpOverwrite,score)
     catch
         disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
     end

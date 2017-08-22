@@ -1,3 +1,3 @@
-function parsave(fname, var1,var2)
-    save(fname, 'var1','var2')
+function parsave(fname, WpOverwrite,score)
+    save(fname, 'WpOverwrite','score')
 end
