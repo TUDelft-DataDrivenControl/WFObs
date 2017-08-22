@@ -18,10 +18,6 @@ scriptOptions.printProgress     = 0;  % Print progress every timestep
 scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
 scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
 scriptOptions.Animate           = 0;  % Show results every x iterations (0: no plots)
-   scriptOptions.plotContour    = 0;  % Show flow fields
-   scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
-   scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
-   scriptOptions.plotCenterline = 0;  % Plot centerline speed of the wake (m/s)
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
 scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
@@ -34,7 +30,7 @@ end
 
 NN = size(datapoints,2);
 disp(['Simulating a total of NN = ' num2str(NN) ' points.']);
-for j = 1:NN
+parfor j = 1:NN
     lmu = datapoints(1,j);
     fsc = datapoints(2,j);
     m   = datapoints(3,j);
@@ -71,7 +67,7 @@ for j = 1:NN
         score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
         score.mVAF_power    = vaf([measuredData.power],powerWFSim);
         
-        save([outputDir '/' num2str(j) '.mat'],'WpOverwrite','score')
+        parsave([outputDir '/' num2str(j) '.mat'],'WpOverwrite','score')
     catch
         disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
     end

@@ -79,11 +79,9 @@ sensorsfile        = load(strucObs.sensorsPath);
 strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
 
 % Load measurements from LES simulation (*.mat file)
-tic
 LESData    = load(Wp.sim.measurementFile); % Load measurements
 LESData.ud = LESData.u + strucObs.noise_obs*randn(size(LESData.u)); % Add noise
 LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
-toc
 
 % Setup blank figure windows
 hFigs = {};
