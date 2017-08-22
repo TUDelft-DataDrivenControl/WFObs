@@ -37,7 +37,7 @@ function [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,sol_array,scriptOption
 %
 
 % Import variables
-sol          = sol_array{end}; 
+sol          = sol_array(end); 
 measuredData = sol.measuredData;
 
 % Produce figures
