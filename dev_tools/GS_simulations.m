@@ -1,8 +1,8 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'axi_2turb_adm_noturb'; % See './configurations' for options
-outputDir  = 'results/GS_2turb_adm_noturb/'; % Grid search output file
+configName = 'axi_2turb_adm_noturb'; 
+outputDir  = 'results/GS_2turb_adm_turb/'; % Grid search output file
 
 %% Grid search settings
 lmu_array  = 0.0:0.2:1.0;
@@ -11,6 +11,7 @@ m_array    = 1:8;
 n_array    = 1:4;
 
 %% Execute the WFObs core code
+cd .. % cd to main WFSim directory
 run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 datapoints = combvec(lmu_array,f_array,m_array,n_array);
 
@@ -30,7 +31,7 @@ end
 
 NN = size(datapoints,2);
 disp(['Simulating a total of NN = ' num2str(NN) ' points.']);
-parfor j = 1:NN
+for j = 1:NN
     lmu = datapoints(1,j);
     fsc = datapoints(2,j);
     m   = datapoints(3,j);
@@ -46,7 +47,7 @@ parfor j = 1:NN
     WpOverwrite.site.n             = n;    
     WpOverwrite.turbine.forcescale = fsc;
  
-    try
+%     try
         % Run simulation with trial Wp settings
         outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
         
@@ -68,7 +69,7 @@ parfor j = 1:NN
         score.mVAF_power    = vaf([measuredData.power],powerWFSim);
         
         parsave([outputDir '/' num2str(j) '.mat'],WpOverwrite,score)
-    catch
-        disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
-    end
+%     catch
+%         disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
+%     end
 end
