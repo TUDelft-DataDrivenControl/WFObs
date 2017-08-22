@@ -1,12 +1,12 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'axi_2turb_adm_noturb'; 
+configName = 'axi_2turb_adm_turb'; 
 outputDir  = 'results/GS_2turb_adm_turb/'; % Grid search output file
 
 %% Grid search settings
-lmu_array  = 0.0:0.2:1.0;
-f_array    = 1.0:0.2:2.0;
+lmu_array  = 0.2:0.1:2.0;
+f_array    = 1.3:0.1:1.9;
 m_array    = 1:8;
 n_array    = 1:4;
 
@@ -21,7 +21,7 @@ scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
 scriptOptions.Animate           = 0;  % Show results every x iterations (0: no plots)
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
+scriptOptions.savePath          = ['']; % Destination folder of saved files
 
 % Create directory
 mkdir([outputDir])
@@ -47,7 +47,7 @@ for j = 1:NN
     WpOverwrite.site.n             = n;    
     WpOverwrite.turbine.forcescale = fsc;
  
-%     try
+    try
         % Run simulation with trial Wp settings
         outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
         
@@ -69,7 +69,7 @@ for j = 1:NN
         score.mVAF_power    = vaf([measuredData.power],powerWFSim);
         
         parsave([outputDir '/' num2str(j) '.mat'],WpOverwrite,score)
-%     catch
-%         disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
-%     end
+    catch
+        disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
+    end
 end
