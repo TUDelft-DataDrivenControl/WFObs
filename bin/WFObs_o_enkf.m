@@ -12,10 +12,6 @@ function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)
 %      see 'WFObs_o.m' for the complete list.
 %    
 
-if strucObs.measPw
-    error('This function is currently not yet supported.');
-end
-
 %% Initialization step of the Ensemble KF (at k == 1)
 if sol.k==1
     % Check EnKF settings
@@ -212,8 +208,11 @@ xSolAll = mean(strucObs.Aen,2);
 if strucObs.tune.est
     % Update model parameters with the optimal estimate
     for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(...
-            strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+        k_int = 0; %0.99;
+        oldVal = Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT})
+        newVal = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)))
+        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
+             k_int*oldVal + (1-k_int)*newVal;
     end
 end
 
