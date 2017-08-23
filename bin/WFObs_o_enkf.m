@@ -128,16 +128,10 @@ Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
 
 tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
-
-sysOut = cell(strucObs.nrens,1); % Empty system structs
 parfor(ji=1:strucObs.nrens)
-    if sol.k == 1
-        syspar = sys; % Copy system matrices
-    else
-        syspar = strucObs.sys{ji}; % Load system matrices from time k-1
-    end
-    solpar   = sol; % Copy optimal solution from prev. time instant
-    Wppar    = Wp;  % Copy meshing struct
+    syspar = sys; % Copy system matrices
+    solpar = sol; % Copy optimal solution from prev. time instant
+    Wppar  = Wp;  % Copy meshing struct
     
     % Import solution from sigma point
     if strucObs.stateEst
@@ -189,10 +183,7 @@ parfor(ji=1:strucObs.nrens)
     else
         Yenf(:,ji) =  yf;
     end
-    
-    sysOut{ji} = syspar; % Save system matrices from particle ji
 end
-strucObs.sys = sysOut;
 
 %% Analysis update of the Ensemble KF
 % Create and disturb measurement ensemble
