@@ -37,7 +37,7 @@ function [ hFigs,scriptOptions ] = WFObs_s_animations( Wp,sol_array,scriptOption
 %
 
 % Import variables
-sol          = sol_array{end}; 
+sol          = sol_array(end); 
 measuredData = sol.measuredData;
 
 % Produce figures
@@ -214,9 +214,9 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         % Format all power predictions and measurements as a vector
         [pwLES,pwWFSim] = deal(zeros(Wp.turbine.N,length(sol_array)));
         for jt = 1:length(sol_array)
-            time(jt)      = sol_array{jt}.time;
-            pwLES(:,jt)   = sol_array{jt}.measuredData.power;
-            pwWFSim(:,jt) = sol_array{jt}.turbine.power;
+            time(jt)      = sol_array(jt).time;
+            pwLES(:,jt)   = sol_array(jt).measuredData.power;
+            pwWFSim(:,jt) = sol_array(jt).turbine.power;
         end;
         % Plot results
         set(0,'CurrentFigure',hFigs{2}); clf;
@@ -228,7 +228,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             legend('-DynamicLegend');
             xlabel('Time (s)');
             xlim([0 Wp.sim.L+1]);
-            ylim([0 5e6]);
+            ylim([0 1e6*ceil(max([pwWFSim(:); pwLES(:)])/1e6)]);
             grid on;
             ylabel('Power (W)');
             title(['Turbine ' num2str(j) '']);
@@ -256,9 +256,9 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         % Format all error scores as a vector
         [RMSE,maxError] = deal(zeros(1,length(sol_array)));
         for jt = 1:length(sol_array)
-            time(jt)     = sol_array{jt}.time;
-            RMSE(jt)     = sol_array{jt}.score.RMSE_flow;
-            maxError(jt) = sol_array{jt}.score.maxError;
+            time(jt)     = sol_array(jt).time;
+            RMSE(jt)     = sol_array(jt).score.RMSE_flow;
+            maxError(jt) = sol_array(jt).score.maxError;
         end;
         % Plot results
         set(0,'CurrentFigure',hFigs{3}); clf;
@@ -301,7 +301,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             xlabel('x (m)');
             ylabel('Flow speed (m/s)');
             grid on;
-            ylim([0 ceil(max([cline_LES{1};cline_WFSim{1}]))]);
+            ylim([floor(max([cline_LES{1};cline_WFSim{1}])/3) ceil(max([cline_LES{1};cline_WFSim{1}]))]);
             legend('-DynamicLegend');            
         end
 

@@ -85,7 +85,7 @@ if sol.k==1
     
     % Calculate initial particle distribution
     strucObs.Aen = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
-
+    
     % Determine output noise generator
     if strucObs.measPw
         strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);...
@@ -128,11 +128,10 @@ Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
 
 tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
-
 parfor(ji=1:strucObs.nrens)
-    syspar   = sys; % Copy system matrices
-    solpar   = sol; % Copy optimal solution from prev. time instant
-    Wppar    = Wp;  % Copy meshing struct
+    syspar = sys; % Copy system matrices
+    solpar = sol; % Copy optimal solution from prev. time instant
+    Wppar  = Wp;  % Copy meshing struct
     
     % Import solution from sigma point
     if strucObs.stateEst
@@ -158,7 +157,7 @@ parfor(ji=1:strucObs.nrens)
 
     % Forward propagation
     solpar.k     = solpar.k - 1;
-    [ solpar,~ ] = WFSim_timestepping( solpar, syspar, Wppar, options );
+    [ solpar,syspar ] = WFSim_timestepping( solpar, syspar, Wppar, options );
     
     % Add process noise to model states and/or model parameters
     if strucObs.stateEst
@@ -185,7 +184,6 @@ parfor(ji=1:strucObs.nrens)
         Yenf(:,ji) =  yf;
     end
 end
-
 
 %% Analysis update of the Ensemble KF
 % Create and disturb measurement ensemble

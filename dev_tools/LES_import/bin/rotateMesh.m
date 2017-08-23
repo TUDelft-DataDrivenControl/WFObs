@@ -26,8 +26,4 @@ flowDataOut.yu = -sin(WD) * flowDataIn.xu + cos(WD) * flowDataIn.yu;
 flowDataOut.xv = +cos(WD) * flowDataIn.xv + sin(WD) * flowDataIn.yv;
 flowDataOut.yv = -sin(WD) * flowDataIn.xv + cos(WD) * flowDataIn.yv;
 % figure;plot(flowDataOut.yu,flowDataOut.xu,'.'); hold on; plot(turbDataOut.Cry,turbDataOut.Crx,'ro')
-
-% Rotated flow fields
-flowDataOut.u  = cos(WD)*flowDataIn.u+sin(WD)*flowDataIn.v;
-flowDataOut.v  = cos(WD)*flowDataIn.v-sin(WD)*flowDataIn.u;
 end

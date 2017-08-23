@@ -1,8 +1,9 @@
-function [ turbDataOut ] = resampleTurbData( turbDataIn, time_target )
+function [ turbDataOut ] = resampleTurbData( turbDataIn, filterSettings, time_target )
 
 fieldNamesListTurb = fieldnames(turbDataIn);
 NF                 = length(fieldNamesListTurb); % Number of datapoints
 NT                 = size(turbDataIn.power,2);   % Number of turbines
+turbDataIn.time    = turbDataIn.time-turbDataIn.time(1); % Start at 0
 
 % Resample data to smallest dt, if necessary
 if var(diff(turbDataIn.time)) < 1e-6
@@ -29,7 +30,8 @@ figure; jPlot = 0;
 np = numSubplots(NF-1);
 
 % average and resample data
-k_mm = ceil(10./dtRaw); % width of sliding window
+kl = ceil(filterSettings.tL/dtRaw); % width of sliding window (left/backward)
+kr = ceil(filterSettings.tR/dtRaw); % width of sliding window (right/forward)
 turbDataOut.time = time_target;
 for j = 1:NF
     jField = fieldNamesListTurb{j};
@@ -38,8 +40,10 @@ for j = 1:NF
         subplot(np(1),np(2),jPlot);
         for jTurb = 1:NT
             y_in  = turbDataRaw.(jField)(:,jTurb);
-            y_mm  = movmean(y_in,k_mm); % moving mean average
-            y_out = interp1(turbDataRaw.time,y_mm,time_target,'linear'); % Resample to desired time
+            if filterSettings.MM 
+                y_in  = movmean(y_in,[kl kr]); % moving mean average
+            end
+            y_out = interp1(turbDataRaw.time,y_in,time_target,'linear'); % Resample to desired time
             turbDataOut.(jField)(:,jTurb) = y_out;
             
             % Plot results

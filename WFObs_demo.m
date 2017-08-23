@@ -59,17 +59,17 @@ scriptOptions.printProgress     = 1;  % Print progress every timestep
 scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
 
 % Visualization settings
-scriptOptions.plotMesh          = 1;  % Show meshing and turbine locations
-scriptOptions.Animate           = 50; % Show results every x iterations (0: no plots)
+scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
+scriptOptions.Animate           = 5;  % Show results every x iterations (0: no plots)
    scriptOptions.plotContour    = 1;  % Show flow fields
-   scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
+   scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
    scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
    scriptOptions.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
 
 % Saving settings
 scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
+scriptOptions.savePath          = ['results/adm_2turb/tmp']; % Destination folder of saved files
 
 % Configuration file
 configName = 'axi_2turb_adm_noturb'; % See './configurations' for options

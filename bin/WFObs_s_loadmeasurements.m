@@ -27,5 +27,5 @@ measuredData.u     = squeeze(LESData.ud(k,:,:));
 measuredData.v     = squeeze(LESData.vd(k,:,:));
 measuredData.solq  = [vec(measuredData.uq(3:end-1,2:end-1)'); vec(measuredData.vq(2:end-1,3:end-1)')];
 measuredData.sol   = [vec(measuredData.u(3:end-1,2:end-1)') ; vec(measuredData.v(2:end-1,3:end-1)') ];
-measuredData.power = LESData.turbData.power(k,:);
+measuredData.power(:,1) = LESData.turbData.power(k,:);
 end

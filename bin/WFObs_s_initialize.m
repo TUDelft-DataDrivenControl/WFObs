@@ -43,6 +43,9 @@ if scriptOptions.printProgress
     disp(' ');
 end;
 
+% load a default random seed for consistency
+if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
+
 % Create destination folder for output files
 if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
     mkdir(scriptOptions.savePath);
@@ -62,9 +65,6 @@ end;
 % Add noise to initial conditions
 [sol.u,sol.uu]  = deal(sol.u + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
 [sol.v,sol.vv]  = deal(sol.v + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
-
-% load a default random seed for consistency
-if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
 
 % Define what the system should predict (with or without pressures)
 strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
@@ -87,9 +87,8 @@ LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
 hFigs = {};
 
 % Create global RCM vector
-% soltemp     = sol; soltemp.k = 1;
-% [~, sysRCM] = Make_Ax_b(Wp,sys,soltemp,scriptOptions);
-% sys.pRCM    = sysRCM.pRCM;  clear sysRCM soltemp;
+[~, sysRCM] = WFSim_timestepping( sol, sys, Wp, scriptOptions );
+sys.pRCM    = sysRCM.pRCM;  clear sysRCM;
 
 scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length

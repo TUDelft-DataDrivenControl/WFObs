@@ -1,7 +1,7 @@
 function [ WpUpdated ] = WFObs_s_estimateParameters( Wp,sol_array,sys,strucObs,scriptOptions )
 
 % Import variables
-k           = sol_array{end}.k;
+k           = sol_array(end).k;
 updateFreq  = strucObs.tune.updateFreq;
 skipInitial = strucObs.tune.skipInitial;
 pastWindow  = strucObs.tune.pastWindow;
@@ -33,14 +33,15 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
     
     % Gather time-averaged quantities
     for i = 1:pastWindow
-        measured_tmp = sol_array{end-i+1}.measuredData;
-        yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array);
+        measured_tmp = sol_array(end-i+1).measuredData;
+        yTrue        = yTrue+measured_tmp.solq(strucObs.obs_array)+...
+                       strucObs.noise_obs*randn(size(strucObs.obs_array));
         
         input_tmp.CT_prime = input_tmp.CT_prime + Wp.turbine.input(end-i+1).CT_prime;
         input_tmp.phi      = input_tmp.phi  + Wp.turbine.input(end-i+1).phi;
         
-        u_Inf  = u_Inf + sol_array{end-i+1}.u(1,1);
-        v_Inf  = v_Inf + sol_array{end-i+1}.v(1,1);
+        u_Inf  = u_Inf + sol_array(end-i+1).u(1,1);
+        v_Inf  = v_Inf + sol_array(end-i+1).v(1,1);
     end
     
     % Set up measurement data

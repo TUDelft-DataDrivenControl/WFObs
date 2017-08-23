@@ -3,6 +3,5 @@
 addpath([WFObsPath '/bin']);                            % Add /bin/ path
 addpath([WFObsPath '/configurations'])                  % Add /configurations/ path
 addpath([WFObsPath '/setup_sensors'])                   % Add /sensors/ paths
-addpath([WFObsPath '/setup_sensors/sensor_layouts'])    % Add /sensors/ paths
 run(    [WFObsPath '/WFSim/WFSim_addpaths.m'])          % Add /WFSim/ paths
 clear WFObsPath

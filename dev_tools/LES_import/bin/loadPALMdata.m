@@ -9,7 +9,7 @@ function [ flowDataRaw,turbDataRaw ] = loadPALMdata( filesInFolder,hubHeight )
         % [Time   UR  Uinf  Ct_adm  a Yaw Thrust Power  WFPower]
         turbDataOut.time  = M(:,1)-M(1,1); % Normalized to start at 0
         turbDataOut.Ur    = M(:,2);
-        %         turbDataOut.Uinf  = M(:,3);
+        turbDataOut.Uinf  = M(:,3);
         turbDataOut.CT    = M(:,4);
         turbDataOut.a     = M(:,5);
         turbDataOut.phi   = M(:,6);
