@@ -69,17 +69,17 @@ scriptOptions.Animate           = 100;  % Show results every x iterations (0: no
 % Saving settings
 scriptOptions.savePlots         = 1;  % Save all plots in external files at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/adm_2turb/enkf_dualEstLmu']; % Destination folder of saved files
+scriptOptions.savePath          = ['results/apc/sim2']; % Destination folder of saved files
 
 % Configuration file
-configName = 'axi_2turb_adm_noturb'; % See './configurations' for options
+configName = 'apc_9turb_alm_turb'; % See './configurations' for options
 
-%% Execute the WFObs core code with a poor value for forcescale/lmu
-WpOverwrite.site.lmu = 1.0;
-WpOverwrite.sim.NN   = 1001;
+%% Execute the WFObs core code
 run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
-outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
+outputData = WFObs_core(scriptOptions,configName);
 
-% %% Execute the WFObs core code
+% %% Execute WFObs with a different value for lmu and NN than meshing.m
+% WpOverwrite.site.lmu = 1.0;
+% WpOverwrite.sim.NN   = 1001;
 % run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 % outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
