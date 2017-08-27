@@ -1,7 +1,8 @@
 %% SOWFA source directories, meshing and measurement options
 Wp.name                     = 'apc_9turb_alm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 strucObs.sensorsPath        = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
-
+strucObs.measPw   = false;
+strucObs.measFlow = false;
 
 %% WFSim model settings
 scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).

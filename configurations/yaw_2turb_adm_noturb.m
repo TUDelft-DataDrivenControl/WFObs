@@ -1,8 +1,8 @@
 %% SOWFA source directories, meshing and measurement options
-Wp.name                     = '2turb_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+Wp.name                     = '2turb_yaw_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
-scriptOptions.startUniform    = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 scriptOptions.conv_eps        = 1e-6; % Convergence parameter
 scriptOptions.max_it_dyn      = 1;    % Convergence parameter
 
@@ -36,7 +36,7 @@ strucObs.tune.ub          = [5.00, 10.0];
 strucObs.tune.plotOptim   = false; % Display optimization progress and results
     
 % Kalman filter settings
-strucObs.filtertype      = 'enkf'; % Observer types are outlined next
+strucObs.filtertype      = 'sim'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)

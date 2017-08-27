@@ -14,6 +14,7 @@ else
     scriptOptions.max_it = 50;  % Iteration limit for simulation start-up
 end
 
+strucObs.measFlow = false;
 
 %% Filter settings
 % General settings
