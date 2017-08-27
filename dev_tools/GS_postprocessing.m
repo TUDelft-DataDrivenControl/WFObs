@@ -1,6 +1,6 @@
 clear all; close all; clc;
 
-sourceFolder = '../results/GS_2turb_adm_noturb2';
+sourceFolder = '../results/GS_2turb_alm_noturb';
 filesSource = dir(sourceFolder);
 
 if length(filesSource) < 3
@@ -22,16 +22,23 @@ for j = 1:length(fileList)
         scoreOut(j).mRMSE_flow  = score.mRMSE_flow;
         scoreOut(j).mRMSE_cline = score.mRMSE_cline;
         scoreOut(j).mVAF_cline  = score.mVAF_cline;
+        scoreOut(j).forcescale  = WpOverwrite.turbine.forcescale;
         scoreOut(j).powerscale  = score.powerscaleOpt;
         scoreOut(j).mRMSE_power = score.mRMSE_power;
+        scoreOut(j).mmRMSE_power = score.mRMSE_power';
         scoreOut(j).mVAF_power  = score.mVAF_power;
+        scoreOut(j).mmVAF_power = score.mVAF_power';
         scoreOut(j).Wp          = WpOverwrite;
     end        
 end
 
-% % Best VAF fit:
 disp('Best power VAF fit:')
 [~,idVAF] = max(sum([scoreOut.mVAF_power]))
+disp(scoreOut(idVAF))
+disp(scoreOut(idVAF).Wp.site)
+
+disp('Best power RMS fit:')
+[~,idVAF] = min([scoreOut.mRMSE_power])
 disp(scoreOut(idVAF))
 disp('VAF power:')
 disp(scoreOut(idVAF).mVAF_power)
@@ -41,25 +48,16 @@ disp(scoreOut(idVAF).Wp.site)
 disp('Best cline VAF fit:')
 [~,idVAF] = max([scoreOut.mVAF_cline])
 disp(scoreOut(idVAF))
-disp('VAF power:')
-disp(scoreOut(idVAF).mVAF_power)
-disp(scoreOut(idVAF).Wp.turbine)
 disp(scoreOut(idVAF).Wp.site)
 
 disp('Weighed power+cline VAF fit:')
 [~,idVAF] = max(sum([scoreOut.mVAF_power])+([scoreOut.mVAF_cline]))
 disp(scoreOut(idVAF))
-disp('VAF power:')
-disp(scoreOut(idVAF).mVAF_power)
-disp(scoreOut(idVAF).Wp.turbine)
 disp(scoreOut(idVAF).Wp.site)
 
 disp('Weighed power+cline RMS fit:')
-[~,idVAF] = min(sum([scoreOut.mRMSE_power])+([scoreOut.mRMSE_cline]))
+[~,idVAF] = min(1e-6*sum([scoreOut.mRMSE_power])+([scoreOut.mRMSE_cline]))
 disp(scoreOut(idVAF))
-disp('VAF power:')
-disp(scoreOut(idVAF).mVAF_power)
-disp(scoreOut(idVAF).Wp.turbine)
 disp(scoreOut(idVAF).Wp.site)
 
 

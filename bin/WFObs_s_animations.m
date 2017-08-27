@@ -227,7 +227,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             plot(time,pwLES(j,:),'--','DisplayName', ['LES']);
             legend('-DynamicLegend');
             xlabel('Time (s)');
-            xlim([0 Wp.sim.L+1]);
+            xlim([0 Wp.sim.NN]);
             ylim([0 1e6*ceil(max([pwWFSim(:); pwLES(:)])/1e6)]);
             grid on;
             ylabel('Power (W)');
@@ -268,7 +268,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         ylabel('Error (m/s)');
         grid on;
         ylim([0 5]);
-        xlim([0 Wp.sim.L+1]);
+        xlim([0 Wp.sim.NN]);
         legend('-DynamicLegend');
         drawnow;
         if scriptOptions.savePlots; export_fig([scriptOptions.savePath '/' strucObs.filtertype '_errorplot'],'-png'); end;

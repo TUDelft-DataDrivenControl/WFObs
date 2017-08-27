@@ -52,6 +52,9 @@ conv_eps = scriptOptions.conv_eps;  % Convergence constraints
 if nargin > 2
     disp('Overwriting variables in Wp...');
     Wp = mergeStruct(Wp,WpOverwrite);
+    % Apply changed boundary conditions to update system matrices
+    [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
+    sys.B2                 = 2*sys.B2;
 end
 
 %% Core: time domain simulations

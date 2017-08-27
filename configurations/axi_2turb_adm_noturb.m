@@ -1,10 +1,8 @@
 %% SOWFA source directories, meshing and measurement options
 Wp.name                     = '2turb_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
-strucObs.sensorsPath        = 'sensors_2turb_adm_wakecenter'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
-
 
 %% WFSim model settings
-scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.startUniform    = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 scriptOptions.conv_eps        = 1e-6; % Convergence parameter
 scriptOptions.max_it_dyn      = 1;    % Convergence parameter
 
@@ -106,9 +104,8 @@ switch lower(strucObs.filtertype)
         
         % Model state covariances
         strucObs.stateEst = true;  % Estimate model states
-        strucObs.R_e      = 0.10; % Standard dev. for measurement noise ensemble
-        strucObs.Q_e.u    = 1e-3; %0.1  % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v    = 1e-4; %0.01 % Standard dev. for process noise 'v' in m/s
+        strucObs.Q_e.u    = 0.10; % 1e-3;% 0.10 % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v    = 0.01; % 1e-4;% 0.01 % Standard dev. for process noise 'v' in m/s
         strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
         strucObs.W_0.u    = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
         strucObs.W_0.v    = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
@@ -127,13 +124,12 @@ switch lower(strucObs.filtertype)
         strucObs.tune.lb   = [0.05]; %[0.40,0.05]; % Lower bounds
         strucObs.tune.ub   = [2.50]; %[3.00,2.50]; % Upper bounds
         
-        % Power as measurement
-        strucObs.measPw       = 0;      % Use power measurements from turbines in estimates
-        strucObs.R_ePW        = 1e-3;   % Measurement noise for turbine power measurements
-        strucObs.usePwforFlow = 0;      % Have direct correlation between states and measured Pw (recommended: off)
-        strucObs.pwLocFactor.auto  = 1; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
-        strucObs.pwLocFactor.cross = 0; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
-        
+        % Measurement definitions
+        strucObs.measPw      = true;  % Use power measurements from turbines in estimates
+        strucObs.R_ePw       = 1e4;   % Measurement noise for turbine power measurements
+        strucObs.measFlow    = false;
+        strucObs.R_e         = 0.10; % Standard dev. for measurement noise ensemble
+        strucObs.sensorsPath = 'sensors_2turb_adm_wakecenter'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         % Other settings
         scriptOptions.Linearversion   = 0; % Disable unnecessary calculations in model
         

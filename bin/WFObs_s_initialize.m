@@ -75,8 +75,12 @@ else
 end;
 
 % Define measurement locations
-sensorsfile        = load(strucObs.sensorsPath);
-strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+if strucObs.measFlow
+    sensorsfile        = load(strucObs.sensorsPath);
+    strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+else
+    strucObs.obs_array = [];
+end;
 
 % Load measurements from LES simulation (*.mat file)
 LESData    = load(Wp.sim.measurementFile); % Load measurements

@@ -46,7 +46,8 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
 
 if strcmp(lower(strucObs.f_locl),'off') | strucObs.stateEst == 0
     % Quick fix for stateEst == 0, should be done more properly down below
-    strucObs.auto_corrfactor  = ones(strucObs.M,strucObs.M);
+    error('@Self: Please take another look at this')
+    strucObs.auto_corrfactor = ones(strucObs.M,strucObs.M);
     if strucObs.tune.est
         strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M)/strucObs.M;
     else
@@ -67,14 +68,20 @@ else
     end
     
     % Generate the locations of all outputs
-    outputLocArray = zeros(strucObs.M,2);
-    for iii = 1:strucObs.M
-        if iii <= strucObs.nrobs % flow measurements
-            outputLocArray(iii,:) = stateLocArray(strucObs.obs_array(iii),:);
-        else % power measurements
-            outputLocArray(iii,:) = turbLocArray(iii-strucObs.nrobs,:);
-        end
+    if strucObs.measPw
+        outputLocArray = [stateLocArray(strucObs.obs_array,:);turbLocArray];
+    else
+        outputLocArray = [stateLocArray(strucObs.obs_array,:)];
     end
+% Old algorithm using a loop (less efficient)
+%     outputLocArray = zeros(strucObs.M,2);
+%     for iii = 1:strucObs.M
+%         if iii <= strucObs.nrobs % flow measurements
+%             outputLocArray(iii,:) = stateLocArray(strucObs.obs_array(iii),:);
+%         else % power measurements
+%             outputLocArray(iii,:) = turbLocArray(iii-strucObs.nrobs,:);
+%         end
+%     end
     
     % First calculate the cross-correlation between output and states
     rho_locl = struct; % initialize empty structure
