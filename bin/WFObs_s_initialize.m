@@ -92,7 +92,7 @@ hFigs = {};
 
 % Create global RCM vector
 [~, sysRCM] = WFSim_timestepping( sol, sys, Wp, scriptOptions );
-sys.pRCM    = sysRCM.pRCM;  clear sysRCM;
+sys.pRCM    = sysRCM.pRCM;
 
 scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length

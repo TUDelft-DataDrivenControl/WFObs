@@ -65,9 +65,6 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end;       
     end
     
-    % applied correction for yaw angle: wake was forming at wrong side
-    yaw_angles = .5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input(sol.k).phi'*pi/180); 
-
     % Plot contour flow fields
     if scriptOptions.plotContour
         % Check if figure has been closed
@@ -86,107 +83,43 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end
     if scriptOptions.plotContour
+        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title','u_{WFSim}');
+        data{2} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',measuredData.uq,'title','u_{LES}');
+        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','|u_{WFSim}-u_{LES}|','cmax',3);
+        data{4} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',sol.v,'title','v_{WFSim}','cmax',3);
+        data{5} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',measuredData.vq,'title','v_{LES}','cmax',3);
+        data{6} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',abs(sol.v-measuredData.vq),'title','|v_{WFSim}-v_{LES}|','cmax',3);
+        
+        % applied correction for yaw angle: wake was forming at wrong side
+        yaw_angles = -.5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input(sol.k).phi'*pi/180); 
+    
         % Plot velocities in a contourf figure
         set(0,'CurrentFigure',hFigs{1}); clf
-        subplot(2,3,1);
-        contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,sol.u,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
-        title(['Predicted u velocity (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([0 ceil(Wp.site.u_Inf)]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction'); hold on
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
         
-        subplot(2,3,2);
-        contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,measuredData.uq,(0:0.1:Wp.site.u_Inf*1.05),'Linecolor','none');
-        title(['Measured u velocity (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([0 ceil(Wp.site.u_Inf)]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction');
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
-        
-        subplot(2,3,3);
-        contourf(Wp.mesh.ldyy,Wp.mesh.ldxx2,abs(sol.u-measuredData.uq),(0:0.05:3),'Linecolor','none'); hold on;
-        ldyyv = Wp.mesh.ldyy(:); ldxx2v = Wp.mesh.ldxx2(:);
-        plot(ldyyv(sol.score.maxerroruloc),ldxx2v(sol.score.maxerroruloc),'whiteo','LineWidth',1,'MarkerSize',8,'DisplayName','Maximum error location');
-        title(['u-velocity error (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([0 3.]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction');
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
-        
-        subplot(2,3,4);
-        contourf(Wp.mesh.ldyy2,Wp.mesh.ldxx,sol.v,(-3:0.05:3),'Linecolor','none');
-        title(['Predicted v-velocity (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([-2 2]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction');
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
-        
-        subplot(2,3,5);
-        contourf(Wp.mesh.ldyy2,Wp.mesh.ldxx,measuredData.vq,(-3:0.1:3),'Linecolor','none');
-        title(['Measured v-velocity (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([-2 2]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction');
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
-        
-        subplot(2,3,6);
-        contourf(Wp.mesh.ldyy2,Wp.mesh.ldxx,abs(sol.v-measuredData.vq),(0:0.1:3),'Linecolor','none'); hold on;
-        ldyy2v = Wp.mesh.ldyy2(:); ldxxv = Wp.mesh.ldxx(:);
-        plot(ldyy2v(sol.score.maxerrorvloc),ldxxv(sol.score.maxerrorvloc),'whiteo','LineWidth',1,'MarkerSize',8,'DisplayName','Maximum error location');
-        title(['v-velocity error (t = ' num2str(sol.time) ')'])
-        %colormap(jet);
-        caxis([0 3]);
-        hold all; colorbar;
-        axis equal; axis tight;
-        xlabel('y-direction')
-        ylabel('x-direction');
-        for kk=1:Wp.turbine.N
-            Qy     = (Wp.turbine.Cry(kk)-real(yaw_angles(kk))):1:(Wp.turbine.Cry(kk)+real(yaw_angles(kk)));
-            Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
-            plot(Qy,Qx,'k','linewidth',1)
-        end
-        hold off;
+        for j = 1:6
+            subplot(2,3,j);
+            V = max(data{j}.z(:));
+            if V > 11; cmax = 13; elseif V > 7; cmax = 9.; else; cmax = 3; end
+            if min(data{j}.z(:)) < 0.; cmin = -cmax; else; cmin = 0.0; end;  
+            contourf(data{j}.x,data{j}.y,data{j}.z,cmin:0.1:cmax,'Linecolor','none');
+            title([data{j}.title ' (t = ' num2str(sol.time) ')'])
+            hold all; colorbar;
+            caxis([cmin cmax]);
+            axis equal; axis tight;
+            xlabel('y-direction')
+            ylabel('x-direction')         
+            hold all
+            for kk=1:Wp.turbine.N
+                Qy     = (Wp.turbine.Cry(kk)-abs(real(yaw_angles(kk)))):1:(Wp.turbine.Cry(kk)+abs(real(yaw_angles(kk))));
+                Qx     = linspace(Wp.turbine.Crx(kk)-imag(yaw_angles(kk)),Wp.turbine.Crx(kk)+imag(yaw_angles(kk)),length(Qy));
+                plot(mean(Qy)+1.2*(Qy-mean(Qy)),Qx,'k','linewidth',2)
+                plot(Qy,Qx,'w','linewidth',1)
+                rectangle('Position',[Wp.turbine.Cry(kk)-0.10*Wp.turbine.Drotor Wp.turbine.Crx(kk) ...
+                           0.20*Wp.turbine.Drotor 0.30*Wp.turbine.Drotor],'Curvature',0.2,...
+                          'FaceColor','w')                
+            end
+            set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
+        end;
         colormap(jet)
         drawnow;
         
