@@ -1,5 +1,5 @@
 %% SOWFA source directories, meshing and measurement options
-Wp.name                     = '2turb_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+Wp.name = '2turb_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
 scriptOptions.startUniform    = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
@@ -19,22 +19,16 @@ strucObs.loadRandomSeed  = 1;      % Load a predefined random seed (for one-to-o
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
 strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
-% Estimate freestream conditions
-strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
-strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
+% DISABLED FOR NOW:
+% % Estimate freestream conditions
+% strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
+% strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
-% Estimate model parameters
-strucObs.tune.estimate    = false;
-strucObs.tune.skipInitial = 150;
-strucObs.tune.updateFreq  = 20;
-strucObs.tune.pastWindow  = 300;
-strucObs.tune.subStructs  = {'turbine',   'site'};
-strucObs.tune.varNames    = {'forcescale','lmu'};
-strucObs.tune.x0          = [1.00, 1.00];
-strucObs.tune.lb          = [0.50, 0.50];
-strucObs.tune.ub          = [5.00, 10.0];
-strucObs.tune.plotOptim   = false; % Display optimization progress and results
-    
+% Measurement definitions
+strucObs.measPw      = true;  % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
+strucObs.sensorsPath = 'sensors_2turb_adm_wakecenter'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+        
 % Kalman filter settings
 strucObs.filtertype      = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
@@ -84,13 +78,10 @@ switch lower(strucObs.filtertype)
         strucObs.beta  = 2; % 2 is optimal for Gaussian distributions
         strucObs.kappa = 0;% "0" or "3-L"
         
-        % Power as measurement
-        strucObs.measPw       = 0;      % Use power measurements from turbines in estimates
-%         strucObs.R_ePW        = 1e-3;   % Measurement noise for turbine power measurements
-%         strucObs.usePwforFlow = 0;      % Have direct correlation between states and measured Pw (recommended: off)
-%         strucObs.pwLocFactor.auto  = 1; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
-%         strucObs.pwLocFactor.cross = 0; % Correction factor between 0 (uncorrelated) and 1 (no correction): covar. entries are multiplied with this to discouple power and states
-        
+        % Measurement definitions
+        strucObs.R_ePw = 5e3;  % INCOMPATIBLE [Measurement noise for turbine power measurements]
+        strucObs.R_e   = 0.10; % Standard dev. for measurement noise ensemble
+
         % Other model settings
         scriptOptions.Linearversion   = 0;   % Calculate linearized system matrices
         
@@ -125,11 +116,9 @@ switch lower(strucObs.filtertype)
         strucObs.tune.ub   = [15.00]; %[3.00,2.50]; % Upper bounds
         
         % Measurement definitions
-        strucObs.measPw      = true;  % Use power measurements from turbines in estimates
         strucObs.R_ePw       = 5e3;   % Measurement noise for turbine power measurements
-        strucObs.measFlow    = false;
         strucObs.R_e         = 0.10; % Standard dev. for measurement noise ensemble
-        strucObs.sensorsPath = 'sensors_2turb_adm_wakecenter'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+        
         % Other settings
         scriptOptions.Linearversion   = 0; % Disable unnecessary calculations in model
         
@@ -138,8 +127,8 @@ switch lower(strucObs.filtertype)
     case {'sim'}
         scriptOptions.exportPressures = 1; % Must be 'true' for sim case.
         scriptOptions.Linearversion   = 0; % Calculate linearized system matrices
-        strucObs.measFlow             = false;
-        strucObs.measPw               = false;
+        strucObs.measFlow             = false; % Use flow measurements (LIDAR) in estimates
+        strucObs.measPw               = false; % Use power measurements (SCADA) from turbines in estimates
         
     otherwise
         error('not a valid filter/simulation specified.');

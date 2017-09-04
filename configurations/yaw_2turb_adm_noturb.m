@@ -19,21 +19,10 @@ strucObs.loadRandomSeed  = 1;      % Load a predefined random seed (for one-to-o
 strucObs.noise_obs       = 0.1;    % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
 strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
-% Estimate freestream conditions
-strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
-strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
-
-% Estimate model parameters
-strucObs.tune.estimate    = false;
-strucObs.tune.skipInitial = 150;
-strucObs.tune.updateFreq  = 20;
-strucObs.tune.pastWindow  = 300;
-strucObs.tune.subStructs  = {'turbine',   'site'};
-strucObs.tune.varNames    = {'forcescale','lmu'};
-strucObs.tune.x0          = [1.00, 1.00];
-strucObs.tune.lb          = [0.50, 0.50];
-strucObs.tune.ub          = [5.00, 10.0];
-strucObs.tune.plotOptim   = false; % Display optimization progress and results
+% DISABLED FOR NOW:
+% % Estimate freestream conditions
+% strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
+% strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
     
 % Kalman filter settings
 strucObs.filtertype      = 'sim'; % Observer types are outlined next
