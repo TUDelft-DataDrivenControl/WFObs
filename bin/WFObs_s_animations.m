@@ -111,6 +111,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             xlabel('y-direction')
             ylabel('x-direction')         
             hold all
+            % Turbines
             for kk=1:Wp.turbine.N
                 Qy     = (Wp.turbine.Cry(kk)-abs(real(rotorRotation(kk)))):1:(Wp.turbine.Cry(kk)+abs(real(rotorRotation(kk))));
                 Qx     = linspace(Wp.turbine.Crx(kk)-imag(rotorRotation(kk)),Wp.turbine.Crx(kk)+imag(rotorRotation(kk)),length(Qy));
@@ -119,6 +120,11 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
                           'FaceColor','w')                  
                 plot(mean(Qy)+(Qy-mean(Qy))*1.2,mean(Qx)+(Qx-mean(Qx))*1.2,'k','linewidth',3)
                 plot(Qy,Qx,'w','linewidth',2)              
+            end
+            % Sensors
+            if strucObs.measFlow
+                plot([strucObs.obs_array_locu.y],[strucObs.obs_array_locu.x],'wo','lineWidth',3.0,'displayName','Sensors');
+                plot([strucObs.obs_array_locu.y],[strucObs.obs_array_locu.x],'ro','displayName','Sensors');
             end
             set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
         end;

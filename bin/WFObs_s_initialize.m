@@ -78,6 +78,18 @@ end;
 if strucObs.measFlow
     sensorsfile        = load(strucObs.sensorsPath);
     strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+    
+    % Calculate obs_array locations
+    strucObs.obs_array_locu = struct('x',{},'y',{});
+    strucObs.obs_array_locv = struct('x',{},'y',{});
+    for j = 1:length(strucObs.obs_array)
+        [ ~,locSensor,typeFlow ] = WFObs_s_sensors_nr2grid( strucObs.obs_array(j), Wp.mesh);
+        if strcmp(typeFlow,'u')
+            strucObs.obs_array_locu(end+1) = locSensor;
+        else
+            strucObs.obs_array_locv(end+1) = locSensor;
+        end
+    end
 else
     strucObs.obs_array = [];
 end;
