@@ -12,17 +12,17 @@ function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)
 %      see 'WFObs_o.m' for the complete list.
 %    
 
-if strucObs.measPw
-    error('This function is currently not yet supported.');
-end
-
 %% Initialization step of the Ensemble KF (at k == 1)
 if sol.k==1
     % Check EnKF settings
     if strucObs.stateEst == 0 && strucObs.tune.est == 0
-        error(['Please turn on state and/or parameter estimation.'...
+        error(['Please turn on state and/or parameter estimation. '...
             'Alternatively, select "sim" for open-loop simulations.']);
     end
+    if strucObs.measFlow == 0 && strucObs.measPw == 0
+        error(['Please turn on flow and/or power measurements. '...
+            'Alternatively, select "sim" for open-loop simulations.']);
+    end    
     
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
@@ -66,7 +66,11 @@ if sol.k==1
             structVar             = tuneP(dotLoc+1:end);
             x0                    = [x0; Wp.(subStruct).(structVar)];
             initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
-            initdist              = [initdist; bsxfun(@times,initrand.(structVar),1)];
+            dist_iT               = bsxfun(@times,initrand.(structVar),1);
+            if min(dist_iT+Wp.(subStruct).(structVar)) < strucObs.tune.lb(iT) || max(dist_iT+Wp.(subStruct).(structVar)) > strucObs.tune.ub(iT)
+                error(['Your initial distribution for ' structVar ' exceeds the ub/lb limits.'])
+            end
+            initdist              = [initdist; dist_iT];
 
             % Add parameter process noise to generator function
             FParamGen = @() [FParamGen(); strucObs.tune.Q_e(iT)*randn(1,1)];
@@ -89,7 +93,7 @@ if sol.k==1
     % Determine output noise generator
     if strucObs.measPw
         strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);...
-                                  strucObs.R_ePW*randn(Wp.turbine.N,strucObs.nrens)];
+                                  strucObs.R_ePw*randn(Wp.turbine.N,strucObs.nrens)];
     else
         strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens)];
     end
@@ -156,8 +160,8 @@ parfor(ji=1:strucObs.nrens)
     end
 
     % Forward propagation
-    solpar.k     = solpar.k - 1;
-    [ solpar,syspar ] = WFSim_timestepping( solpar, syspar, Wppar, options );
+    solpar.k   = solpar.k - 1;
+    [solpar,~] = WFSim_timestepping( solpar, syspar, Wppar, options );
     
     % Add process noise to model states and/or model parameters
     if strucObs.stateEst
@@ -179,9 +183,9 @@ parfor(ji=1:strucObs.nrens)
     
     % Calculate output vector
     if strucObs.measPw
-        Yenf(:,ji) = [yf; Pwpar'];
+        Yenf(:,ji) = [yf; solpar.turbine.power];
     else
-        Yenf(:,ji) =  yf;
+        Yenf(:,ji) = [yf];
     end
 end
 
@@ -212,8 +216,8 @@ xSolAll = mean(strucObs.Aen,2);
 if strucObs.tune.est
     % Update model parameters with the optimal estimate
     for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(...
-            strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
+             min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
     end
 end
 

@@ -73,6 +73,5 @@ if strucObs.U_Inf.estimate
         
     % Apply changed boundary conditions to update system matrices
     [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Compute boundary conditions and matrices B1, B2
-    sys.B2                 = 2*sys.B2;
 end
 end

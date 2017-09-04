@@ -12,7 +12,7 @@
 clear all; close all; clc;
 addpath WFSim\bin\core
 
-Wp.name = 'apc_9turb_alm_turb';
+Wp.name = '2turb_adm_noturb';
 
 
 %% Internal code

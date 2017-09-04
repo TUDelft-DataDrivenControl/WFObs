@@ -52,6 +52,7 @@ conv_eps = scriptOptions.conv_eps;  % Convergence constraints
 if nargin > 2
     disp('Overwriting variables in Wp...');
     Wp = mergeStruct(Wp,WpOverwrite);
+    [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Update boundary conditions
 end
 
 %% Core: time domain simulations
@@ -63,30 +64,32 @@ while sol.k < Wp.sim.NN
     % Load measurement data
     sol.measuredData = WFObs_s_loadmeasurements(LESData,sol.k);
     
-    % Determine freestream inflow properties from SCADA data
-    [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
-    
-    % Adapt model parameters
-    if strucObs.tune.estimate && sol.k > 1
-        Wp = WFObs_s_estimateParameters(Wp,sol_array,sys,strucObs,scriptOptions);
-    end
+% DISABLED: usage disrecommended. Freestream estimations needs to be updated,
+%           and parameter tuning is performed online in the KF.
+%     % Determine freestream inflow properties from SCADA data
+%     [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
+%     
+%     % Adapt model parameters
+%     if strucObs.tune.estimate && sol.k > 1
+%         Wp = WFObs_s_estimateParameters(Wp,sol_array,sys,strucObs,scriptOptions);
+%     end
     
     % Calculate optimal solution according to filter of choice
     [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
     
     % Display progress in the command window
     sol = WFObs_s_reporting(timerCPU,Wp,sol,strucObs,scriptOptions);
-       
+              
     % Save reduced-size solution to an array
     sol.measuredData = rmfield(sol.measuredData,{'u','v','sol'});
     if nnz(strcmp(fieldnames(sol),'uk')) >= 1
         sol_array(sol.k) = rmfield(sol,{'uu','vv','pp','uk','vk'});
     else
         sol_array(sol.k) = rmfield(sol,{'uu','vv','pp'});
-    end
+    end   
     
     % Display animations on screen
-    [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,scriptOptions,strucObs,hFigs);
+    [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,sys,LESData,scriptOptions,strucObs,hFigs);
 end
 
 

@@ -32,14 +32,13 @@ function [ sol ] = WFObs_s_reporting( timerCPU,Wp,sol,strucObs,scriptOptions )
 %
 
 % Determine the maximum error values and locations
-i_corr = find(sol.measuredData.uq ~= 0);
-[sol.score.maxErroru,sol.score.maxerroruloc] = max(abs(sol.u(i_corr)-sol.measuredData.uq(i_corr)));
-[sol.score.maxErrorv,sol.score.maxerrorvloc] = max(abs(sol.v(i_corr)-sol.measuredData.vq(i_corr)));
+[sol.score.maxErroru,sol.score.maxerroruloc] = max(abs(sol.u(:)-sol.measuredData.uq(:)));
+[sol.score.maxErrorv,sol.score.maxerrorvloc] = max(abs(sol.v(:)-sol.measuredData.vq(:)));
 [sol.score.maxError ] = max( [sol.score.maxErrorv , sol.score.maxErroru] );
 
 % Calculate several scores
 [ sol.cline,sol.measuredData.cline,sol.score.VAF_cline,sol.score.RMSE_cline ] = WFObs_s_cline( Wp,sol ); % Centerline
-sol.score.RMSE_flow  = rms([sol.v(i_corr)-sol.measuredData.vq(i_corr);sol.u(i_corr)-sol.measuredData.uq(i_corr)]);  % Total flow RMSE (m/s)
+sol.score.RMSE_flow  = rms([sol.v(:)-sol.measuredData.vq(:);sol.u(:)-sol.measuredData.uq(:)]);  % Total flow RMSE (m/s)
 sol.score.RMSE_meas  = sqrt(mean((sol.measuredData.sol (strucObs.obs_array)-sol.x(strucObs.obs_array)).^2)); % Measured flow RMSE (m/s)
 sol.score.CPUtime    = toc(timerCPU); % Computational cost
 

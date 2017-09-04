@@ -1,14 +1,14 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'axi_2turb_adm_turb'; 
-outputDir  = 'results/GS_2turb_adm_turb/'; % Grid search output file
+configName = 'yaw_2turb_adm_noturb'; 
+outputDir  = 'results/GS_yaw_2turb_adm/'; % Grid search output file
 
 %% Grid search settings
-lmu_array  = 0.2:0.1:2.0;
-f_array    = 1.3:0.1:1.9;
-m_array    = 1:8;
-n_array    = 1:4;
+lmu_array  = [0.10 0.25 0.40 0.60 0.90];
+f_array    = [1.4 1.5 1.6 1.7 1.8];
+m_array    = 1:4;
+n_array    = [1 3 4];
 
 %% Execute the WFObs core code
 cd .. % cd to main WFSim directory
