@@ -1,4 +1,4 @@
-function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options)
+function [Wp,sol_out,strucObs] = WFObs_o_exkf(strucObs,Wp,sys_in,sol_in,options)
 % WFOBS_O_EXKF  Extended KF algorithm for recursive state estimation
 %
 %   SUMMARY
@@ -12,9 +12,9 @@ function [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options)
 %   
 
 % Import measurement data variable
-measuredData = sol.measuredData;
+measuredData = sol_in.measuredData;
 
-if sol.k == 1
+if sol_in.k == 1
     % Setup covariance and system output matrices
     if options.exportPressures
         strucObs.Pk    = sparse(eye(strucObs.size_state))*strucObs.P_0;
@@ -27,12 +27,13 @@ if sol.k == 1
         strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
         strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_output);
     end;
-    
+        
     % Calculate the sparsification matrix for system matrix F
     if strucObs.sparseF
-        [~,sys]               = Make_Ax_b(Wp,sys,sol,options); % Create system matrices
-        Fk(sys.pRCM,sys.pRCM) = sys.A(sys.pRCM,sys.pRCM)\sys.Al(sys.pRCM,sys.pRCM); % Linearized A-matrix at time k
-        strucObs.indFsparse   = abs(Fk)>1e-2;
+        [ ~,sys_out ] = WFSim_timestepping( sol_in, sys_in, Wp, options ); % Create system matrices
+        pRCM          = sys_out.pRCM;
+        Fk(pRCM,pRCM) = sys_out.A(pRCM,pRCM)\sys_out.Al(pRCM,pRCM); % Linearized A-matrix at time k
+        strucObs.indFsparse = abs(Fk)>1e-2;
         if ~options.exportPressures
             strucObs.indFsparse = strucObs.indFsparse(1:strucObs.size_output,1:strucObs.size_output);
         end;
@@ -40,9 +41,9 @@ if sol.k == 1
 end;
 
 % Calculate forecasted state vector
-[~,sys]               = Make_Ax_b(Wp,sys,sol,options); % Create system matrices
-Fk(sys.pRCM,sys.pRCM) = sys.A(sys.pRCM,sys.pRCM)\sys.Al(sys.pRCM,sys.pRCM); % Linearized A-matrix at time k
-Bk(sys.pRCM,:)        = sys.A(sys.pRCM,sys.pRCM)\sys.Bl(sys.pRCM,:);        % Linearized B-matrix at time k
+[solf,sysf] = WFSim_timestepping( sol_in, sys_in, Wp, options ); % Create system matrices
+Fk(sysf.pRCM,sysf.pRCM) = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Al(sysf.pRCM,sysf.pRCM); % Linearized A-matrix at time k
+Bk(sysf.pRCM,:)         = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Bl(sysf.pRCM,:);        % Linearized B-matrix at time k
 
 if ~options.exportPressures % Neglect pressure terms
     Fk = Fk(1:strucObs.size_output,1:strucObs.size_output);
@@ -53,19 +54,19 @@ if strucObs.sparseF % Enforce sparsification
     Fk = strucObs.indFsparse .* Fk;
 end;
 
-[solf,~] = Computesol(Wp,sys,sol,Inf,options);   % Compute forecasted solution by standard WFSim function
-Pf       = Fk*strucObs.Pk*Fk' + strucObs.Q_k;    % Covariance matrix P for x(k) knowing y(k-1)
-if strucObs.diagP; Pf = diag(diag(Pf)); end;     % Enforce sparsification of Pf
+Pf = Fk*strucObs.Pk*Fk' + strucObs.Q_k;       % Covariance matrix P for x(k) knowing y(k-1)
+if strucObs.diagP; Pf = diag(diag(Pf)); end;  % Enforce sparsification of Pf
 
 if ~options.exportPressures
-    solf.x = solf.x(1:strucObs.size_output);              % Remove pressure terms
+    solf.x = solf.x(1:strucObs.size_output); % Remove pressure terms
 end;
 
 % ExKF analysis update
+sol_out     = sol_in; % Copy previous solution before updating x
 Kgain       = Pf(:,strucObs.obs_array)*pinv(Pf(strucObs.obs_array,...
-                   strucObs.obs_array)+strucObs.R_k); % Kalman gain
-sol.x       = solf.x + Kgain*(measuredData.sol(strucObs.obs_array)...
-               -solf.x(strucObs.obs_array)); % Optimally predicted state vector
+                   strucObs.obs_array)+strucObs.R_k); % Kalman gain           
+sol_out.x   = solf.x + Kgain*(measuredData.sol(strucObs.obs_array)...
+                 -solf.x(strucObs.obs_array)); % Optimally predicted state vector
 strucObs.Pk = (eye(size(Pf))-Kgain*strucObs.Htt)*Pf;  % State covariance matrix
 
 % Enforce sparsification of Pk
@@ -74,6 +75,6 @@ if strucObs.diagP
 end  
 
 % Update states from estimation
-[sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flowfields
-[~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
+[sol_out,~]  = MapSolution(Wp,sol_out,Inf,options); % Map solution to flowfields
+[~,sol_out]  = Actuator(Wp,sol_out,options);         % Recalculate power after analysis update
 end

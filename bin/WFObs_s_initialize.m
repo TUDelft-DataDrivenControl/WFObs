@@ -37,6 +37,16 @@ function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initializ
 % Load configuration file from the 'configurations' folder
 run(configName);    
 
+% Create destination folder for output files
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
+    mkdir(scriptOptions.savePath);
+end;
+
+% Save simulation & filter settings
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
+    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
+end;
+
 if scriptOptions.printProgress
     disp(' WindFarmObserver (WFObs)');
     disp([' Case:  ' configName ]);
@@ -45,11 +55,6 @@ end;
 
 % load a default random seed for consistency
 if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
-
-% Create destination folder for output files
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    mkdir(scriptOptions.savePath);
-end;
 
 % Default settings: following WFSim options are never used in WFObs
 scriptOptions.Projection      = 0;    % Use projection
@@ -108,11 +113,6 @@ sys.pRCM    = sysRCM.pRCM;
 
 scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
-
-% Save simulation & filter settings
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
-end;
 
 if scriptOptions.printProgress
     disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
