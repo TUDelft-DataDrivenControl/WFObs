@@ -26,11 +26,11 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
    
 % Measurement definitions
 strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
+strucObs.measFlow    = true; % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 % Kalman filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined next
+strucObs.filtertype      = 'exkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -39,12 +39,7 @@ switch lower(strucObs.filtertype)
         strucObs.R_k = 1.0; % Measurement   covariance matrix
         strucObs.Q_k = 1.0; % Process noise covariance matrix
         strucObs.P_0 = 0.5; % Initial state covariance matrix
-        
-        % Simplifications/speed-ups
-        strucObs.diagP   = true;    % Neglect all off-diagonal elements in P
-        strucObs.sparseF = true;    % Sparsify F matrix to reduce number of operations
-        strucObs.Fthresh = 0.01;    % Neglect values smaller than [*] in F (if above is set to true)
-       
+               
         % Other model settings
         scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF

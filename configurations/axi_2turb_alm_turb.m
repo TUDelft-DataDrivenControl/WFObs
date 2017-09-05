@@ -39,12 +39,7 @@ switch lower(strucObs.filtertype)
         strucObs.R_k = 1.0; % Measurement   covariance matrix
         strucObs.Q_k = 1.0; % Process noise covariance matrix
         strucObs.P_0 = 0.5; % Initial state covariance matrix
-        
-        % Simplifications/speed-ups
-        strucObs.diagP   = true;    % Neglect all off-diagonal elements in P
-        strucObs.sparseF = true;    % Sparsify F matrix to reduce number of operations
-        strucObs.Fthresh = 0.01;    % Neglect values smaller than [*] in F (if above is set to true)
-       
+
         % Other model settings
         scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
