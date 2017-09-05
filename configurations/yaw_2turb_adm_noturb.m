@@ -1,5 +1,5 @@
 %% SOWFA source directories, meshing and measurement options
-Wp.name                     = '2turb_yaw_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+Wp.name = '2turb_yaw_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
 scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
@@ -23,9 +23,14 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 % % Estimate freestream conditions
 % strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 % strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
-    
+
+% Measurement definitions
+strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
+strucObs.sensorsPath = 'sensors_2turb_adm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+         
 % Kalman filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined next
+strucObs.filtertype = 'sim'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)

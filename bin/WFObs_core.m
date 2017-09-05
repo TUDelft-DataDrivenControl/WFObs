@@ -48,9 +48,11 @@ timerScript = tic;       % Start script timer
 max_it   = scriptOptions.max_it;    % Convergence constraints
 conv_eps = scriptOptions.conv_eps;  % Convergence constraints
 
-%% Overwrite variables if WpOverwrite is specified
+% Overwrite variables if WpOverwrite is specified
 if nargin > 2
-    disp('Overwriting variables in Wp...');
+    if scriptOptions.printProgress
+        disp('Overwriting variables in Wp...');
+    end
     Wp = mergeStruct(Wp,WpOverwrite);
     [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Update boundary conditions
 end

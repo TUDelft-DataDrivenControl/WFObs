@@ -26,11 +26,11 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
    
 % Measurement definitions
 strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = true;  % Use flow measurements (LIDAR) in estimates
+strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 % Kalman filter settings
-strucObs.filtertype      = 'ukf'; % Observer types are outlined next
+strucObs.filtertype      = 'sim'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)

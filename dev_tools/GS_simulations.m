@@ -1,20 +1,39 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'yaw_2turb_adm_noturb'; 
-outputDir  = 'results/GS_yaw_2turb_adm/'; % Grid search output file
+configName = '-all';
 
-%% Grid search settings
-lmu_array  = [0.10 0.25 0.40 0.60 0.90];
-f_array    = [1.4 1.5 1.6 1.7 1.8];
-m_array    = 1:4;
-n_array    = [1 3 4];
+% Grid search settings
+lmu_array  = 0.1:0.1:2.0;
+f_array    = 0.8:0.1:2.0;
+m_array    = 1:8;
+n_array    = 1:4;
 
-%% Execute the WFObs core code
-cd .. % cd to main WFSim directory
+
+%% Core
+addpath('..');           % Add main WFObs path as folder
 run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
-datapoints = combvec(lmu_array,f_array,m_array,n_array);
 
+% Determine configuration files
+if strcmp(lower(configName),'-all')
+    % Organize configurations into a list of filenames
+    configurations = dir('../configurations');
+    configurations = {configurations(3:end).name};
+else
+    configurations = {configName};
+end
+
+% Create all parameter combinations
+datapoints = combvec(lmu_array,f_array,m_array,n_array);
+NN         = size(datapoints,2);
+
+% Create WpOverwrite
+WpOverwrite                    = struct;
+WpOverwrite.site.turbul        = 1;    % Turbulence model on
+WpOverwrite.turbine.powerscale = 1.0;  % Set powerscale to 1 (default)
+WpOverwrite.sim.NN             = 5;    % Only first [x] seconds
+        
+% Create ScriptOptions
 scriptOptions.printProgress     = 0;  % Print progress every timestep
 scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
 scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
@@ -23,53 +42,51 @@ scriptOptions.savePlots         = 0;  % Save all plots in external files at each
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
 scriptOptions.savePath          = ['']; % Destination folder of saved files
 
-% Create directory
-mkdir([outputDir])
-if length(dir(outputDir)) > 2
-    error('Your directory contains files. Please delete these first or specify a new directory.');
-end
-
-NN = size(datapoints,2);
-disp(['Simulating a total of NN = ' num2str(NN) ' points.']);
-parfor j = 1:NN
-    lmu = datapoints(1,j);
-    fsc = datapoints(2,j);
-    m   = datapoints(3,j);
-    n   = datapoints(4,j);
+for jc = 1:length(configurations)
+    outputDir  = ['GS_out/' configurations{jc} '/']; % Output directory
     
-    % Create WpOverwrite
-    WpOverwrite                    = struct; 
-    WpOverwrite.site.turbul        = 1;    % Turbulence model on
-    WpOverwrite.turbine.powerscale = 1.0;  % Set powerscale to 1 (default)
-    WpOverwrite.sim.NN             = 1500; % Only first 1500 seconds    
-    WpOverwrite.site.lmu           = lmu;
-    WpOverwrite.site.m             = m;
-    WpOverwrite.site.n             = n;    
-    WpOverwrite.turbine.forcescale = fsc;
- 
-    try
-        % Run simulation with trial Wp settings
-        outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
+    % Create directory
+    mkdir([outputDir])
+    if length(dir(outputDir)) > 2
+        disp('Your directory contains files. Please delete these first or specify a new directory.');
+        disp('Skipping this configuration file...');
+        break;
+    end
+    
+    disp(['Simulating ' configurations{jc} ' for a total of NN = ' num2str(NN) ' parameter sets.']);
+    
+    parfor j = 1:NN
+        % Update WpOverwrite
+        WpOverwritePar                    = WpOverwrite;
+        WpOverwritePar.site.lmu           = datapoints(1,j);
+        WpOverwritePar.site.m             = datapoints(3,j);
+        WpOverwritePar.site.n             = datapoints(4,j);
+        WpOverwritePar.turbine.forcescale = datapoints(2,j);
         
-        % Post-processing: getting scores
-        scoreOut     = [outputData.sol_array.score];
-        turbData     = [outputData.sol_array.turbine];
-        measuredData = [outputData.sol_array.measuredData];
-
-        % Determine flow and centerline scores
-        score             = struct;
-        score.mRMSE_flow  = mean([scoreOut.RMSE_flow]);
-        score.mRMSE_cline = mean([scoreOut.RMSE_cline]);
-        score.mVAF_cline  = mean([scoreOut.VAF_cline]);
-
-        % Determine power scores
-        score.powerscaleOpt = mean(mean([measuredData.power]./[turbData.power]));
-        powerWFSim          = [turbData.power]*score.powerscaleOpt;
-        score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
-        score.mVAF_power    = vaf([measuredData.power],powerWFSim);
-        
-        parsave([outputDir '/' num2str(j) '.mat'],WpOverwrite,score)
-    catch
-        disp(['Error with current set of settings at j = ' num2str(j) '. Not saving.']);
+        try
+            % Run simulation with updated Wp settings
+            outputData = WFObs_core(scriptOptions,configurations{jc},WpOverwritePar);
+            
+            % Post-processing: getting scores
+            scoreOut     = [outputData.sol_array.score];
+            turbData     = [outputData.sol_array.turbine];
+            measuredData = [outputData.sol_array.measuredData];
+            
+            % Determine flow and centerline scores
+            score             = struct;
+            score.mRMSE_flow  = mean([scoreOut.RMSE_flow]);
+            score.mRMSE_cline = mean([scoreOut.RMSE_cline]);
+            score.mVAF_cline  = mean([scoreOut.VAF_cline]);
+            
+            % Determine power scores
+            score.powerscaleOpt = mean(mean([measuredData.power]./[turbData.power]));
+            powerWFSim          = [turbData.power]*score.powerscaleOpt;
+            score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
+            score.mVAF_power    = vaf([measuredData.power],powerWFSim);
+            
+            parsave([outputDir '/' num2str(j) '.mat'],WpOverwritePar,score)
+        catch
+            disp(['Error with ' configurations{jc} ' for WpOverwrite at j = ' num2str(j) '. Not saving.']);
+        end
     end
 end
