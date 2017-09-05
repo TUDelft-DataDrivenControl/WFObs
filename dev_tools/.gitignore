@@ -1,0 +1,13 @@
+# Windows default autosave extension
+*.asv
+
+# OSX / *nix default autosave extension
+*.m~
+
+# Compiled MEX binaries (all platforms)
+*.mex*
+
+# Session info
+octave-workspace
+GS_out*
+GS_out/*

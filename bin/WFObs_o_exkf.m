@@ -27,39 +27,21 @@ if sol_in.k == 1
         strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
         strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_output);
     end;
-        
-    % Calculate the sparsification matrix for system matrix F
-    if strucObs.sparseF
-        [ ~,sys_out ] = WFSim_timestepping( sol_in, sys_in, Wp, options ); % Create system matrices
-        pRCM          = sys_out.pRCM;
-        Fk(pRCM,pRCM) = sys_out.A(pRCM,pRCM)\sys_out.Al(pRCM,pRCM); % Linearized A-matrix at time k
-        strucObs.indFsparse = abs(Fk)>1e-2;
-        if ~options.exportPressures
-            strucObs.indFsparse = strucObs.indFsparse(1:strucObs.size_output,1:strucObs.size_output);
-        end;
-    end;
 end;
 
-% Calculate forecasted state vector
-[solf,sysf] = WFSim_timestepping( sol_in, sys_in, Wp, options ); % Create system matrices
+% ExKF forecast update
+[solf,sysf]             = WFSim_timestepping( sol_in, sys_in, Wp, options ); % Forward propagation
 Fk(sysf.pRCM,sysf.pRCM) = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Al(sysf.pRCM,sysf.pRCM); % Linearized A-matrix at time k
-Bk(sysf.pRCM,:)         = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Bl(sysf.pRCM,:);        % Linearized B-matrix at time k
+Bk(sysf.pRCM,:)         = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Bl(sysf.pRCM,:);         % Linearized B-matrix at time k
 
-if ~options.exportPressures % Neglect pressure terms
-    Fk = Fk(1:strucObs.size_output,1:strucObs.size_output);
-    Bk = Bk(1:strucObs.size_output,:);
+% Neglect pressure terms
+if ~options.exportPressures 
+    Fk     = Fk(1:strucObs.size_output,1:strucObs.size_output);
+    Bk     = Bk(1:strucObs.size_output,:);
+    solf.x = solf.x(1:strucObs.size_output);
 end;
 
-if strucObs.sparseF % Enforce sparsification
-    Fk = strucObs.indFsparse .* Fk;
-end;
-
-Pf = Fk*strucObs.Pk*Fk' + strucObs.Q_k;       % Covariance matrix P for x(k) knowing y(k-1)
-if strucObs.diagP; Pf = diag(diag(Pf)); end;  % Enforce sparsification of Pf
-
-if ~options.exportPressures
-    solf.x = solf.x(1:strucObs.size_output); % Remove pressure terms
-end;
+Pf = Fk*strucObs.Pk*Fk' + strucObs.Q_k;  % Covariance matrix P for x(k) knowing y(k-1)
 
 % ExKF analysis update
 sol_out     = sol_in; % Copy previous solution before updating x
@@ -69,12 +51,7 @@ sol_out.x   = solf.x + Kgain*(measuredData.sol(strucObs.obs_array)...
                  -solf.x(strucObs.obs_array)); % Optimally predicted state vector
 strucObs.Pk = (eye(size(Pf))-Kgain*strucObs.Htt)*Pf;  % State covariance matrix
 
-% Enforce sparsification of Pk
-if strucObs.diagP
-    strucObs.Pk = diag(diag(strucObs.Pk));
-end  
-
-% Update states from estimation
+% Export new solution from estimation
 [sol_out,~]  = MapSolution(Wp,sol_out,Inf,options); % Map solution to flowfields
-[~,sol_out]  = Actuator(Wp,sol_out,options);         % Recalculate power after analysis update
+[~,sol_out]  = Actuator(Wp,sol_out,options);        % Recalculate power after analysis update
 end

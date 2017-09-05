@@ -70,7 +70,7 @@ scriptOptions.Animate           = 50; % Show results every x iterations (0: no p
 % Saving settings
 scriptOptions.savePlots         = 1;  % Save all plots in external files at each time step
 scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/axi_alm_noturb/ukf_StateEst']; % Destination folder of saved files
+scriptOptions.savePath          = ['results/axi_alm_noturb/exkf_StateEst']; % Destination folder of saved files
 
 % Configuration file
 configName = 'axi_2turb_alm_noturb'; % See './configurations' for options
