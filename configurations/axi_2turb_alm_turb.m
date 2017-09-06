@@ -2,7 +2,7 @@
 Wp.name = '2turb_alm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
-scriptOptions.startUniform    = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 scriptOptions.conv_eps        = 1e-6; % Convergence parameter
 scriptOptions.max_it_dyn      = 1;    % Convergence parameter
 
@@ -26,11 +26,11 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
    
 % Measurement definitions
 strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
+strucObs.measFlow    = true; % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 % Kalman filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined next
+strucObs.filtertype      = 'ukf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -48,7 +48,7 @@ switch lower(strucObs.filtertype)
     % Unscented Kalman filter (UKF)
     case {'ukf'}
         % General settings
-        strucObs.stateEst             = true;  % Do state estimation: true/false
+        strucObs.stateEst             = false;  % Do state estimation: true/false
         scriptOptions.exportPressures = 0;  % Model, predict and filter pressure terms
         
         % Covariances

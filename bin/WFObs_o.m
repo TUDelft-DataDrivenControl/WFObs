@@ -59,10 +59,7 @@ switch lower(strucObs.filtertype)
         [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
     case 'ukf'
         % Unscented Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
-    case 'ukf_gen'
-        % Unscented Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_ukf_generalized( strucObs,Wp,sys,sol,options);        
+        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options); 
     case 'sim'
         % Open-loop simulations
         sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
