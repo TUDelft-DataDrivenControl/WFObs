@@ -30,7 +30,7 @@ strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_adm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
          
 % Kalman filter settings
-strucObs.filtertype = 'sim'; % Observer types are outlined next
+strucObs.filtertype = 'ukf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -48,7 +48,7 @@ switch lower(strucObs.filtertype)
     % Unscented Kalman filter (UKF)
     case {'ukf'}
         % General settings
-        strucObs.stateEst             = false;  % Do state estimation: true/false
+        strucObs.stateEst             = true;  % Do state estimation: true/false
         scriptOptions.exportPressures = 0;  % Model, predict and filter pressure terms
         
         % Covariances

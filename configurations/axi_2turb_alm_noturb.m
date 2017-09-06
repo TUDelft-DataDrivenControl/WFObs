@@ -2,14 +2,14 @@
 Wp.name = '2turb_alm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
-scriptOptions.startUniform    = 0;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.startUniform    = 1;    % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
 scriptOptions.conv_eps        = 1e-6; % Convergence parameter
 scriptOptions.max_it_dyn      = 1;    % Convergence parameter
 
 if scriptOptions.startUniform==1
     scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
 else
-    scriptOptions.max_it = 50;  % Iteration limit for simulation start-up
+    scriptOptions.max_it = 1;  % Iteration limit for simulation start-up
 end
 
 
@@ -30,7 +30,7 @@ strucObs.measFlow    = true; % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 % Kalman filter settings
-strucObs.filtertype      = 'exkf'; % Observer types are outlined next
+strucObs.filtertype      = 'ukf_gen'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -46,7 +46,7 @@ switch lower(strucObs.filtertype)
         
         
     % Unscented Kalman filter (UKF)
-    case {'ukf'}
+    case {'ukf','ukf_gen'}
         % General settings
         strucObs.stateEst             = true;  % Do state estimation: true/false
         scriptOptions.exportPressures = 0;  % Model, predict and filter pressure terms
@@ -62,7 +62,7 @@ switch lower(strucObs.filtertype)
         strucObs.P_0.p = 0.0;   % Initial state covariance matrix      
 
         % Online model parameter adaption/estimation/tuning
-        strucObs.tune.est  = true; % Do estimation
+        strucObs.tune.est  = false; % Do estimation
         strucObs.tune.vars = {'site.lmu'}; % If empty {} then no estimation
         strucObs.tune.Q_k  = [1e-3]; % Standard dev. for process noise 'u' in m/s
         strucObs.tune.P_0  = [1e-1]; % Width of uniform dist. around opt. estimate for initial ensemble

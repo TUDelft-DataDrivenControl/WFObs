@@ -167,24 +167,30 @@ end
 
 
 %% Analysis update of the Unscented KF
-xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .*Aenf, 2);
-dX    = Aenf-repmat(xmean,1,strucObs.nrens);
-Pk    = Aenf*strucObs.W*Aenf' + strucObs.Qx;
+xmean = sum(repmat(strucObs.Wm',strucObs.L,    1) .* Aenf, 2);
+ymean = sum(repmat(strucObs.Wm',strucObs.nrobs,1) .* Yenf, 2);
+Aenft = Aenf-repmat(xmean,1,strucObs.nrens);
+Yenft = Yenf-repmat(ymean,1,strucObs.nrens);
+Pfxxk = Aenft*strucObs.W*Aenft' + strucObs.Qx; % Pxx for k|k-1
+Pfyyk = Yenft*strucObs.W*Yenft' + strucObs.Rx; % Pxy for k|k-1
+Pfxyk = Aenft*strucObs.W*Yenft';               % Pyy for k|k-1
 
-% Recalculate sigma points to incorporate effects of process noise
-Aenf                     = repmat(xmean,1,strucObs.nrens);
-Sk                       = chol(Pk);
-Aenf(:,2:strucObs.L+1)   = Aenf(:,2:strucObs.L+1)   + strucObs.gamma*Sk;
-Aenf(:,strucObs.L+2:end) = Aenf(:,strucObs.L+2:end) - strucObs.gamma*Sk;
-if strucObs.stateEst; Yenf = Aenf(strucObs.obs_array,:); end;
-ymean                    = sum(repmat(strucObs.Wm',strucObs.nrobs,1).*Yenf, 2);
-Sk                       = Yenf * strucObs.W * Yenf' + strucObs.Rx;
-Ck                       = Aenf * strucObs.W * Yenf';
+% % Recalculate sigma points to incorporate effects of process noise
+% Aenf                     = repmat(xmean,1,strucObs.nrens);
+% Sk                       = chol(Pk);
+% Aenf(:,2:strucObs.L+1)   = Aenf(:,2:strucObs.L+1)   + strucObs.gamma*Sk;
+% Aenf(:,strucObs.L+2:end) = Aenf(:,strucObs.L+2:end) - strucObs.gamma*Sk;
+% if strucObs.stateEst; Yenf = Aenf(strucObs.obs_array,:); end;
+% ymean                    = sum(repmat(strucObs.Wm',strucObs.nrobs,1).*Yenf, 2);
+% Sk                       = Yenf * strucObs.W * Yenf' + strucObs.Rx;
+% Ck                       = Aenf * strucObs.W * Yenf';
+% Kk          = Ck * pinv(Sk);
+% xSolAll     = xmean + Kk*(sol.measuredData.sol(strucObs.obs_array)-ymean);
+% strucObs.Px = Pk - Kk * Sk * Kk';
 
-Kk          = Ck * pinv(Sk);
+Kk          = Pfxyk * pinv(Pfyyk);
 xSolAll     = xmean + Kk*(sol.measuredData.sol(strucObs.obs_array)-ymean);
-strucObs.Px = Pk - Kk * Sk * Kk';
-
+strucObs.Px = Pfxxk - Kk * Pfyyk * Kk';
 
 %% Post-processing
 if strucObs.tune.est
