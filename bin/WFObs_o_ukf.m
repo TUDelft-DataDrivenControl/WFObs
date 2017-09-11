@@ -14,11 +14,7 @@ function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)
 
 %% Initialization step of the Unscented KF (at k == 1)
 if sol.k==1 
-    % Check UKF settings
-    if strucObs.measPw
-        error('The option ''measPw'' is currently not yet supported.');
-    end
-
+    % Check UKF setting
     if strucObs.stateEst == 0 && strucObs.tune.est == 0
         error(['Please turn on state and/or parameter estimation. '...
             'Alternatively, select "sim" for open-loop simulations.']);
@@ -80,9 +76,12 @@ if sol.k==1
     strucObs.W      = tempMat*diag(strucObs.Wc)*tempMat';
                
     % Covariance matrices for UKF
-    strucObs.Qx     = Qx;
-    strucObs.Pk     = P0;
-    strucObs.Rx     = eye(strucObs.nrobs)*strucObs.R_k;
+    strucObs.Qx = Qx;
+    strucObs.Pk = P0;
+    strucObs.Rx = eye(strucObs.nrobs)*strucObs.R_k;
+    if strucObs.measPw 
+        strucObs.Rx = blkdiag(strucObs.Rx,eye(Wp.turbine.N)*strucObs.R_ePw);
+    end
     
     % Other UKF-related parameters
     strucObs.L      = L;
@@ -122,10 +121,10 @@ parfor(ji=1:strucObs.nrens)
    
     % Import solution from sigma point
     if strucObs.stateEst
-        % Reset boundary conditions (found to be necessary for stability)
-        [solpar.u,solpar.uu] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.u_Inf);
-        [solpar.v,solpar.vv] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.v_Inf);
-        
+%         % Reset boundary conditions (found to be necessary for stability)
+%         [solpar.u,solpar.uu] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.u_Inf);
+%         [solpar.v,solpar.vv] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.v_Inf);
+%         
         % Load sigma point as solpar.x
         solpar.x   = strucObs.Aen(1:strucObs.size_output,ji);
         [solpar,~] = MapSolution(Wppar,solpar,Inf,options);
@@ -159,16 +158,21 @@ parfor(ji=1:strucObs.nrens)
     
     % Calculate output vector
     if strucObs.measPw
-        Yenf(:,ji) = [solpar.x(strucObs.obs_array); Pwpar'];
+        Yenf(:,ji) = [xf(strucObs.obs_array); solpar.turbine.power];
     else
-        Yenf(:,ji) =  solpar.x(strucObs.obs_array);
-    end
+        Yenf(:,ji) = [xf(strucObs.obs_array)];
+    end    
 end
 
 
 %% Analysis update of the Unscented KF
-xmean = sum(repmat(strucObs.Wm',strucObs.L,    1) .* Aenf, 2);
-ymean = sum(repmat(strucObs.Wm',strucObs.nrobs,1) .* Yenf, 2);
+if strucObs.measPw
+    y_meas = [sol.measuredData.sol(strucObs.obs_array);sol.measuredData.power];
+else
+    y_meas = [sol.measuredData.sol(strucObs.obs_array)];
+end
+xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .* Aenf, 2);
+ymean = sum(repmat(strucObs.Wm',strucObs.M,1) .* Yenf, 2);
 Aenft = Aenf-repmat(xmean,1,strucObs.nrens);
 Yenft = Yenf-repmat(ymean,1,strucObs.nrens);
 Pfxxk = Aenft*strucObs.W*Aenft' + strucObs.Qx; % Pxx for k|k-1
@@ -176,7 +180,7 @@ Pfyyk = Yenft*strucObs.W*Yenft' + strucObs.Rx; % Pxy for k|k-1
 Pfxyk = Aenft*strucObs.W*Yenft';               % Pyy for k|k-1
 
 Kk          = Pfxyk * pinv(Pfyyk);
-xSolAll     = xmean + Kk*(sol.measuredData.sol(strucObs.obs_array)-ymean);
+xSolAll     = xmean + Kk*(y_meas-ymean);
 strucObs.Px = Pfxxk - Kk * Pfyyk * Kk';
 
 %% Post-processing
