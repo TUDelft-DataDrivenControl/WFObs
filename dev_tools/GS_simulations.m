@@ -17,8 +17,7 @@ run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
 % Determine configuration files
 if strcmp(lower(configName),'-all')
     % Organize configurations into a list of filenames
-    configurations = dir('../configurations');
-    configurations = {configurations(3:end).name};
+    configurations = dir('../configurations/*.m');
 else
     configurations = {configName};
 end

@@ -29,20 +29,13 @@ rmpath configurations;         % Remove configurations dir from paths
 addpath('cluster_jobs/queue'); % Add cluster queue folder as path
 
 % Collect all configuration files
-filenames = dir('cluster_jobs/queue');
-filenames = filenames(3:end); % Skip '.' and '..' (navigation folders)
+filenames = dir('cluster_jobs/queue/*.m');
 
 % Perform simulation for each config file
-for j = 1:size(filenames,1)
-    % Set configuration filename
-    filename_tmp = filenames(j).name;
-    configName   = filename_tmp;
-    
+for j = 1:size(filenames,1)    
     % Set destination folder for results
-    str_i_tmp    = strfind(filename_tmp,'.m');
-    filename_tmp = filename_tmp(1:str_i_tmp-1);
-    scriptOptions.savePath = ['results/' filename_tmp];
+    scriptOptions.savePath = ['results/' filenames(j).name(1:end-2)];
     
     % Perform simulation
-    outputData = WFObs_core(scriptOptions,configName);
+    outputData = WFObs_core(scriptOptions,filenames(j).name);
 end
