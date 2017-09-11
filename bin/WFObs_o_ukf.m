@@ -3,7 +3,7 @@ function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)
 %
 %   SUMMARY
 %    This code performs state estimation using the Unscented Kalman filter
-%    (EnKF) algorithm. It uses high-fidelity measurements
+%    (UKF) algorithm. It uses high-fidelity measurements
 %    (sol.measuredData) to improve the flow estimation compared to
 %    open-loop simulations with WFSim. It includes model parameter 
 %    estimation, too.
