@@ -1,7 +1,7 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = '-all';
+configName = 'yaw_2turb_adm_noturb.m';
 
 % Grid search settings
 lmu_array  = 0.1:0.1:2.0;
@@ -31,7 +31,7 @@ NN         = size(datapoints,2);
 WpOverwrite                    = struct;
 WpOverwrite.site.turbul        = 1;    % Turbulence model on
 WpOverwrite.turbine.powerscale = 1.0;  % Set powerscale to 1 (default)
-WpOverwrite.sim.NN             = 5;    % Only first [x] seconds
+WpOverwrite.sim.NN             = 1000; % Only first [x] seconds
         
 % Create ScriptOptions
 scriptOptions.printProgress     = 0;  % Print progress every timestep
@@ -47,46 +47,65 @@ for jc = 1:length(configurations)
     
     % Create directory
     mkdir([outputDir])
-    if length(dir(outputDir)) > 2
-        disp('Your directory contains files. Please delete these first or specify a new directory.');
-        disp('Skipping this configuration file...');
-        break;
+    dirSrc = dir(outputDir);
+    if length(dirSrc) > 2
+        disp('Your directory contains files. Continuing where we left off...');
+        disp('NOTE: If any settings have changed, results will not make sense!');
+        fileList = {dirSrc(3:end).name};
+        for j=1:length(fileList) % Remove .mat extension and convert to int 
+            fileListInt(j) = round(str2num(fileList{j}(1:end-4)));  
+        end 
+        jRange = [];
+        for j = 1:NN
+            if sum(j==fileListInt) <= 0
+                jRange(end+1) = j;
+            end
+        end
+    else
+        jRange = 1:NN;
     end
     
-    disp(['Simulating ' configurations{jc} ' for a total of NN = ' num2str(NN) ' parameter sets.']);
+    disp(['Simulating ' configurations{jc} ' for a total of NN = ' num2str(length(jRange)) ' parameter sets.']);
     
-    parfor j = 1:NN
-        % Update WpOverwrite
-        WpOverwritePar                    = WpOverwrite;
-        WpOverwritePar.site.lmu           = datapoints(1,j);
-        WpOverwritePar.site.m             = datapoints(3,j);
-        WpOverwritePar.site.n             = datapoints(4,j);
-        WpOverwritePar.turbine.forcescale = datapoints(2,j);
-        
-        try
-            % Run simulation with updated Wp settings
-            outputData = WFObs_core(scriptOptions,configurations{jc},WpOverwritePar);
-            
-            % Post-processing: getting scores
-            scoreOut     = [outputData.sol_array.score];
-            turbData     = [outputData.sol_array.turbine];
-            measuredData = [outputData.sol_array.measuredData];
-            
-            % Determine flow and centerline scores
-            score             = struct;
-            score.mRMSE_flow  = mean([scoreOut.RMSE_flow]);
-            score.mRMSE_cline = mean([scoreOut.RMSE_cline]);
-            score.mVAF_cline  = mean([scoreOut.VAF_cline]);
-            
-            % Determine power scores
-            score.powerscaleOpt = mean(mean([measuredData.power]./[turbData.power]));
-            powerWFSim          = [turbData.power]*score.powerscaleOpt;
-            score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
-            score.mVAF_power    = vaf([measuredData.power],powerWFSim);
-            
-            parsave([outputDir '/' num2str(j) '.mat'],WpOverwritePar,score)
-        catch
-            disp(['Error with ' configurations{jc} ' for WpOverwrite at j = ' num2str(j) '. Not saving.']);
+    parfor h = 1:length(jRange)
+        j = jRange(h);
+        destFileName = [outputDir '/' num2str(j) '.mat'];
+		if exist(destFileName,'file') == 0
+		
+			% Update WpOverwrite
+			WpOverwritePar                    = WpOverwrite;
+			WpOverwritePar.site.lmu           = datapoints(1,j);
+			WpOverwritePar.site.m             = datapoints(3,j);
+			WpOverwritePar.site.n             = datapoints(4,j);
+			WpOverwritePar.turbine.forcescale = datapoints(2,j);
+			
+			try
+				% Run simulation with updated Wp settings
+				outputData = WFObs_core(scriptOptions,configurations{jc},WpOverwritePar);
+				
+				% Post-processing: getting scores
+				scoreOut     = [outputData.sol_array.score];
+				turbData     = [outputData.sol_array.turbine];
+				measuredData = [outputData.sol_array.measuredData];
+				
+				% Determine flow and centerline scores
+				score             = struct;
+				score.mRMSE_flow  = mean([scoreOut.RMSE_flow]);
+				score.mRMSE_cline = mean([scoreOut.RMSE_cline]);
+				score.mVAF_cline  = mean([scoreOut.VAF_cline]);
+				
+				% Determine power scores
+				score.powerscaleOpt = mean(mean([measuredData.power]./[turbData.power]));
+				powerWFSim          = [turbData.power]*score.powerscaleOpt;
+				score.mRMSE_power   = sqrt(mean(([measuredData.power]-powerWFSim).^2,2));
+				score.mVAF_power    = vaf([measuredData.power],powerWFSim);
+				
+				parsave(destFileName,WpOverwritePar,score)
+			catch
+				disp(['Error with ' configurations{jc} ' for WpOverwrite at j = ' num2str(j) '. Not saving.']);
+			end
+        else
+            disp([num2str(j) '.mat already exists.']);
         end
     end
 end
