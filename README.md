@@ -12,7 +12,7 @@ Make sure you clone the repository recursively, by
 	
 	git clone https://github.com/Bartdoekemeijer/WFObs --recursive
 
-Once downloaded, open WFObs.m with any recent version of MATLAB. Follow the instructions therein to perform offline estimation simulations of various wind farm scenarios. If necessary, high-fidelity data will be automatically downloaded within WFSim.
+Once downloaded, open WFObs_demo.m with any recent version of MATLAB. Follow the instructions therein to perform offline estimation simulations of various wind farm scenarios. If necessary, high-fidelity data will be automatically downloaded within WFSim.
 	
 ## Folder hierarchy:
 
