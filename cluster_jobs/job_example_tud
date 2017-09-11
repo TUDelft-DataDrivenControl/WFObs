@@ -7,4 +7,4 @@ module load 'matlab/2016b'
 
 # Run my M file and don't even try to display graphics
 cd $HOME/WFObs
-matlab -nodisplay -noFigureWindows -logfile 'output.log' -r WFObs_batchJob
+matlab -nodisplay -noFigureWindows -logfile 'batchJob_out.log' -r WFObs_batchJob
