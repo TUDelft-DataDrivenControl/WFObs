@@ -34,7 +34,7 @@ filenames = dir('cluster_jobs/queue/*.m');
 % Perform simulation for each config file
 for j = 1:size(filenames,1)    
     % Set destination folder for results
-    scriptOptions.savePath = ['results/' filenames(j).name(1:end-2)];
+    scriptOptions.savePath = ['results/batchjob/' filenames(j).name(1:end-2)];
     
     % Perform simulation
     outputData = WFObs_core(scriptOptions,filenames(j).name);
