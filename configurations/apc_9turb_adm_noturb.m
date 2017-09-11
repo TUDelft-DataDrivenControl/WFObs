@@ -25,12 +25,12 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 % strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Measurement definitions
-strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = false;  % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = true;  % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
     
 % Kalman filter settings
-strucObs.filtertype = 'sim'; % Observer types are outlined next
+strucObs.filtertype = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -43,6 +43,16 @@ switch lower(strucObs.filtertype)
         % Other model settings
         scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
+        
+    
+    % Sliding mode observer (SMO)
+    case {'smo'}
+        % tuning parameters
+        strucObs.alpha = 0.01; 
+        
+        % Other model settings
+        scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
+        scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for SMO
         
         
     % Unscented Kalman filter (UKF)
@@ -91,10 +101,10 @@ switch lower(strucObs.filtertype)
         strucObs.R_ePw = 5e3;  % Measurement noise for turbine power measurements        
         strucObs.Q_e.u = 0.10; % Standard dev. for process noise 'u' in m/s
         strucObs.Q_e.v = 0.01; % Standard dev. for process noise 'v' in m/s
-        strucObs.Q_e.p = 0.00;  % Standard dev. for process noise 'p' in m/s        
+        strucObs.Q_e.p = 0.00; % Standard dev. for process noise 'p' in m/s        
         strucObs.W_0.u = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
         strucObs.W_0.v = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.p = 0.00;  % Only used for case Projection = 0
+        strucObs.W_0.p = 0.00; % Only used for case Projection = 0
         
         % Inflation and localization
         strucObs.r_infl = 1.025;  % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
@@ -111,6 +121,7 @@ switch lower(strucObs.filtertype)
                 
         % Other settings
         scriptOptions.Linearversion   = 0; % Disable unnecessary calculations in model
+        
         
     % No filter, just open-loop simulation
     case {'sim'}

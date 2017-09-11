@@ -9,7 +9,7 @@ scriptOptions.max_it_dyn      = 1;    % Convergence parameter
 if scriptOptions.startUniform==1
     scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
 else
-    scriptOptions.max_it = 1;  % Iteration limit for simulation start-up
+    scriptOptions.max_it = 50;  % Iteration limit for simulation start-up
 end
 
 
@@ -25,12 +25,12 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 % strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
-strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = true; % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = true;   % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_2turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 % Kalman filter settings
-strucObs.filtertype      = 'ukf_gen'; % Observer types are outlined next
+strucObs.filtertype      = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -45,8 +45,18 @@ switch lower(strucObs.filtertype)
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
         
         
+    % Sliding mode observer (SMO)    
+    case {'smo'}
+        % tuning parameters
+        strucObs.alpha = 0.01; 
+        
+        % Other model settings
+        scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
+        scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for SMO
+        
+        
     % Unscented Kalman filter (UKF)
-    case {'ukf','ukf_gen'}
+    case {'ukf'}
         % General settings
         strucObs.stateEst             = true;  % Do state estimation: true/false
         scriptOptions.exportPressures = 0;  % Model, predict and filter pressure terms
@@ -82,15 +92,14 @@ switch lower(strucObs.filtertype)
     case {'enkf'}
         % General settings
         strucObs.nrens      = 50; % Ensemble size
-        strucObs.resampling = 0;  % Redistribute particles every timestep. false = classical EnKF.
         scriptOptions.exportPressures = 0; % Include pressure terms in ensemble members (default: false)
         
         % Model state covariances
         strucObs.stateEst = true;  % Estimate model states
         strucObs.R_ePw    = 1e5;   % Measurement noise for turbine power measurements
-        strucObs.R_e      = 0.50;  % Standard dev. for measurement noise ensemble        
-        strucObs.Q_e.u    = 1e-3;  % 1e-3;% 0.10 % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v    = 1e-4;  % 1e-4;% 0.01 % Standard dev. for process noise 'v' in m/s
+        strucObs.R_e      = 0.10;  % 0.50 % Standard dev. for measurement noise ensemble        
+        strucObs.Q_e.u    = 0.10;  % 1e-3;% 0.10 % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v    = 0.01;  % 1e-4;% 0.01 % Standard dev. for process noise 'v' in m/s
         strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
         strucObs.W_0.u    = 0.90;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
         strucObs.W_0.v    = 0.30;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
@@ -102,7 +111,7 @@ switch lower(strucObs.filtertype)
         strucObs.l_locl = 131;       % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         
         % Parameter estimation settings
-        strucObs.tune.est  = true; % Estimate model parameters
+        strucObs.tune.est  = false; % Estimate model parameters
         strucObs.tune.vars = {'site.lmu'}; %{'turbine.forcescale','site.lmu'};
         strucObs.tune.Q_e  = [1e-2]; %[1e-3,1e-3]; % Standard dev. for process noise 'u' in m/s
         strucObs.tune.W_0  = [0.50]; %[0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble

@@ -91,11 +91,15 @@ if sol.k==1
     strucObs.Aen = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
     
     % Determine output noise generator
-    if strucObs.measPw
-        strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);...
-                                  strucObs.R_ePw*randn(Wp.turbine.N,strucObs.nrens)];
+    % Determine output noise generator
+    if strucObs.measFlow
+        strucObs.RNoiseGen = @() strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);
     else
-        strucObs.RNoiseGen = @() [strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens)];
+        strucObs.RNoiseGen = [];
+    end
+    if strucObs.measPw
+        strucObs.RNoiseGen = @() [strucObs.RNoiseGen();...
+                                  strucObs.R_ePw*randn(Wp.turbine.N,strucObs.nrens)];
     end
 
     % Calculate localization (and inflation) auto-corr. and cross-corr. matrices
@@ -118,11 +122,6 @@ else
         % Save old inflow settings
         strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
         strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
-
-        % Resampling: redistribute particles around optimal solution of t = k-1
-        if strucObs.resampling
-            strucObs.Aen(1:size_output,:) = repmat(sol.x,1,strucObs.nrens) + strucObs.initdist; 
-        end        
     end
 end
 

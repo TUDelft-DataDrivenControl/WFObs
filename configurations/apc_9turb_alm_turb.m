@@ -25,12 +25,12 @@ strucObs.noise_init      = 0.0;    % Disturbance amplitude (m/s) in initial flow
 % strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Measurement definitions
-strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = false; % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = true;   % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
 
 % Kalman filter settings
-strucObs.filtertype      = 'sim'; % Observer types are outlined next
+strucObs.filtertype      = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -43,6 +43,16 @@ switch lower(strucObs.filtertype)
         % Other model settings
         scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
         scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for ExKF
+        
+        
+    % Sliding mode observer (SMO)    
+    case {'smo'}
+        % tuning parameters
+        strucObs.alpha = 0.01; 
+        
+        % Other model settings
+        scriptOptions.exportPressures = 0; % Model/predict/filter pressure terms
+        scriptOptions.Linearversion   = 1; % Calculate linearized system matrices: necessary for SMO
         
         
     % Unscented Kalman filter (UKF)

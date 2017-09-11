@@ -54,6 +54,9 @@ switch lower(strucObs.filtertype)
     case 'exkf'
         % Extended Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
+    case 'smo'
+        % Sliding mode observer
+        [Wp,sol,strucObs] = WFObs_o_smo(strucObs,Wp,sys,sol,options);        
     case 'enkf'
         % Ensemble Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
