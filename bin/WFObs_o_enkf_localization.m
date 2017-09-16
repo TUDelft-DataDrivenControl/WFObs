@@ -80,7 +80,23 @@ else
     if strucObs.measPw
         outputLocArray = [outputLocArray; turbLocArray];
     end
-       
+     
+%     %%%%% ---- %%%%%%%%%%%%%%%%%%%%    
+%     % Covariance localization function for state error covariance matrix
+%     rho_locl.autoState = sparse(strucObs.size_output,strucObs.size_output);
+%     for iii = 1:strucObs.size_output % Loop over all default states
+%         loc1 = stateLocArray(iii,:);
+%         for jjj = iii:strucObs.size_output % Loop over all default states
+%             loc2 = stateLocArray(jjj,:);
+%             dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
+%             rho_locl.autoState(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+%             rho_locl.autoState(jjj,iii) = rho_locl.autoState(iii,jjj);
+%         end
+%     end
+%     clear iii jjj dx loc1 loc2
+%     strucObs.autoState_corrfactor  = rho_locl.autoState;
+%     %%%%% ---- %%%%%%%%%%%%%%%%%%%%
+    
     % First calculate the cross-correlation between output and states
     if strucObs.stateEst
         rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
@@ -128,7 +144,7 @@ else
     rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
     for(iii = 1:size(outputLocArray,1)) % for each output
         loc1 = outputLocArray(iii,:);
-        for jjj = iii:strucObs.M % for each output
+        for jjj = 1:strucObs.M % for each output
             loc2 = outputLocArray(jjj,:);
             dx = sqrt(sum((loc1-loc2).^2));
             rho_locl.auto(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -137,7 +153,7 @@ else
     clear rho_locl_t dx loc1 loc2 iii jjj
     
     % Implement the effect of covariance inflation on localization
-    strucObs.auto_corrfactor  = rho_locl.auto; %* strucObs.r_infl;
-    strucObs.cross_corrfactor = rho_locl.cross* strucObs.r_infl;
+    strucObs.auto_corrfactor  = rho_locl.auto;
+    strucObs.cross_corrfactor = rho_locl.cross * sqrt(strucObs.r_infl);
 end
 end
