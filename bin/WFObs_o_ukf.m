@@ -158,9 +158,9 @@ parfor(ji=1:strucObs.nrens)
     
     % Calculate output vector
     if strucObs.measPw
-        Yenf(:,ji) = [xf(strucObs.obs_array); solpar.turbine.power];
+        Yenf(:,ji) = [solpar.x(strucObs.obs_array); solpar.turbine.power];
     else
-        Yenf(:,ji) = [xf(strucObs.obs_array)];
+        Yenf(:,ji) = [solpar.x(strucObs.obs_array)];
     end    
 end
 
