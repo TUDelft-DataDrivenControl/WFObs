@@ -19,10 +19,9 @@ strucObs.loadRandomSeed  = true; % Load a predefined random seed (for one-to-one
 strucObs.noise_obs       = 0.1;  % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
 strucObs.noise_init      = 0.0;  % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
-% DISABLED FOR NOW:
-% % Estimate freestream conditions
-% strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
-% strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
+% Estimate freestream conditions
+strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
 strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates

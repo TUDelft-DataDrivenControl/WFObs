@@ -66,15 +66,8 @@ while sol.k < Wp.sim.NN
     % Load measurement data
     sol.measuredData = WFObs_s_loadmeasurements(LESData,sol.k);
     
-% DISABLED: usage disrecommended. Freestream estimations needs to be updated,
-%           and parameter tuning is performed online in the KF.
-%     % Determine freestream inflow properties from SCADA data
-%     [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
-%     
-%     % Adapt model parameters
-%     if strucObs.tune.estimate && sol.k > 1
-%         Wp = WFObs_s_estimateParameters(Wp,sol_array,sys,strucObs,scriptOptions);
-%     end
+    % Determine freestream inflow properties from SCADA data
+    [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
     
     % Calculate optimal solution according to filter of choice
     [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
