@@ -21,7 +21,7 @@ strucObs.noise_init     = 0.0;  % Disturbance amplitude (m/s) in initial flow fi
 
 % Estimate freestream conditions
 strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
-strucObs.U_Inf.intFactor = 0.98;  % LPF gain (1: do not change, 0: instant change)
+strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Measurement definitions
 strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
