@@ -18,13 +18,10 @@ if sol_in.k == 1
     % Setup covariance and system output matrices
     if options.exportPressures
         strucObs.Htt   = sparse(eye(strucObs.size_state));
-        strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
-        strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_state);
     else
         strucObs.Htt   = sparse(eye(strucObs.size_output));
-        strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
-        strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_output);
     end;
+	strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
     strucObs.Cinv = sparse(pinv(full(strucObs.Htt)));
 end;
 
