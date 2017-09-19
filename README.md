@@ -22,7 +22,7 @@ Once downloaded, open WFObs_demo.m with any recent version of MATLAB. Follow the
 	/dev_tools/:      contains scripts to analyse results, import raw LES data, and other tools useful for debugging and development
 	/setup_sensors/:  contains scripts that will allow you to set up the location of measurements, and generate the relevant input file
 	
-	/WFSim/:          contains all the model information, identical to the original repository (https://github.com/Bartdoekemeijer/WFSim)
+	/WFSim/:          contains all the model information, identical to the original repository (https://github.com/TUDelft-DataDrivenControl/WFSim)
 	
 ## Debugging:
 For any serious issues, reach out to us on the Github page. 
