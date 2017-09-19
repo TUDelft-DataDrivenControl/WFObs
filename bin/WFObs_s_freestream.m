@@ -40,21 +40,20 @@ if strucObs.U_Inf.estimate
     
     U_est = [];
     eta = 0.95; % Correction factor to correct for ADM/WFSim mismatch
-    psc = eta*Wp.turbine.powerscale; % Powerscale with efficiency losses [-]
+    psc = Wp.turbine.powerscale; % Powerscale [-]
     Rho = Wp.site.Rho; % Air density [kg/m3]
     Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]
     CTp  = [Wp.turbine.input(sol.k).CT_prime]; % CT' [-]
-    axInd = CTp./(4+CTp); % Solution to CT' = CT/(1-a)^2 = 4a(1-a)/(1-a)^2. Thus, only valid for yaw ~ 0.
-    for i = upstreamTurbines
-        Pw    = measuredData.power(i);
-        Ur(i) = (Pw/(psc*0.5*Rho*Ar*CTp(i)))^(1/3); % Inverse relationship of Power(kk) in Actuator.m
-    end  
+
+    % Calculate U_Inf for each turbine
+    U_Inf_vec = (1+0.25*CTp(upstreamTurbines)).*((measuredData.power(upstreamTurbines)...
+                ./(eta*psc*0.5*Rho*Ar*CTp(upstreamTurbines))).^(1/3));
     
-    % Determine absolute flow speed at current time instant
-    U_Inf_Previous      = sqrt(sol.u(1,1)^2+sol.v(1,1)^2);
-    U_Inf_Instantaneous = mean(Ur./(1-axInd(upstreamTurbines)));
+    % Determine previous average and current instantaneous U_Inf
+    U_Inf_Previous      = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
+    U_Inf_Instantaneous = mean(U_Inf_vec);
     
-    % Low-pass filter the result
+    % Low-pass filter the mean instantaneous U_Inf
     tau = strucObs.U_Inf.intFactor; % Time constant of LPF. 0 = instant updates, 1 = no updates. 0.86 means after 30 seconds, 1% of old solution is left
     U_Inf_Filtered = tau*U_Inf_Previous+(1-tau)*U_Inf_Instantaneous;
     
