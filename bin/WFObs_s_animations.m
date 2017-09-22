@@ -83,9 +83,9 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end
     if scriptOptions.plotContour
-        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title','u_{WFSim}');
+        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title',['u_{WFObs: ' strucObs.filtertype '}']);
         data{2} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',measuredData.uq,'title','u_{LES}');
-        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','|u_{WFSim}-u_{LES}|','cmax',3);
+        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','|u_{WFObs}-u_{LES}|','cmax',3);
         
         % Plotting of 'v' component disabled to speed up code
         %  data{4} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',sol.v,'title','v_{WFSim}','cmax',3);
@@ -167,11 +167,16 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             sol_tmp.uu = sol.u; 
             sol_tmp.vv = sol.v; 
             sol_tmp.pp = sol.p;
+            timeFC = []; pwFC = [];
             while sol_tmp.k < k_end
                 [ sol_tmp,~ ] = WFSim_timestepping( sol_tmp, sys, Wp, scriptOptions );
                 pwFC(:,sol_tmp.k-sol.k) = sol_tmp.turbine.power; % Extract power
                 timeFC(sol_tmp.k-sol.k) = sol_tmp.time;
             end
+            RMSE_FC_shortterm = sqrt(mean((pwLES(timeFC(1:60))-pwFC(1:60)).^2,2));
+            RMSE_FC_longterm  = sqrt(mean((pwLES(timeFC)-pwFC).^2,2));
+            disp(['Short-term Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(k_end) ' is ' num2str(mean(RMSE_FC_shortterm),'%10.2e\n') '.']);
+            disp(['Long-term  Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(k_end) ' is ' num2str(mean(RMSE_FC_longterm),'%10.2e\n') '.']);
         end
         
         % Plot results
@@ -180,9 +185,9 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         for j = 1:Wp.turbine.N
             subplot(subplotDim(1),subplotDim(2),j);
             plot(timeLES,pwLES(j,:),'k-','lineWidth',0.25,'DisplayName', ['LES']); hold on
-            plot(timeWFSim,pwWFSim(j,:),'-','lineWidth',1.0,'DisplayName', ['WFObs']); hold on;
-            if scriptOptions.powerForecast > 0
-                plot(timeFC,pwFC(j,:),'--','lineWidth',0.75,'DisplayName',['WFObs (FC)']); hold on;
+            plot(timeWFSim,pwWFSim(j,:),'-','lineWidth',1.0,'DisplayName', ['WFObs: ' strucObs.filtertype]); hold on;
+            if scriptOptions.powerForecast > 0 && length(timeFC) > 0
+                plot(timeFC,pwFC(j,:),'-','lineWidth',0.75,'DisplayName',['WFObs: ' strucObs.filtertype ' (FC)']); hold on;
             end            
             legend('-DynamicLegend');
             xlabel('Time (s)');
@@ -195,7 +200,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         
         if scriptOptions.savePlots
             drawnow;
-            saveas(hFigs{2},[scriptOptions.savePath '/' strucObs.filtertype '_power.png']); 
+            saveas(hFigs{2},[scriptOptions.savePath '/' strucObs.filtertype '_power_ ' num2str(sol.k) '.png']); 
         end;
     end
     
@@ -259,7 +264,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         for j = 1:length(cline_WFSim)
             % Plot results
             subplot(length(cline_WFSim),1,j);
-            plot(Wp.mesh.ldxx(:,1),cline_WFSim{j},'DisplayName','WFSim'); hold on;
+            plot(Wp.mesh.ldxx(:,1),cline_WFSim{j},'DisplayName',['WFObs: ' strucObs.filtertype]); hold on;
             plot(Wp.mesh.ldxx(:,1),cline_LES{j},'--','DisplayName','LES');
             title(['Row ' num2str(j) ' (t = ' num2str(sol.time) '). VAF: ' num2str(cline_VAF(j),3) '%. RMS: ' num2str(cline_RMS(j),2) ' m/s.']);
             xlabel('x (m)');

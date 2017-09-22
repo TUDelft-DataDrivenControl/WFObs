@@ -16,13 +16,13 @@ plotContour = true;
 plotCline   = true;
 
 % Visualization settings
-scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.Animate           = 50;  % Show results every x iterations (0: no plots)
-   scriptOptions.plotContour    = 1;  % Show flow fields
-   scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
-    scriptOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-   scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
-   scriptOptions.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
+options.plotMesh          = 0;  % Show meshing and turbine locations
+options.Animate           = 50;  % Show results every x iterations (0: no plots)
+   options.plotContour    = 1;  % Show flow fields
+   options.plotPower      = 1;  % Plot true and predicted power capture vs. time
+    options.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+   options.plotError      = 0;  % plot RMS and maximum error vs. time
+   options.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
    
 % Data sources
 data = {};
@@ -47,47 +47,48 @@ addpath('libraries'); % Add libraries for VAF calculations
 addpath('../LES_import/bin'); % Used for 'secs2timestr.m'
 
 for di = 1:length(data)
-    WS_tmp = load(data{di}.path);
-    Wp     = WS_tmp.Wp; 
-    sys    = WS_tmp.sys;
-    strucObs = WS_tmp.strucObs;
-    scriptOptions = WS_tmp.scriptOptions;
-    
+    WS_tmp     = load(data{di}.path);
+    Wp         = WS_tmp.Wp; 
+    sys        = WS_tmp.sys;
+    options    = WS_tmp.scriptOptions;
+    strucObs   = WS_tmp.strucObs;
+    sol_array  = WS_tmp.sol_array;
+    clear WS_tmp
     
     % Load measurements from LES simulation (*.mat file)
-    Wp_tmp = meshing(WS_tmp.Wp.name,false,false);
+    Wp_tmp = meshing(Wp.name,false,false);
     LESData    = load(Wp_tmp.sim.measurementFile); % Load measurements
     LESData.ud = LESData.u + strucObs.noise_obs*randn(size(LESData.u)); % Add noise
     LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
     clear Wp_tmp
     
     % Format figures
-    scriptOptions.Animate        = 1;
-    scriptOptions.plotContour    = plotContour;
-    scriptOptions.plotCenterline = plotCline;
-    scriptOptions.plotPower      = 0;
-    scriptOptions.powerForecast  = powerFC;
-    scriptOptions.plotError      = 0;
-    scriptOptions.savePlots      = 1;
+    options.Animate        = 1;
+    options.plotContour    = plotContour;
+    options.plotCenterline = plotCline;
+    options.plotPower      = 0;
+    options.powerForecast  = powerFC;
+    options.plotError      = 0;
+    options.savePlots      = 1;
     
     % Determine and create output directory
-    scriptOptions.savePath = [fileparts(data{di}.path) '/figures'];
-    mkdir(scriptOptions.savePath);
+    options.savePath = [fileparts(data{di}.path) '/figures'];
+    mkdir(options.savePath);
     
     % Export figures 
     ticLoop = tic;
     NN       = length(time_vec);
     for k = 1:NN
         t = time_vec(k);
-        sol_array = (WS_tmp.sol_array(1:t));
-        [ ~,scriptOptions ] = WFObs_s_animations( Wp,sol_array,sys,LESData,scriptOptions,strucObs,{} );
+        sol_array_short = (sol_array(1:t));
+        [ ~,options ] = WFObs_s_animations( Wp,sol_array_short,sys,LESData,options,strucObs,{} );
         elapsedTime = toc(ticLoop);
         ETA = ceil((NN-k)*(elapsedTime/k));
         disp([data{di}.name ': k = ' num2str(k) '/' num2str(NN) '.  ETA: ' secs2timestr(ETA) '.']);
     end
     if plotPower + plotError > 0
-        scriptOptions.plotPower = plotPower;
-        scriptOptions.plotError = plotError;    
-        [ ~,scriptOptions ] = WFObs_s_animations( Wp,sol_array,sys,LESData,scriptOptions,strucObs,{} );
+        options.plotPower = plotPower;
+        options.plotError = plotError;    
+        [ ~,options ] = WFObs_s_animations( Wp,sol_array,sys,LESData,options,strucObs,{} );
     end
 end
