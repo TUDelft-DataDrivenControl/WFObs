@@ -20,16 +20,16 @@ strucObs.noise_obs      = 0.10; % Disturbance amplitude (m/s) in output data by 
 strucObs.noise_init     = 0.00; % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Measurement definitions
-strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = true;   % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = true;  % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = false;   % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
 
 % Kalman filter settings
-strucObs.filtertype = 'enkf'; % Observer types are outlined next
+strucObs.filtertype = 'sim'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
     
     % Extended Kalman filter (ExKF)
@@ -90,14 +90,14 @@ switch lower(strucObs.filtertype)
     % Ensemble Kalman filter (EnKF)    
     case {'enkf'}
         % General settings
-        strucObs.nrens = 50; % Ensemble size
+        strucObs.nrens = 70; % Ensemble size
         scriptOptions.exportPressures = false; % Include pressure terms in ensemble members (default: false)
         
         % Model state covariances
         strucObs.stateEst = true;  % Estimate model states
         strucObs.R_e      = 0.10;  % Standard dev. for measurement noise ensemble
         strucObs.R_ePw    = 5e3;   % Measurement noise for turbine power measurements        
-        strucObs.Q_e.u    = 0.10;  % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.u    = 0.01;  % Standard dev. for process noise 'u' in m/s
         strucObs.Q_e.v    = 0.01;  % Standard dev. for process noise 'v' in m/s
         strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
         strucObs.W_0.u    = 0.90;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
@@ -110,12 +110,12 @@ switch lower(strucObs.filtertype)
         strucObs.l_locl = 131;    % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
         
         % Parameter estimation settings
-        strucObs.tune.est  = false; % Estimate model parameters
-        strucObs.tune.vars = {'turbine.forcescale','site.lmu'};
-        strucObs.tune.Q_e  = [0.01,0.01]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.W_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [0.20,0.50]; % Lower bounds
-        strucObs.tune.ub   = [2.50,2.50]; % Upper bounds
+        strucObs.tune.est  = true; % Estimate model parameters
+        strucObs.tune.vars = {'site.lmu'};
+        strucObs.tune.Q_e  = [0.01]; % Standard dev. for process noise 'u' in m/s
+        strucObs.tune.W_0  = [3.00]; % Width of uniform dist. around opt. estimate for initial ensemble
+        strucObs.tune.lb   = [0.05]; % Lower bounds
+        strucObs.tune.ub   = [8.00]; % Upper bounds
 
         % Other settings
         scriptOptions.Linearversion = false; % Disable unnecessary calculations in model

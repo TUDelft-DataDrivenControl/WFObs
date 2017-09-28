@@ -20,7 +20,7 @@ strucObs.noise_obs      = 0.1;  % Disturbance amplitude (m/s) in output data by 
 strucObs.noise_init     = 0.0;  % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
@@ -96,9 +96,9 @@ switch lower(strucObs.filtertype)
         % Model state covariances
         strucObs.stateEst = true;  % Estimate model states
         strucObs.R_ePw    = 1e5;   % Measurement noise for turbine power measurements
-        strucObs.R_e      = 0.50;  % Standard dev. for measurement noise ensemble        
-        strucObs.Q_e.u    = 1e-3;  % 1e-3;% 0.10 % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v    = 1e-4;  % 1e-4;% 0.01 % Standard dev. for process noise 'v' in m/s
+        strucObs.R_e      = 0.10;  % Standard dev. for measurement noise ensemble        
+        strucObs.Q_e.u    = 0.10;  % 1e-3;% 0.10 % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v    = 0.01;  % 1e-4;% 0.01 % Standard dev. for process noise 'v' in m/s
         strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
         strucObs.W_0.u    = 0.90;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
         strucObs.W_0.v    = 0.30;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
