@@ -81,7 +81,8 @@ while sol.k < Wp.sim.NN
         sol_array(sol.k) = rmfield(sol,{'uu','vv','pp','uk','vk'});
     else
         sol_array(sol.k) = rmfield(sol,{'uu','vv','pp'});
-    end   
+    end
+    sol_array(sol.k).site = Wp.site; % Save site info too
     
     % Display animations on screen
     [hFigs,scriptOptions] = WFObs_s_animations(Wp,sol_array,sys,LESData,scriptOptions,strucObs,hFigs);
