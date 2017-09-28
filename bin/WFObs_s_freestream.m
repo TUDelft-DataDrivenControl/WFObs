@@ -27,7 +27,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 %       (temporary) files used for updates, such as covariance matrices,
 %       ensemble/sigma point sets, measurement noise, etc.
 %
-if strucObs.U_Inf.estimate    
+if strucObs.U_Inf.estimate && sol.k > 25 % Skip initialization period   
     % Import variables
     input        = Wp.turbine.input(sol.k);
     measuredData = sol.measuredData;
