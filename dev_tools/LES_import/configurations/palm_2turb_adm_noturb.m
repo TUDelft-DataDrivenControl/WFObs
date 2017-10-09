@@ -1,8 +1,7 @@
 % Source files
 scriptOptions.outputFilename = '2turb_adm_noturb';
 scriptOptions.plotFrequency  = 1e9;         % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
-%scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/2turb_adm_matlab/noturb'
-scriptOptions.sourcePath     = 'C:/Users/sboersma3/surfdrive/PALM/Data_PALM/matlab_2turb_adm_matlab'
+scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/2turb_adm_matlab/noturb'
 
 % Turbine properties directly from PALM or SOWFA. The reference frame is 
 %   x (vertical, upwards pos.) - y (horizontal, rightwards pos.).
