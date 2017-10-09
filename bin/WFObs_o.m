@@ -54,12 +54,15 @@ switch lower(strucObs.filtertype)
     case 'exkf'
         % Extended Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
+    case 'smo'
+        % Sliding mode observer
+        [Wp,sol,strucObs] = WFObs_o_smo(strucObs,Wp,sys,sol,options);        
     case 'enkf'
         % Ensemble Kalman filtering
         [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
     case 'ukf'
         % Unscented Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options);
+        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options); 
     case 'sim'
         % Open-loop simulations
         sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation

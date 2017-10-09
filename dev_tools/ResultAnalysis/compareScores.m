@@ -4,22 +4,22 @@ data = {};
 
 %% OPEN-LOOP SIMS
 data{end+1} = struct(...
-    'name','Sim (tuned F)',...
-    'path','../../results/\PALM_ADM/workspace.mat');
+    'name','sqUKF',...
+    'path','../../results/alm_ukf/workspace.mat');
 data{end+1} = struct(...
-    'name','Sim (poor F)',...
-    'path','../../results/PALM_ADM_poorF/workspace.mat');
+    'name','UKF (new)',...
+    'path','../../results/alm_ukfgen/workspace.mat');
 
 
 for di = 1:length(data)
     WS_tmp = load(data{di}.path);
     
     % collect all fieldnames and save to data{*} struct
-    scoreFields = fieldnames(WS_tmp.sol_array{1}.score);
+    scoreFields = fieldnames(WS_tmp.sol_array(1).score);
     for si = 1:length(scoreFields)
         data{di}.(scoreFields{si}) = zeros(1,length(WS_tmp.sol_array));
         for t = 1:length(WS_tmp.sol_array) % collect all data
-            data{di}.(scoreFields{si})(t) = WS_tmp.sol_array{t}.score.(scoreFields{si});
+            data{di}.(scoreFields{si})(t) = WS_tmp.sol_array(t).score.(scoreFields{si});
         end
     end
     

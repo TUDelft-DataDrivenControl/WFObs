@@ -9,7 +9,5 @@
 
 # Session info
 octave-workspace
-Results*
-Results/*
-results*
-results/*
+GS_out*
+GS_out/*

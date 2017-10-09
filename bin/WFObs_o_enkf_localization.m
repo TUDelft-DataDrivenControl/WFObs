@@ -44,50 +44,74 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
         end
     end
 
-if strcmp(lower(strucObs.f_locl),'off') | strucObs.stateEst == 0
-    % Quick fix for stateEst == 0, should be done more properly down below
-    strucObs.auto_corrfactor  = ones(strucObs.M,strucObs.M);
+if strcmp(lower(strucObs.f_locl),'off')
+    strucObs.auto_corrfactor = ones(strucObs.M,strucObs.M);
     if strucObs.tune.est
-        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M)/strucObs.M;
+        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);%/strucObs.M;
     else
         strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);
     end
 else
-    disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while...']);
-     
-    % Generate the locations of all default model states and turbines in Aen
-    stateLocArray = zeros(strucObs.size_output,2);
-    for iii = 1:strucObs.size_output
-        [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
-        stateLocArray(iii,:) = [loci.x, loci.y];
+    disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while for larger meshes...']);
+    rho_locl = struct; % initialize empty structure
+    
+    % Generate the locations of all model flow states
+    if strucObs.stateEst || strucObs.measFlow
+        stateLocArray = zeros(strucObs.size_output,2);
+        for iii = 1:strucObs.size_output
+            [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
+            stateLocArray(iii,:) = [loci.x, loci.y];
+        end
     end
-    turbLocArray = zeros(Wp.turbine.N,2);
-    for iii = 1:Wp.turbine.N
-        turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
+    
+    % Generate the locations of all turbines
+    if strucObs.tune.est || strucObs.measPw
+        turbLocArray = zeros(Wp.turbine.N,2);
+        for iii = 1:Wp.turbine.N
+            turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
+        end
     end
     
     % Generate the locations of all outputs
-    outputLocArray = zeros(strucObs.M,2);
-    for iii = 1:strucObs.M
-        if iii <= strucObs.nrobs % flow measurements
-            outputLocArray(iii,:) = stateLocArray(strucObs.obs_array(iii),:);
-        else % power measurements
-            outputLocArray(iii,:) = turbLocArray(iii-strucObs.nrobs,:);
-        end
+    outputLocArray = [];
+    if strucObs.measFlow
+        outputLocArray = [outputLocArray; stateLocArray(strucObs.obs_array,:)];
     end
+    if strucObs.measPw
+        outputLocArray = [outputLocArray; turbLocArray];
+    end
+     
+%     %%%%% ---- %%%%%%%%%%%%%%%%%%%%    
+%     % Covariance localization function for state error covariance matrix
+%     rho_locl.autoState = sparse(strucObs.size_output,strucObs.size_output);
+%     for iii = 1:strucObs.size_output % Loop over all default states
+%         loc1 = stateLocArray(iii,:);
+%         for jjj = iii:strucObs.size_output % Loop over all default states
+%             loc2 = stateLocArray(jjj,:);
+%             dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
+%             rho_locl.autoState(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+%             rho_locl.autoState(jjj,iii) = rho_locl.autoState(iii,jjj);
+%         end
+%     end
+%     clear iii jjj dx loc1 loc2
+%     strucObs.autoState_corrfactor  = rho_locl.autoState;
+%     %%%%% ---- %%%%%%%%%%%%%%%%%%%%
     
     % First calculate the cross-correlation between output and states
-    rho_locl = struct; % initialize empty structure
-    rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
-    for iii = 1:strucObs.size_output % Loop over all default states
-        loc1 = stateLocArray(iii,:);
-        for jjj = 1:strucObs.M % Loop over all measurements
-            loc2 = outputLocArray(jjj,:);
-            dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
-            rho_locl.cross(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+    if strucObs.stateEst
+        rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
+        for iii = 1:strucObs.size_output % Loop over all default states
+            loc1 = stateLocArray(iii,:);
+            for jjj = 1:strucObs.M % Loop over all measurements
+                loc2 = outputLocArray(jjj,:);
+                dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
+                rho_locl.cross(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
+            end
         end
-    end
-    clear iii jjj dx loc1 loc2
+        clear iii jjj dx loc1 loc2
+    else
+        rho_locl.cross = [];
+    end;
     
     % Add cross-correlation between output and model tuning parameters
     if strucObs.tune.est
@@ -106,7 +130,7 @@ else
                 rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
 
             elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
-                %rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))];
+%                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)];
                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
 
             else
@@ -120,7 +144,7 @@ else
     rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
     for(iii = 1:size(outputLocArray,1)) % for each output
         loc1 = outputLocArray(iii,:);
-        for jjj = iii:strucObs.M % for each output
+        for jjj = 1:strucObs.M % for each output
             loc2 = outputLocArray(jjj,:);
             dx = sqrt(sum((loc1-loc2).^2));
             rho_locl.auto(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -129,7 +153,7 @@ else
     clear rho_locl_t dx loc1 loc2 iii jjj
     
     % Implement the effect of covariance inflation on localization
-    strucObs.auto_corrfactor  = rho_locl.auto; %* strucObs.r_infl;
-    strucObs.cross_corrfactor = rho_locl.cross* strucObs.r_infl;
+    strucObs.auto_corrfactor  = rho_locl.auto;
+    strucObs.cross_corrfactor = rho_locl.cross * sqrt(strucObs.r_infl);
 end
 end

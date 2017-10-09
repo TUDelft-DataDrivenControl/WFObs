@@ -37,6 +37,16 @@ function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initializ
 % Load configuration file from the 'configurations' folder
 run(configName);    
 
+% Create destination folder for output files
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
+    mkdir(scriptOptions.savePath);
+end;
+
+% Save simulation & filter settings
+if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
+    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
+end;
+
 if scriptOptions.printProgress
     disp(' WindFarmObserver (WFObs)');
     disp([' Case:  ' configName ]);
@@ -45,11 +55,6 @@ end;
 
 % load a default random seed for consistency
 if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
-
-% Create destination folder for output files
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    mkdir(scriptOptions.savePath);
-end;
 
 % Default settings: following WFSim options are never used in WFObs
 scriptOptions.Projection      = 0;    % Use projection
@@ -75,8 +80,24 @@ else
 end;
 
 % Define measurement locations
-sensorsfile        = load(strucObs.sensorsPath);
-strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+if strucObs.measFlow
+    sensorsfile        = load(strucObs.sensorsPath);
+    strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
+    
+    % Calculate obs_array locations
+    strucObs.obs_array_locu = struct('x',{},'y',{});
+    strucObs.obs_array_locv = struct('x',{},'y',{});
+    for j = 1:length(strucObs.obs_array)
+        [ ~,locSensor,typeFlow ] = WFObs_s_sensors_nr2grid( strucObs.obs_array(j), Wp.mesh);
+        if strcmp(typeFlow,'u')
+            strucObs.obs_array_locu(end+1) = locSensor;
+        else
+            strucObs.obs_array_locv(end+1) = locSensor;
+        end
+    end
+else
+    strucObs.obs_array = [];
+end;
 
 % Load measurements from LES simulation (*.mat file)
 LESData    = load(Wp.sim.measurementFile); % Load measurements
@@ -88,15 +109,10 @@ hFigs = {};
 
 % Create global RCM vector
 [~, sysRCM] = WFSim_timestepping( sol, sys, Wp, scriptOptions );
-sys.pRCM    = sysRCM.pRCM;  clear sysRCM;
+sys.pRCM    = sysRCM.pRCM;
 
 scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
 scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
-
-% Save simulation & filter settings
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
-end;
 
 if scriptOptions.printProgress
     disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);

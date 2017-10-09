@@ -1,10 +1,10 @@
 %% SOWFA source directories, meshing and measurement options
-Wp.name = 'apc_9turb_alm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+Wp.name = 'apc_9turb_adm_noturb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
-scriptOptions.startUniform = true; % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
-scriptOptions.conv_eps     = 1e-6; % Convergence parameter
-scriptOptions.max_it_dyn   = 1;    % Convergence parameter
+scriptOptions.startUniform = false; % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
+scriptOptions.conv_eps     = 1e-6;  % Convergence parameter
+scriptOptions.max_it_dyn   = 1;     % Convergence parameter
 
 if scriptOptions.startUniform
     scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
@@ -16,18 +16,18 @@ end
 %% Filter settings
 % General settings
 strucObs.loadRandomSeed = true; % Load a predefined random seed (for one-to-one comparisons between simulation cases)
-strucObs.noise_obs      = 0.10; % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
-strucObs.noise_init     = 0.00; % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
+strucObs.noise_obs      = 0.1;  % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
+strucObs.noise_init     = 0.0;  % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
 
 % Estimate freestream conditions
 strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
 
 % Measurement definitions
-strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = true;   % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = true;  % Use flow measurements (LIDAR) in estimates
 strucObs.sensorsPath = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
-
+    
 % Kalman filter settings
 strucObs.filtertype = 'enkf'; % Observer types are outlined next
 switch lower(strucObs.filtertype)
@@ -38,13 +38,13 @@ switch lower(strucObs.filtertype)
         strucObs.R_k = 1.0; % Measurement   covariance matrix
         strucObs.Q_k = 1.0; % Process noise covariance matrix
         strucObs.P_0 = 0.5; % Initial state covariance matrix
-        
+
         % Other model settings
         scriptOptions.exportPressures = false; % Model/predict/filter pressure terms
         scriptOptions.Linearversion   = true;  % Calculate linearized system matrices: necessary for ExKF
         
-        
-    % Sliding mode observer (SMO)    
+    
+    % Sliding mode observer (SMO)
     case {'smo'}
         % tuning parameters
         strucObs.alpha = 0.01; 
@@ -95,14 +95,14 @@ switch lower(strucObs.filtertype)
         
         % Model state covariances
         strucObs.stateEst = true;  % Estimate model states
-        strucObs.R_e      = 0.10;  % Standard dev. for measurement noise ensemble
-        strucObs.R_ePw    = 5e3;   % Measurement noise for turbine power measurements        
-        strucObs.Q_e.u    = 0.10;  % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v    = 0.01;  % Standard dev. for process noise 'v' in m/s
-        strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
-        strucObs.W_0.u    = 0.90;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.v    = 0.30;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.p    = 0.00;  % Only used for case Projection = 0
+        strucObs.R_e   = 0.10; % Standard dev. for measurement noise ensemble
+        strucObs.R_ePw = 5e3;  % Measurement noise for turbine power measurements        
+        strucObs.Q_e.u = 0.10; % Standard dev. for process noise 'u' in m/s
+        strucObs.Q_e.v = 0.01; % Standard dev. for process noise 'v' in m/s
+        strucObs.Q_e.p = 0.00; % Standard dev. for process noise 'p' in m/s        
+        strucObs.W_0.u = 0.90; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.v = 0.30; % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
+        strucObs.W_0.p = 0.00; % Only used for case Projection = 0
         
         % Inflation and localization
         strucObs.r_infl = 1.025;  % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
@@ -116,11 +116,11 @@ switch lower(strucObs.filtertype)
         strucObs.tune.W_0  = [0.15,0.10]; % Width of uniform dist. around opt. estimate for initial ensemble
         strucObs.tune.lb   = [0.20,0.50]; % Lower bounds
         strucObs.tune.ub   = [2.50,2.50]; % Upper bounds
-
+                
         % Other settings
         scriptOptions.Linearversion = false; % Disable unnecessary calculations in model
         
-
+        
     % No filter, just open-loop simulation
     case {'sim'}
         scriptOptions.exportPressures = true;  % Must be 'true' for sim case.

@@ -10,16 +10,16 @@ WindFarmObserver (WFObs) is a collection of state estimators for the nonlinear d
 ## Quick use:
 Make sure you clone the repository recursively, by
 	
-	git clone https://github.com/Bartdoekemeijer/WFObs --recursive
+	git clone https://github.com/TUDelft-DataDrivenControl/WFObs --recursive
 
-Then, download the revelant high-fidelity measurement data in the respective folders: WFObs/WFSim/data_SOWFA/.... Once downloaded, open WFObs.m with any recent version of MATLAB. Follow the instructions therein to perform offline estimation simulations of various wind farm scenarios.
+Once downloaded, open WFObs_demo.m with any recent version of MATLAB. Follow the instructions therein to perform offline estimation simulations of various wind farm scenarios. If necessary, high-fidelity data will be automatically downloaded within WFSim.
 	
 ## Folder hierarchy:
 
 	/bin/:            contains all the functions and scripts used by WFObs.
 	/cluster_jobs/:   contains a folder with a demo code to run WFObs on a Linux cluster
 	/configurations/: contains the settings files for various simulation scenarios
-	/dev_tools/:      contains scripts to analyse results, useful for debugging and development
+	/dev_tools/:      contains scripts to analyse results, import raw LES data, and other tools useful for debugging and development
 	/setup_sensors/:  contains scripts that will allow you to set up the location of measurements, and generate the relevant input file
 	
 	/WFSim/:          contains all the model information, identical to the original repository (https://github.com/Bartdoekemeijer/WFSim)
