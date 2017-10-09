@@ -1,13 +1,13 @@
 % Source files
-scriptOptions.outputFilename = '2turb_adm_noturb';
+scriptOptions.outputFilename = '6turb_adm_turb';
 scriptOptions.plotFrequency  = 1e9;         % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
-%scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/2turb_adm_matlab/noturb'
-scriptOptions.sourcePath     = 'C:/Users/sboersma3/surfdrive/PALM/Data_PALM/matlab_2turb_adm_matlab'
+scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/6turb_adm_matlab/turb';
 
 % Turbine properties directly from PALM or SOWFA. The reference frame is 
 %   x (vertical, upwards pos.) - y (horizontal, rightwards pos.).
-rawTurbData           = struct('Crx',[5700.0, 6456.0],'Cry',[1175.0, 1175.0]);
-rawTurbData.Drotor    = [126.4, 126.4]; % Rotor diameter in (m)
+rawTurbData           = struct('Crx',[6000.0, 6000.0, 6630.0, 6630.0, 7260.0, 7260.0],...
+                                'Cry',[1091.0, 1469.0, 1091.0, 1469.0, 1091.0, 1469.0]);
+rawTurbData.Drotor    = [126.4, 126.4, 126.4, 126.4, 126.4, 126.4]; % Rotor diameter in (m)
 rawTurbData.hubHeight = 90.0;           % Hub height in (m)
 
 % Filtering
@@ -22,7 +22,7 @@ filterSettings.turbData.tR = 1;    % Window width to the right (seconds)
 
 filterSettings.CTp.MM   = true;  % Additional moving-mean average for Ct_prime
 filterSettings.CTp.tL   = 3;     % Additional moving-mean average for Ct_prime
-filterSettings.CTp.tR   = 3;      % Additional moving-mean average for Ct_prime
+filterSettings.CTp.tR   = 3;     % Additional moving-mean average for Ct_prime
 
 % Desired output settings
 meshSetup.dt          = 1.0 ; % Timestep in seconds
@@ -31,5 +31,5 @@ meshSetup.distance_S  = 180 ; % distance (m) upwind   first  turbine to export
 meshSetup.distance_N  = 750;  % distance (m) downwind  last  turbine to export
 meshSetup.distance_W  = 250 ; % distance (m) west most left  turbine (from hub) to export
 meshSetup.distance_E  = 250 ; % distance (m) east most right turbine (from hub) to export
-meshSetup.Nx          = 40;   % Number of grid points in x-direction (-)
-meshSetup.Ny          = 20;    % Number of grid points in y-direction (-)
+meshSetup.Nx          = 100;   % Number of grid points in x-direction (-)
+meshSetup.Ny          = 50;   % Number of grid points in y-direction (-)

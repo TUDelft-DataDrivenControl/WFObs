@@ -1,8 +1,8 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'axi_2turb_adm_turb'; 
-outputDir  = 'results/GS_2turb_adm_turb/'; % Grid search output file
+configName = 'axi_6turb_adm_turb'; 
+outputDir  = 'results/GS_6turb_adm_turb/'; % Grid search output file
 
 %% Grid search settings
 lmu_array  = 0.2:0.1:2.0;

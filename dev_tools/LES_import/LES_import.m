@@ -1,8 +1,9 @@
 clear all; clc; close all;
 
-% SETUP: Configuration file location
-configurationName = '-all'; % use '-all' to do a batch run over all configurations
-
+% SETUP: Configuration file location 
+% (in the folder WFObs\dev_tools\LES_import, a .m script that belongs to configurationName
+% can be found in which a folder needs to be specified where the raw data can be found
+configurationName = 'palm_6turb_adm_turb'; % use '-all' to do a batch run over all configurations
 
 % CORE: Loop over all specified configuration files
 addpath('bin');
