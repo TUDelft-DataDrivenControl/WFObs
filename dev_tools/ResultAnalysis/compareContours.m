@@ -7,34 +7,34 @@ k_now_vec  = [300 600]; % Starting point of forecast
 data = {};
 
 % % COMPARISON SENSOR CONFIGURATIONS
-% data{end+1} = struct(...
-%     'name','Open-loop',...
-%     'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_sim_poorLmu/workspace.mat');
-% data{end+1} = struct(...
-%     'name','SCADA (Pwr)',...
-%     'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_enkf_stateEst_measPw/workspace.mat');
-% data{end+1} = struct(...
-%     'name','Upw. LiDAR',...
-%     'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_enkf_stateEst/workspace.mat');
-% data{end+1} = struct(...
-%     'name','Downw. LiDAR',...
-%     'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_enkf_stateEst_downstreamSensors/workspace.mat');
-% outputFigName = ['k' strrep(num2str(k_now_vec),' ','_') '_flowContours_sensorConfigs'];
+data{end+1} = struct(...
+    'name','OL',...
+    'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu020/workspace.mat');
+data{end+1} = struct(...
+    'name','EnKF, SCADA (Pwr)',...
+    'path','../../results/2turb_alm/stateEst_old/axi_2turb_alm_turb_enkf_stateEst_measPw/workspace.mat');
+data{end+1} = struct(...
+    'name','EnKF, Upw. LiDAR',...
+    'path','../../results/2turb_alm/stateEst_old/axi_2turb_alm_turb_enkf_stateEst_upstreamSensors/workspace.mat');
+data{end+1} = struct(...
+    'name','EnKF, Downw. LiDAR',...
+    'path','../../results/2turb_alm/stateEst_old/axi_2turb_alm_turb_exkf_stateEst_downstreamSensors/workspace.mat');
+outputFigName = ['2turb_sensorComparison_EnKF'];
 
 % COMPARE ExKF, EnKF and UKF
-data{end+1} = struct(...
-    'name','Open-loop',...
-    'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_sim_poorLmu/workspace.mat');
-data{end+1} = struct(...
-    'name','ExKF',...
-    'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_exkf_stateEst_downstreamSensors/workspace.mat');
-data{end+1} = struct(...
-    'name','EnKF',...
-    'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_enkf_stateEst_downstreamSensors/workspace.mat');
-data{end+1} = struct(...
-    'name','UKF',...
-    'path','../../results/WE2017/poorLmu/axi_2turb_alm_turb_ukf_stateEst_downstreamSensors/workspace.mat');
-outputFigName = ['k' strrep(num2str(k_now_vec),' ','_') '_flowContours_KFComparison'];
+% data{end+1} = struct(...
+%     'name','OL',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu055/workspace.mat');
+% data{end+1} = struct(...
+%     'name','ExKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_exkf_stateEst/workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_enkf_stateEst/workspace.mat');
+% data{end+1} = struct(...
+%     'name','UKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_ukf_stateEst/workspace.mat');
+% outputFigName = ['2turb_ExKF_EnKF_UKF_contour'];
 
 
 
@@ -68,11 +68,12 @@ y = WS{1}.Wp.mesh.ldxx2;
 
 % Plot velocities in a contourf figure
 h = figure; 
-h.Position = [621.8000 249.8000 532.0000 length(k_now_vec)*471.2000/2]
+h.Position = [1369 222.6000 568.8000 471.2000];%[621.8000 249.8000 532.0000 length(k_now_vec)*471.2000/2]
 climits = [0 3];
+set(h,'defaultTextInterpreter','latex')
 for kn = 1:length(k_now_vec)
     for j = 1:length(data)
-        subaxis(length(k_now_vec),length(data),length(data)*(kn-1)+j);
+        subaxis(length(k_now_vec),length(data),length(data)*(kn-1)+j,'SpacingHoriz',0.00,'SpacingVert',0.02);
         contourf(x,y,out(kn,j).e,'Linecolor','none');
         hold all;
         caxis(climits);
@@ -80,7 +81,7 @@ for kn = 1:length(k_now_vec)
         set(gca,'YTick',0:400:max(y(:)));
         axis equal tight;
         if kn == 1
-            title([data{j}.name])
+            title(['$(\Delta \vec{u})_{\mathrm{' data{j}.name '}} $'])
         end
         if kn == length(k_now_vec)
             xlabel('y-dir. (m)')
@@ -88,15 +89,15 @@ for kn = 1:length(k_now_vec)
             set(gca,'XTickLabel',[]);
         end
         if j == 1
-            ylabel(['t = ' num2str(WS{1}.sol_array(k_now_vec(kn)).time) ' s, x-direction (m)'])
+            ylabel({['t = ' num2str(WS{1}.sol_array(k_now_vec(kn)).time) ' s'];'x-direction (m)'})
         else
             set(gca,'YTickLabel',[]);
         end
         if j == length(data) && kn == length(k_now_vec)
             clb = colorbar;
             clb.Position = [0.93 0.10 0.02 0.35];
-            text(880, -120,'error');
-            text(880, 20,'(m/s)');
+            text(980, -120,'error');
+            text(980, 20,'(m/s)');
         end
         
         % Turbines
@@ -120,4 +121,4 @@ for kn = 1:length(k_now_vec)
     colormap(jet)
 end
 % export_fig(outputFigName,'-png','-m6','-transparent')
-% export_fig(outputFigName,'-pdf','-transparent')
+export_fig(outputFigName,'-pdf','-transparent')

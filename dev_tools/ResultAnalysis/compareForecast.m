@@ -1,24 +1,39 @@
 clear all;  clc;
 
 % Time settings
-k_now_vec  = [300]; % Starting point(s) of forecast
-k_fc_long  = 600; % Forecasting horizon (all evaluated until max(k_now_vec)+k_fc_long)
+k_now_vec  = [300 600]; % Starting point(s) of forecast
+k_fc_long  = 300; % Forecasting horizon (all evaluated until max(k_now_vec)+k_fc_long)
 
 % Data sources
 data = {};
+% % 2TURB ALM STATE ESTIMATION CASE
+% data{end+1} = struct(...
+%     'name','OL',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu055/workspace.mat');
+% data{end+1} = struct(...
+%     'name','ExKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_exkf_stateEst/workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_enkf_stateEst/workspace.mat');
+% data{end+1} = struct(...
+%     'name','UKF',...
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_ukf_stateEst/workspace.mat');
+% outputFigName = ['2turb_flowForecast_stateEst.pdf'];
+
 % % 2TURB ALM DUAL ESTIMATION CASE
 % data{end+1} = struct(...
 %     'name','OL',...
-%     'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu/workspace.mat');
+%     'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu055/workspace.mat');
 % data{end+1} = struct(...
 %     'name','EnKF',...
 %     'path','../../results/2turb_alm/axi_2turb_alm_turb_enkf_dualEst/workspace.mat');
 % data{end+1} = struct(...
 %     'name','UKF',...
 %     'path','../../results/2turb_alm/axi_2turb_alm_turb_ukf_dualEst/workspace.mat');
-% outputFigName = [strrep(num2str(k_now_vec),' ','_') '_2turb_dualEst_flowForecast'];
+% outputFigName = ['2turb_flowForecast_dualEst'];
 
-% APC CASE
+% % APC CASE
 data{end+1} = struct(...
     'name','OL',...
     'path','../../results/APC/apc_sim_dualEst_measPw/workspace.mat');
@@ -98,17 +113,19 @@ for di = 1:length(data)
     end
 end
 
-save('workspace_powerforecasting.mat');
+% %% Load data
+% save('workspace_powerforecasting.mat');
+%clc; clear all; load('workspace_powerforecasting.mat');
 
-% %% Produce figures
-% % Flow RMSE
-% close all; h= figure; h.Position = [385.8000 397 707.2000 length(k_now_vec)*191.2000];
+%% Produce figures
+% Flow RMSE
+% close all; h= figure; h.Position = [505 326.6000 655.2000 270.4000];
 % tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
-% ylimits = [-0.4 0];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
+% ylimits = [-0.2 0.05];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
 % set(h,'defaultTextInterpreter','latex')
 % for di = 2:length(data)
 %     for kn = 1:length(k_now_vec)
-%         subaxis(length(k_now_vec),length(data)-1,(length(data)-1)*(kn-1)+di-1)
+%         subaxis(length(k_now_vec),length(data)-1,(length(data)-1)*(kn-1)+di-1,'SpacingHoriz',0.01,'SpacingHoriz',0.03)
 % %         subplot(length(k_now_vec),length(data)-1,(length(data)-1)*(kn-1)+di-1);
 %         hold all;
 %         plot(out(kn,di).t,0*out(kn,di).t,'k--','displayName',data{1}.name);
@@ -117,9 +134,11 @@ save('workspace_powerforecasting.mat');
 %         ylim(ylimits);
 %         xlim([0 out(1).t(end)]);
 %         grid on; grid minor;
-%         set(gca,'Xtick',0:300:sol.time);
+%         set(gca,'Xtick',0:300:900);
 %         if di == 2
-%             ylabel('$E_{\mathrm{KF}} - E_{\mathrm{OL}}$ U (m/s)');
+%             ylabel('');
+%             %ylabel({'$||(\Delta \vec{u})_{\mathrm{KF}}||_2 - $';'$||(\Delta \vec{u})_{\mathrm{OL}}||_2$ (m/s)'});
+%             %ylabel('$||(\Delta \vec{u})_{\mathrm{KF}}||_2 - ||(\Delta \vec{u})_{\mathrm{OL}}||_2$ (m/s)');
 %         else
 %             set(gca,'YTickLabels',[])
 %         end
@@ -128,12 +147,15 @@ save('workspace_powerforecasting.mat');
 %         end
 %         if kn == length(k_now_vec)
 %             xlabel('Time (s)');
+%             set(gca,'ActivePositionProperty','outerposition')
 %         else
 %             set(gca,'XTickLabels',[])
 %         end
 %     end
 % end
-% % export_fig(outputFigName,'-pdf','-transparent')
+% ylb = suplabel('$||(\Delta \vec{u})_{\mathrm{KF}}||_2 - ||(\Delta \vec{u})_{\mathrm{OL}}||_2$ (m/s)','y');
+% ylb.Position(1)=0.08;
+% export_fig(outputFigName,'-pdf','-transparent')
 
 % %% Produce figures
 % % POWER RMSE
@@ -184,60 +206,62 @@ save('workspace_powerforecasting.mat');
 % % export_fig(outputFigName,'-pdf','-transparent')
 
 % %% Produce figures
-% % BOTH FLOW AND POWER RMSE
-% close all; h= figure; h.Position = [385.8000 397 707.2000 length(k_now_vec)*191.2000];
-% tmp_Pe = 1e-6*([out.RMSE_P]-repmat(out(1,1).RMSE_P,1,length(k_now_vec)*length(data)));
-% tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
-% 
-% ylimits_u = [-0.5, 2];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
-% ylimits_P = [-1.5 0.5];%round(10*[min(tmp_Pe), max(tmp_Pe)])/10;
-% set(h,'defaultTextInterpreter','latex')
-% jFig = 0;
-% for di = 1:2
-%     plotPower = (di == 2);
-%     for kn = 1:length(k_now_vec)
-%         subaxis(2,length(k_now_vec),length(k_now_vec)*(di-1)+kn)
-%         hold all;
-%         if plotPower
-%             plot(out(kn,di).t,0*out(kn,di).t,'k--','displayName',data{1}.name);
-%             plot(out(kn,di).t,1e-6*(out(kn,di).RMSE_P-out(kn,1).RMSE_P),'displayName',data{di}.name);            
-%             ylim(ylimits_P);
-%             plot([k_now_vec(kn), k_now_vec(kn)], ylimits_P,'r-.');
-%         else
-%             plot(out(kn,di+1).t,0*out(kn,di+1).t,'k--','displayName',data{1}.name);
-%             plot(out(kn,di+1).t,out(kn,di+1).RMSE_u-out(kn,1).RMSE_u,'displayName',data{di+1}.name);
-%             ylim(ylimits_u);
-%             plot([k_now_vec(kn), k_now_vec(kn)], ylimits_u,'r-.');
-%         end
-%         xlim([0 out(1).t(end)]);
-%         grid on; grid minor;
-%         set(gca,'Xtick',0:300:sol.time);
-%         if kn == 1
-%             if di == 1
-%                 ylabel('$E_{\mathrm{EnKF}}-E_{\mathrm{OL}}$ U (m/s)');
-%             else
-%                 ylabel('$E_{\mathrm{EnKF}}-E_{\mathrm{OL}}$ Pwr. (MW)');
-%             end
-%         else
-%             set(gca,'YTickLabels',[])
-%         end
-%         if di == 2
-%             xlabel('Time (s)');
-%         else
-%             set(gca,'XTickLabels',[])
-%         end
-%     end
-% end
-% % export_fig(outputFigName,'-pdf','-transparent')
+% BOTH FLOW AND POWER RMSE
+close all; h= figure; h.Position = [385.8000 397 707.2000 length(k_now_vec)*191.2000];
+tmp_Pe = 1e-6*([out.RMSE_P]-repmat(out(1,1).RMSE_P,1,length(k_now_vec)*length(data)));
+tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
+
+ylimits_u = [-0.5, 2];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
+ylimits_P = [-1.5 0.5];%round(10*[min(tmp_Pe), max(tmp_Pe)])/10;
+set(h,'defaultTextInterpreter','latex')
+jFig = 0;
+for di = 1:2
+    plotPower = (di == 2);
+    for kn = 1:length(k_now_vec)
+        subaxis(2,length(k_now_vec),length(k_now_vec)*(di-1)+kn)
+        hold all;
+        if plotPower
+            plot(out(kn,di).t,0*out(kn,di).t,'k--','displayName',data{1}.name);
+            plot(out(kn,di).t,1e-6*(out(kn,di).RMSE_P-out(kn,1).RMSE_P),'displayName',data{di}.name);            
+            ylim(ylimits_P);
+            plot([k_now_vec(kn), k_now_vec(kn)], ylimits_P,'r-.');
+        else
+            plot(out(kn,di+1).t,0*out(kn,di+1).t,'k--','displayName',data{1}.name);
+            plot(out(kn,di+1).t,out(kn,di+1).RMSE_u-out(kn,1).RMSE_u,'displayName',data{di+1}.name);
+            ylim(ylimits_u);
+            plot([k_now_vec(kn), k_now_vec(kn)], ylimits_u,'r-.');
+        end
+        xlim([0 out(1).t(end)]);
+        grid on; grid minor;
+        set(gca,'Xtick',0:300:900);
+        if kn == 1
+            if di == 1
+                ylabel({'$(\Delta u)_{\mathrm{EnKF}}-$';'$(\Delta u)_{\mathrm{OL}}$ (m/s)'});
+            else
+                ylabel({'$(\Delta P)_{\mathrm{EnKF}}-$';'$(\Delta P)_{\mathrm{OL}}$ (MW)'});
+            end
+        else
+            set(gca,'YTickLabels',[])
+        end
+        if di == 2
+            xlabel('Time (s)');
+            set(gca,'ActivePositionProperty','outerposition')
+        else
+            set(gca,'XTickLabels',[])
+        end
+    end
+end
+% export_fig(outputFigName,'-pdf','-transparent')
 % 
 % 
 % %% PRODUCE FIGURES
 % % Power forecasting
+% ylimits_P = [0 5];%[min(min([out(kn,di).Pest out(kn,di).Ptrue]*1e-6)); ...
+% h=figure;
+% h.Position = [405 173.8000 727.2000 546.4000];
+% set(h,'defaultTextInterpreter','latex')
 % for kn = 1:length(k_now_vec)
-%     ylimits_P = [1 5];%[min(min([out(kn,di).Pest out(kn,di).Ptrue]*1e-6)); ...
-%     h=figure;
-%     h.Position = [405 173.8000 727.2000 546.4000];
-%     set(h,'defaultTextInterpreter','latex')
+%     clf
 %     for jT = 1:9
 %         subaxis(3,3,jT);
 %         hold all;
@@ -262,35 +286,36 @@ save('workspace_powerforecasting.mat');
 % %         set(gca,'Xtick',0:300:sol.time);
 %         if jT == 9
 %             lgd = legend('True','OL','EnKF');
-%             lgd.Position = [0.7598 0.7990 0.1354 0.0970];
+%             lgd.Position = [0.8404 0.8395 0.1354 0.0970];
 %         end
 %     end
-% %     export_fig('powerForecast_full','-pdf','-transparent')
+%     export_fig(['out/k' num2str(kn) '_forecast'],'-m3','-png')
 % end
 % 
-% 
-% %% Plot figure: convergence U_inf and lmu
-% for j = 1:Wp.sim.NN
-%     u_Inf(j) = WS{2}.sol_array(j).site.u_Inf;
-%     lmu(j)   = WS{2}.sol_array(j).site.lmu;
-% end
-% h = figure;
-% h.Position = [358.6000 456.2000 753.6000 141.6000];
-% set(h,'defaultTextInterpreter','latex')
-% % U_inf
-% subplot(1,2,1);
-% hold all
-% plot(Wp.sim.time(2:end),12*ones(1,Wp.sim.NN),'k--');
-% plot(Wp.sim.time(2:end),u_Inf);
-% xlabel('Time (s)');
-% ylabel('$U_{\infty}$ (m/s)');
-% ylim([8 13]);
-% grid on; grid minor;
-% subplot(1,2,2);
-% hold all;
-% plot(Wp.sim.time(1:end),[1.2 1.20*ones(1,Wp.sim.NN)],'k--');
-% plot(Wp.sim.time(1:end),[3 lmu]);
-% xlabel('Time (s)');
-% ylabel('lmu');
-% grid on; grid minor;
-% export_fig('ParamConvergence','-pdf','-transparent')
+% % 
+% % 
+% % %% Plot figure: convergence U_inf and lmu
+% % for j = 1:Wp.sim.NN
+% %     u_Inf(j) = WS{2}.sol_array(j).site.u_Inf;
+% %     lmu(j)   = WS{2}.sol_array(j).site.lmu;
+% % end
+% % h = figure;
+% % h.Position = [358.6000 456.2000 753.6000 141.6000];
+% % set(h,'defaultTextInterpreter','latex')
+% % % U_inf
+% % subplot(1,2,1);
+% % hold all
+% % plot(Wp.sim.time(2:end),12*ones(1,Wp.sim.NN),'k--');
+% % plot(Wp.sim.time(2:end),u_Inf);
+% % xlabel('Time (s)');
+% % ylabel('$U_{\infty}$ (m/s)');
+% % ylim([8 13]);
+% % grid on; grid minor;
+% % subplot(1,2,2);
+% % hold all;
+% % plot(Wp.sim.time(1:end),[1.2 1.20*ones(1,Wp.sim.NN)],'k--');
+% % plot(Wp.sim.time(1:end),[3 lmu]);
+% % xlabel('Time (s)');
+% % ylabel('lmu');
+% % grid on; grid minor;
+% % export_fig('ParamConvergence','-pdf','-transparent')

@@ -53,16 +53,20 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         if scriptOptions.plotContour
             scrsz = get(0,'ScreenSize'); 
             hFigs{1}=figure('color',[1 1 1],'Position',[50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)], 'MenuBar','none','ToolBar','none','visible', 'on');
+            set(hFigs{1},'defaultTextInterpreter','latex')
         end
         if scriptOptions.plotPower
             hFigs{2}=figure;
+            set(hFigs{2},'defaultTextInterpreter','latex')
         end
         if scriptOptions.plotError
             hFigs{3}=figure;
+            set(hFigs{3},'defaultTextInterpreter','latex')
         end
         if scriptOptions.plotCenterline
             hFigs{4}=figure;
-        end;       
+            set(hFigs{4},'defaultTextInterpreter','latex')
+        end    
     end
     
     % Plot contour flow fields
@@ -83,9 +87,9 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end
     if scriptOptions.plotContour
-        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title',['u_{WFObs: ' strucObs.filtertype '}']);
-        data{2} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',measuredData.uq,'title','u_{LES}');
-        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','|u_{WFObs}-u_{LES}|','cmax',3);
+        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title',['$u_{WFObs: ' strucObs.filtertype '}$']);
+        data{2} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',measuredData.uq,'title','$u_{LES}$');
+        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','$|u_{WFObs}-u_{LES}|$','cmax',3);
         
         % Plotting of 'v' component disabled to speed up code
         %  data{4} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',sol.v,'title','v_{WFSim}','cmax',3);
@@ -102,7 +106,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             subplot(subplotDim(1),subplotDim(2),j);
             V = max(data{j}.z(:));
             if V > 11; cmax = 13; elseif V > 7; cmax = 9.; else; cmax = 3; end
-            if min(data{j}.z(:)) < 0.; cmin = -cmax; else; cmin = 0.0; end;  
+            if min(data{j}.z(:)) < 0.; cmin = -cmax; else; cmin = 0.0; end
             contourf(data{j}.x,data{j}.y,data{j}.z,cmin:0.1:cmax,'Linecolor','none');
             title([data{j}.title ' (t = ' num2str(sol.time) ')'])
             hold all; colorbar;
@@ -173,10 +177,16 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
                 pwFC(:,sol_tmp.k-sol.k) = sol_tmp.turbine.power; % Extract power
                 timeFC(sol_tmp.k-sol.k) = sol_tmp.time;
             end
-            RMSE_FC_shortterm = sqrt(mean((pwLES(timeFC(1:60))-pwFC(1:60)).^2,2));
-            RMSE_FC_longterm  = sqrt(mean((pwLES(timeFC)-pwFC).^2,2));
-            disp(['Short-term Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(k_end) ' is ' num2str(mean(RMSE_FC_shortterm),'%10.2e\n') '.']);
-            disp(['Long-term  Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(k_end) ' is ' num2str(mean(RMSE_FC_longterm),'%10.2e\n') '.']);
+            pwFC = movmean(pwFC',[10 0])'; % Low-pass filter power forecast
+            t_st = min([scriptOptions.powerForecast, 60]); % t-shortterm
+            try
+                RMSE_FC_shortterm = sqrt(mean((pwLES(:,timeFC(1:t_st))-pwFC(:,1:t_st)).^2,2));
+                RMSE_FC_longterm  = sqrt(mean((pwLES(:,timeFC)-pwFC).^2,2));
+    %             RMSE_FC_shortterm = mean(abs(pwLES(:,timeFC(1:t_st))-pwFC(:,1:t_st)),2);
+    %             RMSE_FC_longterm  = mean(abs(pwLES(:,timeFC)-pwFC),2);
+                disp(['Short-term Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(sol.k+t_st) ' is ' num2str(mean(RMSE_FC_shortterm),'%10.2e\n') '.']);
+                disp(['Long-term  Mean RMSE forecasted vs. true power for k = ' num2str(sol.k+1) ':' num2str(k_end) ' is ' num2str(mean(RMSE_FC_longterm),'%10.2e\n') '.']);
+            end
         end
         
         % Plot results
