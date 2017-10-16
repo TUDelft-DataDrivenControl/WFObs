@@ -1,11 +1,11 @@
 clear all; close all; clc;
 
 % Configuration file
-configName = 'yaw_2turb_adm_noturb.m';
+configName = 'axi_6turb_adm_turb.m';
 
 % Grid search settings
-lmu_array  = 0.1:0.1:2.0;
-f_array    = 0.8:0.1:2.0;
+lmu_array  = 0.1:0.1:1.0;
+f_array    = 1.0:0.1:2.0;
 m_array    = 1:8;
 n_array    = 1:4;
 

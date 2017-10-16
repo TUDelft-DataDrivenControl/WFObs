@@ -1,5 +1,5 @@
 %% SOWFA source directories, meshing and measurement options
-Wp.name = '6turb_adm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+Wp.name = '6turb_adm_partial'; %'6turb_adm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
 
 %% WFSim model settings
 scriptOptions.startUniform = false; % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
