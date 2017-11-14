@@ -15,13 +15,19 @@ function [Wp,sol_out,strucObs] = WFObs_o_smo(strucObs,Wp,sys_in,sol_in,options)
 measuredData = sol_in.measuredData;
 
 if sol_in.k == 1
+    if strucObs.measPw
+        error(['SMO currently does not support power measurements. '...
+               'Please change to the EnKF/UKF or use flow measurements.']);
+    end
+    
+    if strucObs.pe.enabled
+        error(['SMO currently does not support parameter estimation. '...
+               'Please change to the EnKF/UKF or use state estimation only.']);
+    end
+    
     % Setup covariance and system output matrices
-    if options.exportPressures
-        strucObs.Htt   = sparse(eye(strucObs.size_state));
-    else
-        strucObs.Htt   = sparse(eye(strucObs.size_output));
-    end;
-	strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
+    strucObs.Htt  = sparse(eye(Wp.Nu+Wp.Nv+options.exportPressures*Wp.Np));
+    strucObs.Htt  = strucObs.Htt(strucObs.obs_array,:);   
     strucObs.Cinv = sparse(pinv(full(strucObs.Htt)));
 end;
 
