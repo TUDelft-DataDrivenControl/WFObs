@@ -15,18 +15,20 @@ function [Wp,sol_out,strucObs] = WFObs_o_exkf(strucObs,Wp,sys_in,sol_in,options)
 measuredData = sol_in.measuredData;
 
 if sol_in.k == 1
+    if strucObs.measPw
+        error(['ExKF currently does not support power measurements. '...
+               'Please change to the EnKF/UKF or set up flow measurements.']);
+    end
+    
     % Setup covariance and system output matrices
+    strucObs.Htt = sparse(eye(Wp.Nu+Wp.Nv+options.exportPressures*Wp.Np));
+    strucObs.Htt = strucObs.Htt(strucObs.obs_array,:);    
+    strucObs.Pk  = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
+    strucObs.Qx  = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
     if options.exportPressures
-        strucObs.Pk    = sparse(eye(strucObs.size_state))*strucObs.P_0;
-        strucObs.Htt   = sparse(eye(strucObs.size_state));
-        strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
-        strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_state);
-    else
-        strucObs.Pk    = sparse(eye(strucObs.size_output))*strucObs.P_0;
-        strucObs.Htt   = sparse(eye(strucObs.size_output));
-        strucObs.Htt   = strucObs.Htt(strucObs.obs_array,:);
-        strucObs.Q_k   = strucObs.Q_k*eye(strucObs.size_output);
-    end;
+        strucObs.Pk = blkdiag(strucObs.Pk,eye(Wp.Np)*strucObs.P_0.p);
+        strucObs.Qx = blkdiag(strucObs.Qx,eye(Wp.Np)*strucObs.Q_k.p);
+    end
 end;
 
 % ExKF forecast update
@@ -43,7 +45,7 @@ if ~options.exportPressures
     solf.x = solf.x(1:strucObs.size_output);
 end;
 
-Pf = Fk*strucObs.Pk*Fk' + strucObs.Q_k;  % Covariance matrix P for x(k) knowing y(k-1)
+Pf = Fk*strucObs.Pk*Fk' + strucObs.Qx;  % Covariance matrix P for x(k) knowing y(k-1)
 
 % ExKF analysis update
 sol_out     = sol_in; % Copy previous solution before updating x
