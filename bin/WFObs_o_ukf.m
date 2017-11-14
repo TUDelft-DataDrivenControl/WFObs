@@ -22,19 +22,19 @@ if sol.k==1
     end    
     
     % If do state estimation, then load covariance matrices
-    if strucObs.stateEst
+    if strucObs.se.enabled
         x0 = sol.x;
-        P0 = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
-        Qx = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
+        P0 = blkdiag(eye(Wp.Nu)*strucObs.se.P0.u,eye(Wp.Nv)*strucObs.se.P0.v);
+        Qk = blkdiag(eye(Wp.Nu)*strucObs.se.Qk.u,eye(Wp.Nv)*strucObs.se.Qk.v);
         if options.exportPressures == 1 % Optional: add pressure terms
-            P0 = blkdiag(Px,eye(Wp.Np)*strucObs.P_0.p);
-            Qx = blkdiag(Qx,eye(Wp.Np)*strucObs.Q_k.p);
+            P0 = blkdiag(P0,eye(Wp.Np)*strucObs.se.P0.p);
+            Qk = blkdiag(Qk,eye(Wp.Np)*strucObs.se.Qk.p);
         end
     else
         % No state estimation, parameter only
         x0    = [];
         P0    = [];
-        Qx    = [];
+        Qk    = [];
     end;
     
     % Add model parameters as states for online model adaption
@@ -45,8 +45,8 @@ if sol.k==1
             subStruct   = tuneP(1:dotLoc-1);
             structVar   = tuneP(dotLoc+1:end);
             x0          = [x0; Wp.(subStruct).(structVar)];
-            P0          = blkdiag(P0,strucObs.pe.P_0(iT));
-            Qx          = blkdiag(Qx,strucObs.pe.Q_k(iT));
+            P0          = blkdiag(P0,strucObs.pe.P0(iT));
+            Qk          = blkdiag(Qk,strucObs.pe.Qk(iT));
 
             % Save to strucObs for later
             strucObs.pe.subStruct{iT} = subStruct;
@@ -70,11 +70,12 @@ if sol.k==1
     strucObs.W      = tempMat*diag(strucObs.Wc)*tempMat';
                
     % Covariance matrices for UKF
-    strucObs.Qx = Qx;
+    strucObs.Qk = Qk;
     strucObs.Pk = P0;
-    strucObs.Rx = eye(strucObs.nrobs)*strucObs.cov.Rk_flow;
+    R_fullState = diag([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
+    strucObs.Rk = R_fullState(strucObs.obs_array,strucObs.obs_array);
     if strucObs.measPw 
-        strucObs.Rx = blkdiag(strucObs.Rx,eye(Wp.turbine.N)*strucObs.cov.Rk_pwr);
+        strucObs.Rk = blkdiag(strucObs.Rk,eye(Wp.turbine.N)*strucObs.se.Rk.P);
     end
     
     % Other UKF-related parameters
@@ -85,7 +86,7 @@ if sol.k==1
 end
 
 % Calculate sigma points
-if strucObs.stateEst % Write the system states to the sigma points
+if strucObs.se.enabled % Write the system states to the sigma points
     strucObs.Aen = repmat(sol.x,1,strucObs.nrens); 
 else
     strucObs.Aen = [];
@@ -99,10 +100,9 @@ if strucObs.pe.enabled
 end
 
 % Distribute sigma points around the mean
-Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk);
+Uscented_devs                    = strucObs.gamma*sqrt(strucObs.Pk); 
 strucObs.Aen(:,2:strucObs.L+1)   = strucObs.Aen(:,2:strucObs.L+1)   + Uscented_devs;
 strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_devs;
-
 
 %% Parallelized solving of the forward propagation step in the UKF
 Aenf  = zeros(strucObs.L,strucObs.nrens);   % Initialize empty forecast matrix
@@ -114,7 +114,7 @@ parfor(ji=1:strucObs.nrens)
     Wppar    = Wp;  % Copy meshing struct
    
     % Import solution from sigma point
-    if strucObs.stateEst
+    if strucObs.se.enabled
 %         % Reset boundary conditions (found to be necessary for stability)
 %         [solpar.u,solpar.uu] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.u_Inf);
 %         [solpar.v,solpar.vv] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.v_Inf);
@@ -140,7 +140,7 @@ parfor(ji=1:strucObs.nrens)
     [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
     
     xf = [];
-    if strucObs.stateEst 
+    if strucObs.se.enabled 
         xf = [xf; solpar.x(1:strucObs.size_output,1)];
     end
     if strucObs.pe.enabled
@@ -155,7 +155,7 @@ parfor(ji=1:strucObs.nrens)
         Yenf(:,ji) = [solpar.x(strucObs.obs_array); solpar.turbine.power];
     else
         Yenf(:,ji) = [solpar.x(strucObs.obs_array)];
-    end    
+    end
 end
 
 
@@ -169,8 +169,8 @@ xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .* Aenf, 2);
 ymean = sum(repmat(strucObs.Wm',strucObs.M,1) .* Yenf, 2);
 Aenft = Aenf-repmat(xmean,1,strucObs.nrens);
 Yenft = Yenf-repmat(ymean,1,strucObs.nrens);
-Pfxxk = Aenft*strucObs.W*Aenft' + strucObs.Qx; % Pxx for k|k-1
-Pfyyk = Yenft*strucObs.W*Yenft' + strucObs.Rx; % Pxy for k|k-1
+Pfxxk = Aenft*strucObs.W*Aenft' + strucObs.Qk; % Pxx for k|k-1
+Pfyyk = Yenft*strucObs.W*Yenft' + strucObs.Rk; % Pxy for k|k-1
 Pfxyk = Aenft*strucObs.W*Yenft';               % Pyy for k|k-1
 
 Kk          = Pfxyk * pinv(Pfyyk);
@@ -187,7 +187,7 @@ if strucObs.pe.enabled
 end
 
 % Update states, either from estimation or through open-loop
-if strucObs.stateEst
+if strucObs.se.enabled
     sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
     [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
     [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update

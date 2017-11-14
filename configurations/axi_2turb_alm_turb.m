@@ -22,17 +22,17 @@ strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_In
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
-strucObs.measPw      = false; % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = true;  % Use flow measurements (LIDAR) in estimates
+strucObs.measPw      = false;  % Use power measurements (SCADA) from turbines in estimates
+strucObs.measFlow    = true; % Use flow measurements (LIDAR) in estimates
 strucObs.measSigma.P = 1e4;   % Stand. dev. of artificial noise on Power measurements in [W]
 strucObs.measSigma.u = 0.10;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
 strucObs.measSigma.v = 0.10;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-strucObs.sensorsPath = 'sensors_2turb_alm_downstream'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+strucObs.sensorsPath = 'sensors_2turb_alm_downstream'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 
 %% Kalman filter settings
 % State estimation settings
-strucObs.se.enabled = true; % Estimate the model states (flow fields)?
+strucObs.se.enabled = false; % Estimate the model states (flow fields)?
     % Initial state error covariance matrix (diagonal values on P_0 matrix)
     strucObs.se.P0.u = 0.30; % Initial state covariance for long. flow
     strucObs.se.P0.v = 0.10; % Initial state covariance for lat. flow
@@ -52,21 +52,22 @@ strucObs.se.enabled = true; % Estimate the model states (flow fields)?
         strucObs.se.Qk.p = 0.00; % Autocovariance for pressure process noise
 
 % Parameter estimation settings
-strucObs.pe.enabled = false; % Estimate model parameters?
-    strucObs.pe.vars    = {'site.lmu'}; % If empty {} then no estimation
-    strucObs.pe.P_0     = [1e-1]; % Initial state covariance(s) for model variable(s)
-    strucObs.pe.Qk      = [1e-3]; % Autocovariance(s) for model variable(s)
-    strucObs.pe.lb      = [0.05]; % Lower bound(s) for model variable(s)
-    strucObs.pe.ub      = [3.00]; % Upper bound(s) for model variable(s)
+strucObs.pe.enabled = true; % Estimate model parameters?
+    strucObs.pe.vars = {'site.lmu'}; % If empty {} then no estimation
+    strucObs.pe.P0   = [1e-1]; % Initial state covariance(s) for model variable(s)
+    strucObs.pe.Qk   = [1e-5]; % Autocovariance(s) process noise for model variable(s)
+    strucObs.pe.lb   = [0.05]; % Lower bound(s) for model variable(s)
+    strucObs.pe.ub   = [3.00]; % Upper bound(s) for model variable(s)
         
 % Observer-specific settings
-strucObs.filtertype = 'sim'; 
+strucObs.filtertype = 'ukf'; 
 switch lower(strucObs.filtertype)    
     case {'exkf'} % Extended Kalman filter (ExKF)
         % ... The ExKF does not have any specific model settings
         
     case {'smo'} % Sliding mode observer (SMO)   
         strucObs.alpha = 0.01; % tuning parameter
+        % SMO does not use any covariance matrices, relies excl. on alpha
         
     case {'ukf'}  % Unscented Kalman filter (UKF)      
         % Sigma-point generation settings
