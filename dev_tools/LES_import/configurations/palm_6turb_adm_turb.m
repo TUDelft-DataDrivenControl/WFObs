@@ -1,7 +1,7 @@
 % Source files
-scriptOptions.outputFilename = '6turb_adm_turb';
-scriptOptions.plotFrequency  = 1e9;         % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
-scriptOptions.sourcePath     = '/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/6turb_adm_matlab/turb';
+scriptOptions.outputFilename = '6turb_adm_turb_NEW';
+scriptOptions.plotFrequency  = 100;         % Plot mapping every * instances (will always plot k == 1, set to high value for no plots after k == 1)
+scriptOptions.sourcePath     = 'K:\dcsc\DataDriven\Data\PALM\6turb_adm_matlab\turb';%'/tudelft/ls/staff-group/3me/dcsc/DataDriven/Data/PALM/6turb_adm_matlab/turb';
 
 % Turbine properties directly from PALM or SOWFA. The reference frame is 
 %   x (vertical, upwards pos.) - y (horizontal, rightwards pos.).
@@ -27,9 +27,9 @@ filterSettings.CTp.tR   = 3;     % Additional moving-mean average for Ct_prime
 % Desired output settings
 meshSetup.dt          = 1.0 ; % Timestep in seconds
 meshSetup.rho         = 1.20; % Air density (kg m^-3)
-meshSetup.distance_S  = 180 ; % distance (m) upwind   first  turbine to export
-meshSetup.distance_N  = 750;  % distance (m) downwind  last  turbine to export
-meshSetup.distance_W  = 250 ; % distance (m) west most left  turbine (from hub) to export
-meshSetup.distance_E  = 250 ; % distance (m) east most right turbine (from hub) to export
+meshSetup.distance_S  = 250 ; % distance (m) upwind   first  turbine to export
+meshSetup.distance_N  = 250;  % distance (m) downwind  last  turbine to export
+meshSetup.distance_W  = 150 ; % distance (m) west most left  turbine (from hub) to export
+meshSetup.distance_E  = 150 ; % distance (m) east most right turbine (from hub) to export
 meshSetup.Nx          = 100;   % Number of grid points in x-direction (-)
 meshSetup.Ny          = 50;   % Number of grid points in y-direction (-)
