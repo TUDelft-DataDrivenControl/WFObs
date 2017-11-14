@@ -13,13 +13,7 @@ function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)
 %   
 
 %% Initialization step of the Unscented KF (at k == 1)
-if sol.k==1 
-    % Check UKF setting
-    if strucObs.stateEst == 0 && strucObs.tune.est == 0
-        error(['Please turn on state and/or parameter estimation. '...
-            'Alternatively, select "sim" for open-loop simulations.']);
-    end
-    
+if sol.k==1     
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
     if options.exportPressures == 1 % Optional: add pressure terms
@@ -44,19 +38,19 @@ if sol.k==1
     end;
     
     % Add model parameters as states for online model adaption
-    if strucObs.tune.est
-        for iT = 1:length(strucObs.tune.vars)
-            tuneP       = strucObs.tune.vars{iT};
+    if strucObs.pe.enabled
+        for iT = 1:length(strucObs.pe.vars)
+            tuneP       = strucObs.pe.vars{iT};
             dotLoc      = findstr(tuneP,'.');
             subStruct   = tuneP(1:dotLoc-1);
             structVar   = tuneP(dotLoc+1:end);
             x0          = [x0; Wp.(subStruct).(structVar)];
-            P0          = blkdiag(P0,strucObs.tune.P_0(iT));
-            Qx          = blkdiag(Qx,strucObs.tune.Q_k(iT));
+            P0          = blkdiag(P0,strucObs.pe.P_0(iT));
+            Qx          = blkdiag(Qx,strucObs.pe.Q_k(iT));
 
             % Save to strucObs for later
-            strucObs.tune.subStruct{iT} = subStruct;
-            strucObs.tune.structVar{iT} = structVar;
+            strucObs.pe.subStruct{iT} = subStruct;
+            strucObs.pe.structVar{iT} = structVar;
         end
     end
     
@@ -78,9 +72,9 @@ if sol.k==1
     % Covariance matrices for UKF
     strucObs.Qx = Qx;
     strucObs.Pk = P0;
-    strucObs.Rx = eye(strucObs.nrobs)*strucObs.R_k;
+    strucObs.Rx = eye(strucObs.nrobs)*strucObs.cov.Rk_flow;
     if strucObs.measPw 
-        strucObs.Rx = blkdiag(strucObs.Rx,eye(Wp.turbine.N)*strucObs.R_ePw);
+        strucObs.Rx = blkdiag(strucObs.Rx,eye(Wp.turbine.N)*strucObs.cov.Rk_pwr);
     end
     
     % Other UKF-related parameters
@@ -98,9 +92,9 @@ else
 end;
 
 % Append the sigma points with model parameters
-if strucObs.tune.est
-    for iT = 1:length(strucObs.tune.vars) 
-        strucObs.Aen = [strucObs.Aen; repmat(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),1,strucObs.nrens)];
+if strucObs.pe.enabled
+    for iT = 1:length(strucObs.pe.vars) 
+        strucObs.Aen = [strucObs.Aen; repmat(Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}),1,strucObs.nrens)];
     end
 end
 
@@ -131,13 +125,13 @@ parfor(ji=1:strucObs.nrens)
     end;
        
     % Update Wp with values from the sigma points
-    if strucObs.tune.est
-        tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
-        for iT = 1:length(strucObs.tune.vars)
+    if strucObs.pe.enabled
+        tuneParam_tmp = zeros(length(strucObs.pe.vars),1);
+        for iT = 1:length(strucObs.pe.vars)
             % Threshold using min-max to avoid crossing lb/ub
-            tuneParam_tmp(iT) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),...
-                                strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
-            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = tuneParam_tmp(iT);
+            tuneParam_tmp(iT) = min(strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),...
+                                strucObs.Aen(end-length(strucObs.pe.vars)+iT,ji)));
+            Wppar.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = tuneParam_tmp(iT);
         end
     end
 
@@ -149,7 +143,7 @@ parfor(ji=1:strucObs.nrens)
     if strucObs.stateEst 
         xf = [xf; solpar.x(1:strucObs.size_output,1)];
     end
-    if strucObs.tune.est
+    if strucObs.pe.enabled
         xf = [xf; tuneParam_tmp];
     end
 
@@ -184,11 +178,11 @@ xSolAll     = xmean + Kk*(y_meas-ymean);
 strucObs.Px = Pfxxk - Kk * Pfyyk * Kk';
 
 %% Post-processing
-if strucObs.tune.est
+if strucObs.pe.enabled
     % Update model parameters with the optimal estimate
-    for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = min(...
-            strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+    for iT = 1:length(strucObs.pe.vars) % Write optimally estimated values to Wp
+        Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = min(...
+            strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),xSolAll(end-length(strucObs.pe.vars)+iT)));
     end
 end
 

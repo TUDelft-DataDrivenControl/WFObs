@@ -73,7 +73,7 @@ scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of si
 scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
 
 % Configuration file
-configName = 'apc_9turb_alm_turb'; % See './configurations' for options
+configName = 'axi_2turb_alm_turb'; % See './configurations' for options
 
 %% Execute the WFObs core code (+ overwrite meshing.m settings, if applicable)
 WpOverwrite = struct(); % Struct to overwrite settings from meshing.m

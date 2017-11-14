@@ -37,6 +37,27 @@ function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initializ
 % Load configuration file from the 'configurations' folder
 run(configName);    
 
+% Decide whether we need to linearize WFSim
+if strcmp(lower(strucObs.filtertype),'exkf') || strcmp(lower(strucObs.filtertype),'smo')
+    % Calculate linearized system matrices: necessary for ExKF & SMO
+    scriptOptions.Linearversion = true; 
+else
+    % Disable calculation of lin. matrices: not needed for EnKF & UKF
+    scriptOptions.Linearversion = false; 
+end
+
+% Check KF settings compatibility
+if strcmp(lower(strucObs.filtertype),'sim') == false
+    if strucObs.se.enabled == 0 && strucObs.pe.enabled == 0
+        error(['Please turn on state and/or parameter estimation. '...
+            'Alternatively, select "sim" for open-loop simulations.']);
+    end
+    if strucObs.measFlow == 0 && strucObs.measPw == 0
+        error(['Please turn on flow and/or power measurements. '...
+            'Alternatively, select "sim" for open-loop simulations.']);
+    end  
+end
+    
 % Create destination folder for output files
 if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
     mkdir(scriptOptions.savePath);
@@ -67,9 +88,14 @@ end;
 
 [Wp,sol,sys] = InitWFSim(Wp,scriptOptions); % Initialize model
 
-% Add noise to initial conditions
-[sol.u,sol.uu]  = deal(sol.u + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
-[sol.v,sol.vv]  = deal(sol.v + randn(Wp.mesh.Nx,Wp.mesh.Ny)*strucObs.noise_init);
+% Set default model convergence settings
+scriptOptions.conv_eps     = 1e-6; % Convergence parameter
+scriptOptions.max_it_dyn   = 1;    % Convergence parameter
+if Wp.sim.startUniform
+    scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
+else
+    scriptOptions.max_it = 50;  % Iteration limit for simulation start-up
+end
 
 % Define what the system should predict (with or without pressures)
 strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
@@ -101,8 +127,9 @@ end;
 
 % Load measurements from LES simulation (*.mat file)
 LESData    = load(Wp.sim.measurementFile); % Load measurements
-LESData.ud = LESData.u + strucObs.noise_obs*randn(size(LESData.u)); % Add noise
-LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
+LESData.ud = LESData.u + strucObs.measSigma.u*randn(size(LESData.u)); % Add noise
+LESData.vd = LESData.v + strucObs.measSigma.v*randn(size(LESData.v)); % Add noise
+LESData.Pd = LESData.turbData.power + strucObs.measSigma.P*randn(size(LESData.turbData.power));
 
 % Setup blank figure windows
 hFigs = {};

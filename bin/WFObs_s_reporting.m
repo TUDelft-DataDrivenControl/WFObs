@@ -52,9 +52,9 @@ if scriptOptions.printProgress
         disp([datestr(rem(now,1)) ' __  t(' num2str(sol.k,['%0' num2str(scriptOptions.tlen) 'd']) ') = ' num2str(sol.time,['%0' num2str(scriptOptions.klen) 'd']) ' s __ Flow RMSE: ' num2str(sol.score.RMSE_flow,'%10.2f\n'), ' m/s, u_Inf: ' num2str(Wp.site.u_Inf,'%10.2f\n') ', v_Inf: ' num2str(Wp.site.v_Inf,'%10.2f\n') ', it. time: ' num2str(sol.score.CPUtime,'%10.2f\n') ' s.']);
     end        
     if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
-        if strucObs.tune.est
-            for iT = 1:length(strucObs.tune.vars)
-                disp([datestr(rem(now,1)) ' __  t(' num2str(sol.k,['%0' num2str(scriptOptions.tlen) 'd']) ') = ' num2str(sol.time,['%0' num2str(scriptOptions.klen) 'd']) ' s __ ' strucObs.tune.vars{iT} ' estimated as ' num2str(Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}),'%10.2f\n') '.']);
+        if strucObs.pe.enabled
+            for iT = 1:length(strucObs.pe.vars)
+                disp([datestr(rem(now,1)) ' __  t(' num2str(sol.k,['%0' num2str(scriptOptions.tlen) 'd']) ') = ' num2str(sol.time,['%0' num2str(scriptOptions.klen) 'd']) ' s __ ' strucObs.pe.vars{iT} ' estimated as ' num2str(Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}),'%10.2f\n') '.']);
             end
         end
     end

@@ -13,17 +13,7 @@ function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)
 %    
 
 %% Initialization step of the Ensemble KF (at k == 1)
-if sol.k==1
-    % Check EnKF settings
-    if strucObs.stateEst == 0 && strucObs.tune.est == 0
-        error(['Please turn on state and/or parameter estimation. '...
-            'Alternatively, select "sim" for open-loop simulations.']);
-    end
-    if strucObs.measFlow == 0 && strucObs.measPw == 0
-        error(['Please turn on flow and/or power measurements. '...
-            'Alternatively, select "sim" for open-loop simulations.']);
-    end    
-    
+if sol.k==1    
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
     if options.exportPressures == 1 % Optional: add pressure terms
@@ -57,27 +47,27 @@ if sol.k==1
     end
     
     % Add model parameters as states for online model adaption
-    if strucObs.tune.est
+    if strucObs.pe.enabled
         FParamGen = [];
-        for iT = 1:length(strucObs.tune.vars)
-            tuneP                 = strucObs.tune.vars{iT};
+        for iT = 1:length(strucObs.pe.vars)
+            tuneP                 = strucObs.pe.vars{iT};
             dotLoc                = findstr(tuneP,'.');
             subStruct             = tuneP(1:dotLoc-1);
             structVar             = tuneP(dotLoc+1:end);
             x0                    = [x0; Wp.(subStruct).(structVar)];
-            initrand.(structVar)  = (strucObs.tune.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+            initrand.(structVar)  = (strucObs.pe.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
             dist_iT               = bsxfun(@times,initrand.(structVar),1);
-            if min(dist_iT+Wp.(subStruct).(structVar)) < strucObs.tune.lb(iT) || max(dist_iT+Wp.(subStruct).(structVar)) > strucObs.tune.ub(iT)
+            if min(dist_iT+Wp.(subStruct).(structVar)) < strucObs.pe.lb(iT) || max(dist_iT+Wp.(subStruct).(structVar)) > strucObs.pe.ub(iT)
                 error(['Your initial distribution for ' structVar ' exceeds the ub/lb limits.'])
             end
             initdist              = [initdist; dist_iT];
 
             % Add parameter process noise to generator function
-            FParamGen = @() [FParamGen(); strucObs.tune.Q_e(iT)*randn(1,1)];
+            FParamGen = @() [FParamGen(); strucObs.pe.Q_e(iT)*randn(1,1)];
             
             % Save to strucObs for later usage
-            strucObs.tune.subStruct{iT} = subStruct;
-            strucObs.tune.structVar{iT} = structVar;
+            strucObs.pe.subStruct{iT} = subStruct;
+            strucObs.pe.structVar{iT} = structVar;
         end
         strucObs.FParamGen = FParamGen;
     end
@@ -99,7 +89,7 @@ if sol.k==1
     end
     if strucObs.measPw
         strucObs.RNoiseGen = @() [strucObs.RNoiseGen();...
-                                  strucObs.R_ePw*randn(Wp.turbine.N,strucObs.nrens)];
+                                  strucObs.cov.Rk_pwr*randn(Wp.turbine.N,strucObs.nrens)];
     end
 
     % Calculate localization (and inflation) auto-corr. and cross-corr. matrices
@@ -130,7 +120,7 @@ end
 Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
 
-tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
+tuneParam_tmp = zeros(length(strucObs.pe.vars),1);
 parfor(ji=1:strucObs.nrens)
     syspar = sys; % Copy system matrices
     solpar = sol; % Copy optimal solution from prev. time instant
@@ -148,13 +138,13 @@ parfor(ji=1:strucObs.nrens)
     end
        
     % Update Wp with values from the sigma points
-    if strucObs.tune.est
-        tuneParam_tmp = zeros(length(strucObs.tune.vars),1);
-        for iT = 1:length(strucObs.tune.vars)
+    if strucObs.pe.enabled
+        tuneParam_tmp = zeros(length(strucObs.pe.vars),1);
+        for iT = 1:length(strucObs.pe.vars)
             % Threshold using min-max to avoid crossing lb/ub
-            tuneParam_tmp(iT) = min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),...
-                                strucObs.Aen(end-length(strucObs.tune.vars)+iT,ji)));
-            Wppar.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = tuneParam_tmp(iT);
+            tuneParam_tmp(iT) = min(strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),...
+                                strucObs.Aen(end-length(strucObs.pe.vars)+iT,ji)));
+            Wppar.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = tuneParam_tmp(iT);
         end
     end
 
@@ -172,7 +162,7 @@ parfor(ji=1:strucObs.nrens)
         xf = [];
         yf = solpar.x(strucObs.obs_array);
     end
-    if strucObs.tune.est
+    if strucObs.pe.enabled
         FParam = strucObs.FParamGen(); % Use generator to determine noise
         xf     = [xf; tuneParam_tmp + FParam];
     end
@@ -212,11 +202,11 @@ xSolAll = mean(strucObs.Aen,2);
 
 
 %% Post-processing
-if strucObs.tune.est
+if strucObs.pe.enabled
     % Update model parameters with the optimal estimate
-    for iT = 1:length(strucObs.tune.vars) % Write optimally estimated values to Wp
-        Wp.(strucObs.tune.subStruct{iT}).(strucObs.tune.structVar{iT}) = ...
-             min(strucObs.tune.ub(iT),max(strucObs.tune.lb(iT),xSolAll(end-length(strucObs.tune.vars)+iT)));
+    for iT = 1:length(strucObs.pe.vars) % Write optimally estimated values to Wp
+        Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = ...
+             min(strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),xSolAll(end-length(strucObs.pe.vars)+iT)));
     end
 end
 
