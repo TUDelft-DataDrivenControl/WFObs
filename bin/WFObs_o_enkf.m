@@ -21,23 +21,24 @@ if sol.k==1
         sol.x = sol.x(1:end-2); % Correction for how pressure is formatted
     end
     
-    if strucObs.stateEst
+    if strucObs.se.enabled
         x0         = sol.x;
         
         % Determine initial particle distribution for state vector [u; v]
-        initrand.u = (strucObs.W_0.u*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector u
-        initrand.v = (strucObs.W_0.v*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector v
+        initrand.u = sqrt(strucObs.se.P0.u)*randn(1,strucObs.nrens); % initial distribution vector u around mean
+        initrand.v = sqrt(strucObs.se.P0.v)*randn(1,strucObs.nrens); % initial distribution vector v around mean
         initdist   = [bsxfun(@times,initrand.u,ones(Wp.Nu,1));...        % initial distribution matrix
                       bsxfun(@times,initrand.v,ones(Wp.Nv,1))];    
 
         % Determine process and measurement noise for this system
-        FStateGen = @() [strucObs.Q_e.u*randn(Wp.Nu,1); strucObs.Q_e.v*randn(Wp.Nv,1)]; 
+        FStateGen = @() [sqrt(strucObs.se.Qk.u)*randn(Wp.Nu,1); ...
+                         sqrt(strucObs.se.Qk.v)*randn(Wp.Nv,1)]; 
         
         % Determine particle distribution and noise generators for pressure terms
         if options.exportPressures == 1
-            initrand.p = (strucObs.W_0.p*linspace(-.5,+.5,strucObs.nrens));  % initial distribution vector p
+            initrand.p = sqrt(strucObs.se.P0.p)*randn(1,strucObs.nrens);  % initial distribution vector p
             initdist   = [initdist; bsxfun(@times,initrand.p,ones(Wp.Np,1))];
-            FStateGen  = @() [FrandGen(); strucObs.Q_e.p*randn(Wppar.Np,1)];
+            FStateGen  = @() [FStateGen(); sqrt(strucObs.se.Qk.p)*randn(Wp.Np,1)];
         end
         
         strucObs.FStateGen = FStateGen;
@@ -55,7 +56,8 @@ if sol.k==1
             subStruct             = tuneP(1:dotLoc-1);
             structVar             = tuneP(dotLoc+1:end);
             x0                    = [x0; Wp.(subStruct).(structVar)];
-            initrand.(structVar)  = (strucObs.pe.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+%             initrand.(structVar)  = (strucObs.pe.W_0(iT)*linspace(-.5,+.5,strucObs.nrens));
+            initrand.(structVar)  = sqrt(strucObs.pe.P0(iT))*randn(1,strucObs.nrens);
             dist_iT               = bsxfun(@times,initrand.(structVar),1);
             if min(dist_iT+Wp.(subStruct).(structVar)) < strucObs.pe.lb(iT) || max(dist_iT+Wp.(subStruct).(structVar)) > strucObs.pe.ub(iT)
                 error(['Your initial distribution for ' structVar ' exceeds the ub/lb limits.'])
@@ -63,7 +65,7 @@ if sol.k==1
             initdist              = [initdist; dist_iT];
 
             % Add parameter process noise to generator function
-            FParamGen = @() [FParamGen(); strucObs.pe.Q_e(iT)*randn(1,1)];
+            FParamGen = @() [FParamGen(); sqrt(strucObs.pe.Qk(iT))*randn(1,1)];
             
             % Save to strucObs for later usage
             strucObs.pe.subStruct{iT} = subStruct;
@@ -81,22 +83,22 @@ if sol.k==1
     strucObs.Aen = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
     
     % Determine output noise generator
-    % Determine output noise generator
     if strucObs.measFlow
-        strucObs.RNoiseGen = @() strucObs.R_e*randn(strucObs.nrobs,strucObs.nrens);
+        R_standard_devs = sqrt([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
+        strucObs.RNoiseGen = @() repmat(R_standard_devs(strucObs.obs_array,1),1,strucObs.nrens).*randn(strucObs.nrobs,strucObs.nrens);
     else
         strucObs.RNoiseGen = [];
     end
     if strucObs.measPw
         strucObs.RNoiseGen = @() [strucObs.RNoiseGen();...
-                                  strucObs.cov.Rk_pwr*randn(Wp.turbine.N,strucObs.nrens)];
+                                  sqrt(strucObs.se.Rk.P)*randn(Wp.turbine.N,strucObs.nrens)];
     end
 
     % Calculate localization (and inflation) auto-corr. and cross-corr. matrices
     strucObs = WFObs_o_enkf_localization( Wp,strucObs );
 
     % Save old inflow settings
-    if strucObs.stateEst
+    if strucObs.se.enabled
         strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
         strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     end
@@ -105,7 +107,7 @@ if sol.k==1
     warning('off','MATLAB:mir_warning_maybe_uninitialized_temporary')
 else
     % Scale changes in estimated inflow to the ensemble members
-    if strucObs.stateEst
+    if strucObs.se.enabled
         strucObs.Aen(1:Wp.Nu,:)             = strucObs.Aen(1:Wp.Nu,:)            +(Wp.site.u_Inf-strucObs.inflowOld.u_Inf );
         strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:) = strucObs.Aen(Wp.Nu+1:Wp.Nu+Wp.Nv,:)+(Wp.site.v_Inf-strucObs.inflowOld.v_Inf );
         
@@ -127,7 +129,7 @@ parfor(ji=1:strucObs.nrens)
     Wppar  = Wp;  % Copy meshing struct
     
     % Import solution from sigma point
-    if strucObs.stateEst
+    if strucObs.se.enabled
 %         % Reset boundary conditions (found to be necessary for stability)
 %         [solpar.u,solpar.uu] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.u_Inf);
 %         [solpar.v,solpar.vv] = deal(ones(Wp.mesh.Nx,Wp.mesh.Ny)*Wp.site.v_Inf);
@@ -153,7 +155,7 @@ parfor(ji=1:strucObs.nrens)
     [solpar,~] = WFSim_timestepping( solpar, syspar, Wppar, options );
     
     % Add process noise to model states and/or model parameters
-    if strucObs.stateEst
+    if strucObs.se.enabled
         FState = strucObs.FStateGen(); % Use generator to determine noise
         xf = solpar.x(1:strucObs.size_output); % Forecasted particle state
         xf = xf + FState;
@@ -211,7 +213,7 @@ if strucObs.pe.enabled
 end
 
 % Update states, either from estimation or through open-loop
-if strucObs.stateEst
+if strucObs.se.enabled
     sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
     [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
     [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update

@@ -56,7 +56,7 @@ else
     rho_locl = struct; % initialize empty structure
     
     % Generate the locations of all model flow states
-    if strucObs.stateEst || strucObs.measFlow
+    if strucObs.se.enabled || strucObs.measFlow
         stateLocArray = zeros(strucObs.size_output,2);
         for iii = 1:strucObs.size_output
             [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
@@ -98,7 +98,7 @@ else
 %     %%%%% ---- %%%%%%%%%%%%%%%%%%%%
     
     % First calculate the cross-correlation between output and states
-    if strucObs.stateEst
+    if strucObs.se.enabled
         rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
         for iii = 1:strucObs.size_output % Loop over all default states
             loc1 = stateLocArray(iii,:);
