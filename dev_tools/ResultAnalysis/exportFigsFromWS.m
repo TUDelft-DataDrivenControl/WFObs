@@ -2,12 +2,14 @@ clear all; close all; clc;
 %
 % exportFigsFromWorkspace.m
 %
-time_vec = [300];
+time_vec = [1:998];
 plotError   = false; % Export final contour, centerline, power-time and error-time plots
-plotPower   = true;
-powerFC     = 600; % Plot x-seconds open-loop forecast
-plotContour = false;
+plotPower   = false;
+powerFC     = 0; % Plot x-seconds open-loop forecast
+plotContour = true;
 plotCline   = false;
+
+savePath = ['figures/tmp_out/']; % Save path
 
 % Visualization settings
 options.plotMesh          = 0;  % Show meshing and turbine locations
@@ -22,7 +24,7 @@ options.Animate           = 1;  % Show results every x iterations (0: no plots)
 data = {};
 data{end+1} = struct(...
     'name','EnKF',...
-    'path','../../results/apc_EnKF/enkf_poorLmu_2/workspace.mat');
+    'path','../../results/APC/apc_enkf_dualEst_measPw/workspace.mat');
 % data{end+1} = struct(...
 %     'name','ExKF',...
 %     'path','../../results/WE2017/axi_2turb_alm_turb_measFlow_exkf_stateEst/workspace.mat');
@@ -64,18 +66,20 @@ for di = 1:length(data)
     options.powerForecast  = powerFC;
     options.plotError      = 0;
     options.savePlots      = 1;
+    options.savePath       = savePath;
     
     % Determine and create output directory
-    options.savePath = ['figures/tmp_out/'];
     mkdir(options.savePath);
     
     % Export figures 
     ticLoop = tic;
     NN       = length(time_vec);
+    
     for k = 1:NN
+        if k == 1 || NN < 6; hFigs = {}; end
         t = time_vec(k);
         sol_array_short = (sol_array(1:t));
-        [ ~,options ] = WFObs_s_animations( Wp,sol_array_short,sys,LESData,options,strucObs,{} );
+        [ hFigs,options ] = WFObs_s_animations( Wp,sol_array_short,sys,LESData,options,strucObs,hFigs );
         elapsedTime = toc(ticLoop);
         ETA = ceil((NN-k)*(elapsedTime/k));
         disp([data{di}.name ': k = ' num2str(k) '/' num2str(NN) '.  ETA: ' secs2timestr(ETA) '.']);

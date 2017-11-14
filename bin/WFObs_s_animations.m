@@ -52,7 +52,7 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
     if length(hFigs) <= 0 % This is basically k == 1
         if scriptOptions.plotContour
             scrsz = get(0,'ScreenSize'); 
-            hFigs{1}=figure('color',[1 1 1],'Position',[50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)], 'MenuBar','none','ToolBar','none','visible', 'on');
+            hFigs{1}=figure('color',[1 1 1],'Position',[337 204.2000 874.4000 542.4000], 'MenuBar','none','ToolBar','none','visible', 'on');
             set(hFigs{1},'defaultTextInterpreter','latex')
         end
         if scriptOptions.plotPower
@@ -87,54 +87,63 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
         end
     end
     if scriptOptions.plotContour
-        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',sol.u,'title',['$u_{WFObs: ' strucObs.filtertype '}$']);
-        data{2} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',measuredData.uq,'title','$u_{LES}$');
-        data{3} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,'z',abs(sol.u-measuredData.uq),'title','$|u_{WFObs}-u_{LES}|$','cmax',3);
-        
-        % Plotting of 'v' component disabled to speed up code
-        %  data{4} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',sol.v,'title','v_{WFSim}','cmax',3);
-        %  data{5} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',measuredData.vq,'title','v_{LES}','cmax',3);
-        %  data{6} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx, 'z',abs(sol.v-measuredData.vq),'title','|v_{WFSim}-v_{LES}|','cmax',3);
-        
+        % u velocity component
+        data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,...
+                         'zEst',sol.u,'zTrue',measuredData.uq,...
+                         'zLims',[0 14],'zErrLims',[0 3],...
+                         'title','u');
+
+        % v velocity component [disabled to speed up code]
+%         data{2} = struct('x',Wp.mesh.ldyy2,'y',Wp.mesh.ldxx,...
+%                          'zEst',sol.v,'zTrue',measuredData.vq,...
+%                          'zLims',[-3 3],'zErrLims',[0 3],...
+%                          'title','v');
+
         % applied correction for yaw angle: wake was forming at wrong side
         rotorRotation = -.5*Wp.turbine.Drotor*exp(1i*-Wp.turbine.input(sol.k).phi'*pi/180); 
     
         % Plot velocities in a contourf figure
         set(0,'CurrentFigure',hFigs{1}); clf
-        subplotDim = numSubplots(length(data));
+        
+        % Plot u on 1st row (and optionally v on 2nd row)
         for j = 1:length(data)
-            subplot(subplotDim(1),subplotDim(2),j);
-            V = max(data{j}.z(:));
-            if V > 11; cmax = 13; elseif V > 7; cmax = 9.; else; cmax = 3; end
-            if min(data{j}.z(:)) < 0.; cmin = -cmax; else; cmin = 0.0; end
-            contourf(data{j}.x,data{j}.y,data{j}.z,cmin:0.1:cmax,'Linecolor','none');
-            title([data{j}.title ' (t = ' num2str(sol.time) ')'])
-            hold all; colorbar;
-            caxis([cmin cmax]);
-            axis equal; axis tight;
-            xlabel('y-direction')
-            ylabel('x-direction')         
-            hold all
-            % Turbines
-            for kk=1:Wp.turbine.N
-                Qy     = (Wp.turbine.Cry(kk)-abs(real(rotorRotation(kk)))):1:(Wp.turbine.Cry(kk)+abs(real(rotorRotation(kk))));
-                Qx     = linspace(Wp.turbine.Crx(kk)-imag(rotorRotation(kk)),Wp.turbine.Crx(kk)+imag(rotorRotation(kk)),length(Qy));
-                rectangle('Position',[Wp.turbine.Cry(kk)-0.10*Wp.turbine.Drotor Wp.turbine.Crx(kk) ...
-                           0.20*Wp.turbine.Drotor 0.30*Wp.turbine.Drotor],'Curvature',0.2,...
-                          'FaceColor','w')                  
-                plot(mean(Qy)+(Qy-mean(Qy))*1.2,mean(Qx)+(Qx-mean(Qx))*1.2,'k','linewidth',3)
-                plot(Qy,Qx,'w','linewidth',2)              
-            end
-            % Sensors
-            if strucObs.measFlow
-                plot([strucObs.obs_array_locu.y],[strucObs.obs_array_locu.x],'wo','lineWidth',3.0,'displayName','Sensors');
-                plot([strucObs.obs_array_locu.y],[strucObs.obs_array_locu.x],'ro','displayName','Sensors');
-            end
+            data_tmp = data{j};
+            
+            % Estimated
+            subaxis(length(data),3,(j-1)*3+1,'SpacingHor',0.015); hold all; 
+            contourf(data{j}.x,data{j}.y,data{j}.zEst,data{j}.zLims(1):0.1:data{j}.zLims(2),'Linecolor','none');
+            title(['$' data{j}.title '_{' upper(strucObs.filtertype) '} (t = ' num2str(sol.time) ')$'])
+            caxis(data{j}.zLims); axis equal; axis tight; box on;
+            xlabel('y-direction (m)'); ylabel('x-direction (m)')
+            WFObs_s_animations_turbsSensorsInflow; % Draw turbines and sensors
+            
+            % True
+            subaxis(length(data),3,(j-1)*3+2,'SpacingHor',0.015); hold all; 
+            contourf(data{j}.x,data{j}.y,data{j}.zTrue,data{j}.zLims(1):0.1:data{j}.zLims(2),'Linecolor','none');
+            title(['$' data{j}.title '_{LES} (t = ' num2str(sol.time) ')$'])
+            caxis(data{j}.zLims); axis equal; axis tight; box on;
+            set(gca,'YTick',[]); ylabel('');
+            xlabel('y-direction (m)'); clbA = colorbar('southoutside'); hold all
+            clbA.Position = [0.11 0.04 .47 0.02]; 
+            WFObs_s_animations_turbsSensorsInflow;
             set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
+            text(1330,2950,'velocity');text(1360,3060,'(m/s)');
+            
+            % Error
+            subaxis(length(data),3,(j-1)*3+3,'SpacingHor',0.015); hold all; 
+            contourf(data{j}.x,data{j}.y,abs(data{j}.zTrue-data{j}.zEst),data{j}.zErrLims(1):0.1:data{j}.zErrLims(2),'Linecolor','none');
+            title(['$|' data{j}.title '_{' upper(strucObs.filtertype) '}-' data{j}.title '_{LES}| (t = ' num2str(sol.time) ')$'])
+            caxis(data{j}.zErrLims); axis equal; axis tight; box on;
+            set(gca,'YTick',[]); ylabel('');
+            xlabel('y-direction (m)'); clbE = colorbar('southoutside'); hold all
+            clbE.Position = [0.67 0.04 .22 .02];
+            WFObs_s_animations_turbsSensorsInflow;
+            set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
+            text(1620,2950,'error');text(1620,3050,'(m/s)');
         end;
         colormap(jet)
         
-        % Save figures to an external file, if necessary
+         % Save figures to an external file, if necessary
         if scriptOptions.savePlots
             drawnow;
             saveas(hFigs{1},[scriptOptions.savePath '/' strucObs.filtertype '_cplot' num2str(sol.k) '.png']);
