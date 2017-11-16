@@ -123,7 +123,7 @@ Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
 Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
 
 tuneParam_tmp = zeros(length(strucObs.pe.vars),1);
-for(ji=1:strucObs.nrens)
+parfor(ji=1:strucObs.nrens)
     syspar = sys; % Copy system matrices
     solpar = sol; % Copy optimal solution from prev. time instant
     Wppar  = Wp;  % Copy meshing struct
