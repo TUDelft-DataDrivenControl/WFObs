@@ -60,7 +60,7 @@ if sol.k==1
             initrand.(structVar)  = sqrt(strucObs.pe.P0(iT))*randn(1,strucObs.nrens);
             dist_iT               = bsxfun(@times,initrand.(structVar),1);
             if min(dist_iT+Wp.(subStruct).(structVar)) < strucObs.pe.lb(iT) || max(dist_iT+Wp.(subStruct).(structVar)) > strucObs.pe.ub(iT)
-                error(['Your initial distribution for ' structVar ' exceeds the ub/lb limits.'])
+                disp(['WARNING: Your initial distribution for ' structVar ' exceeds the ub/lb limits.'])
             end
             initdist              = [initdist; dist_iT];
 
