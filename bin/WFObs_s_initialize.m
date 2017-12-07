@@ -125,11 +125,15 @@ else
     strucObs.obs_array = [];
 end;
 
-% Load measurements from LES simulation (*.mat file)
-LESData    = load(Wp.sim.measurementFile); % Load measurements
-LESData.ud = LESData.u + strucObs.measSigma.u*randn(size(LESData.u)); % Add noise
-LESData.vd = LESData.v + strucObs.measSigma.v*randn(size(LESData.v)); % Add noise
-LESData.Pd = LESData.turbData.power + strucObs.measSigma.P*randn(size(LESData.turbData.power));
+try
+    % Load measurements from LES simulation (*.mat file)
+    LESData    = load(Wp.sim.measurementFile); % Load measurements
+    LESData.ud = LESData.u + strucObs.measSigma.u*randn(size(LESData.u)); % Add noise
+    LESData.vd = LESData.v + strucObs.measSigma.v*randn(size(LESData.v)); % Add noise
+    LESData.Pd = LESData.turbData.power + strucObs.measSigma.P*randn(size(LESData.turbData.power));
+catch
+    warning('Problem loading LES data. Please check if LESData has been downloaded succesfully. Otherwise, delete the LESData folder and try again.'); 
+end
 
 % Setup blank figure windows
 hFigs = {};
