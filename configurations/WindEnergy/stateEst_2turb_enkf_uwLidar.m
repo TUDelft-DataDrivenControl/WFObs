@@ -27,7 +27,7 @@ strucObs.measPw = false;  % Use power measurements (SCADA) from turbines in esti
 strucObs.measFlow = true; % Use flow measurements (LIDAR) in estimates
     strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
     strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-    strucObs.sensorsPath = 'sensors_2turb_alm_downstream'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
+    strucObs.sensorsPath = 'sensors_2turb_alm'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 
 %% Kalman filter settings

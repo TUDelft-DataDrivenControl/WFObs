@@ -76,7 +76,7 @@ switch lower(strucObs.filtertype)
         strucObs.kappa = 0.0; % Tuning parameter (state est.: "0" or param est.: "3-L")
 
     case {'enkf'} % Ensemble Kalman filter (EnKF) 
-        strucObs.nrens  = 50;        % Ensemble size
+        strucObs.nrens  = 420;        % Ensemble size
         strucObs.r_infl = 1.025;     % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
         strucObs.f_locl = 'gaspari'; % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
         strucObs.l_locl = 131;       % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).

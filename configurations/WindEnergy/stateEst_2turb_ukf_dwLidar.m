@@ -60,7 +60,7 @@ strucObs.pe.enabled = false; % Estimate model parameters?
     strucObs.pe.ub   = [4.00]; % Upper bound(s) for model variable(s)
         
 % Observer-specific settings
-strucObs.filtertype = 'enkf'; 
+strucObs.filtertype = 'ukf'; 
 switch lower(strucObs.filtertype)    
     case {'exkf'} % Extended Kalman filter (ExKF)
         % ... The ExKF does not have any specific model settings

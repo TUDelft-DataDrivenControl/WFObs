@@ -52,7 +52,7 @@ strucObs.se.enabled = true; % Estimate the model states (flow fields)?
         strucObs.se.Qk.p = 0.00; % Autocovariance for pressure process noise
 
 % Parameter estimation settings
-strucObs.pe.enabled = false; % Estimate model parameters?
+strucObs.pe.enabled = true; % Estimate model parameters?
     strucObs.pe.vars = {'site.lmu'}; % If empty {} then no estimation
     strucObs.pe.P0   = [0.5]; % Initial state covariance(s) for model variable(s)
     strucObs.pe.Qk   = [1e-4]; % Autocovariance(s) process noise for model variable(s)
