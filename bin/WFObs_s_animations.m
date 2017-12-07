@@ -49,10 +49,11 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
     end
     
     % Create figure windows if non-existent
+    cFigPos = [497 163.4000 642.4000 607.2000]; % Contour figure dimensions
     if length(hFigs) <= 0 % This is basically k == 1
         if scriptOptions.plotContour
             scrsz = get(0,'ScreenSize'); 
-            hFigs{1}=figure('color',[1 1 1],'Position',[337 204.2000 874.4000 542.4000], 'MenuBar','none','ToolBar','none','visible', 'on');
+            hFigs{1}=figure('color',[1 1 1],'Position',cFigPos, 'MenuBar','none','ToolBar','none','visible', 'on');
             set(hFigs{1},'defaultTextInterpreter','latex')
         end
         if scriptOptions.plotPower
@@ -77,9 +78,8 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             if strcmp(button,'Yes')
                 disp(['You closed Figure 1: plotContour. Reopening for further use.'])
                 scrsz    = get(0,'ScreenSize');
-                hFigs{1} = figure('color',[1 1 1],'Position',...
-                    [50 50 floor(scrsz(3)/1.1) floor(scrsz(4)/1.1)],...
-                    'MenuBar','none','ToolBar','none','visible', 'on');
+                hFigs{1} = figure('color',[1 1 1],'Position',cFigPos,...
+                                  'MenuBar','none','ToolBar','none','visible', 'on');
             else
                 scriptOptions.plotContour = false;
                 disp(['You closed Figure 1: plotContour. Disabling for further use.'])
@@ -113,21 +113,23 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             subaxis(length(data),3,(j-1)*3+1,'SpacingHor',0.015); hold all; 
             contourf(data{j}.x,data{j}.y,data{j}.zEst,data{j}.zLims(1):0.1:data{j}.zLims(2),'Linecolor','none');
             title(['$' data{j}.title '_{' upper(strucObs.filtertype) '} (t = ' num2str(sol.time) ')$'])
-            caxis(data{j}.zLims); axis equal; axis tight; box on;
+            caxis(data{j}.zLims); axis equal tight; box on;
             xlabel('y-direction (m)'); ylabel('x-direction (m)')
             WFObs_s_animations_turbsSensorsInflow; % Draw turbines and sensors
+            axis equal tight;
             
             % True
             subaxis(length(data),3,(j-1)*3+2,'SpacingHor',0.015); hold all; 
             contourf(data{j}.x,data{j}.y,data{j}.zTrue,data{j}.zLims(1):0.1:data{j}.zLims(2),'Linecolor','none');
             title(['$' data{j}.title '_{LES} (t = ' num2str(sol.time) ')$'])
-            caxis(data{j}.zLims); axis equal; axis tight; box on;
-            set(gca,'YTick',[]); ylabel('');
+            caxis(data{j}.zLims); box on; set(gca,'YTick',[]); ylabel('');
             xlabel('y-direction (m)'); clbA = colorbar('southoutside'); hold all
-            clbA.Position = [0.11 0.04 .47 0.02]; 
+            clbA.Position = [0.11 0.07 .47 0.02]; 
+            xlabel(clbA,'Wind speed (m/s)')
             WFObs_s_animations_turbsSensorsInflow;
             set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
-            text(1330,2950,'velocity');text(1360,3060,'(m/s)');
+%             text(1330,2950,'velocity');text(1360,3060,'(m/s)');
+            axis equal tight;
             
             % Error
             subaxis(length(data),3,(j-1)*3+3,'SpacingHor',0.015); hold all; 
@@ -136,10 +138,11 @@ if (scriptOptions.Animate > 0) && (~rem(sol.k,scriptOptions.Animate))
             caxis(data{j}.zErrLims); axis equal; axis tight; box on;
             set(gca,'YTick',[]); ylabel('');
             xlabel('y-direction (m)'); clbE = colorbar('southoutside'); hold all
-            clbE.Position = [0.67 0.04 .22 .02];
+            clbE.Position = [0.67 0.07 .22 .02];
+            xlabel(clbE,'Estimation error (m/s)')
             WFObs_s_animations_turbsSensorsInflow;
             set(gca,'YDir','Reverse'); % Flip axis so plot matches matrix
-            text(1620,2950,'error');text(1620,3050,'(m/s)');
+            axis equal tight;
         end;
         colormap(jet)
         
