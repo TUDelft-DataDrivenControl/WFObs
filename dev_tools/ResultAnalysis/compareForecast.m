@@ -7,19 +7,20 @@ k_fc_long  = 300; % Forecasting horizon (all evaluated until max(k_now_vec)+k_fc
 % Data sources
 data = {};
 % % 2TURB ALM STATE ESTIMATION CASE
-% data{end+1} = struct(...
-%     'name','OL',...
-%     'path','../../results/2turb_alm/axi_2turb_alm_turb_sim_poorLmu055/workspace.mat');
-% data{end+1} = struct(...
-%     'name','ExKF',...
-%     'path','../../results/2turb_alm/axi_2turb_alm_turb_exkf_stateEst/workspace.mat');
-% data{end+1} = struct(...
-%     'name','EnKF',...
-%     'path','../../results/2turb_alm/axi_2turb_alm_turb_enkf_stateEst/workspace.mat');
+mainFolderDir = 'D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\2turb_ALM';
+data{end+1} = struct(...
+    'name','OL',...
+    'path',[mainFolderDir '\KFcomp_MEAScomp_2turb_alm_turb_sim/workspace.mat']);
+data{end+1} = struct(...
+    'name','EnKF (state)',...
+    'path',[mainFolderDir '\MEAScomp_2turb_alm_turb_enkf_n50_dwLidar/workspace.mat']);
+data{end+1} = struct(...
+    'name','EnKF (dual)',...
+    'path',[mainFolderDir '\DualEst_2turb_alm_turb_enkf_dwLidar/workspace.mat']);
 % data{end+1} = struct(...
 %     'name','UKF',...
-%     'path','../../results/2turb_alm/axi_2turb_alm_turb_ukf_stateEst/workspace.mat');
-% outputFigName = ['2turb_flowForecast_stateEst.pdf'];
+%     'path',[mainFolderDir '\KFcomp_MEAScomp_2turb_alm_turb_sim/workspace.mat']);
+outputFigName = ['2turb_flowForecast_stateEst.pdf'];
 
 % % 2TURB ALM DUAL ESTIMATION CASE
 % data{end+1} = struct(...
@@ -34,13 +35,13 @@ data = {};
 % outputFigName = ['2turb_flowForecast_dualEst'];
 
 % % APC CASE
-data{end+1} = struct(...
-    'name','OL',...
-    'path','../../results/APC/apc_sim_dualEst_measPw/workspace.mat');
-data{end+1} = struct(...
-    'name','EnKF',...
-    'path','../../results/APC/apc_enkf_dualEst_measPw/workspace.mat');
-outputFigName = ['flowPowerForecast_APC.pdf'];
+% data{end+1} = struct(...
+%     'name','OL',...
+%     'path','../../results/APC/apc_sim_dualEst_measPw/workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF',...
+%     'path','../../results/APC/apc_enkf_dualEst_measPw/workspace.mat');
+% outputFigName = ['flowPowerForecast_APC.pdf'];
 
 
 %% Core operations
@@ -118,10 +119,10 @@ end
 %clc; clear all; load('workspace_powerforecasting.mat');
 
 %% Produce figures
-% Flow RMSE
+% % DELTA Flow RMSE
 % close all; h= figure; h.Position = [505 326.6000 655.2000 270.4000];
 % tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
-% ylimits = [-0.2 0.05];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
+% ylimits = [-0.3 0.05];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
 % set(h,'defaultTextInterpreter','latex')
 % for di = 2:length(data)
 %     for kn = 1:length(k_now_vec)
@@ -156,6 +157,39 @@ end
 % ylb = suplabel('$||(\Delta \vec{u})_{\mathrm{KF}}||_2 - ||(\Delta \vec{u})_{\mathrm{OL}}||_2$ (m/s)','y');
 % ylb.Position(1)=0.08;
 % export_fig(outputFigName,'-pdf','-transparent')
+
+% % Flow RMSE 
+close all; h= figure; h.Position = [505 326.6000 655.2000 270.4000];
+ylimits = [0 1.0];
+set(h,'defaultTextInterpreter','latex')
+for kn = 1:length(k_now_vec)
+    subaxis(1,length(k_now_vec),kn,'SpacingHoriz',0.01,'SpacingHoriz',0.03)
+    hold all;
+    plot(out(kn,1).t,out(kn,1).RMSE_u,'k--','displayName',data{1}.name);
+    for di = 2:length(data)
+        plot(out(kn,di).t,out(kn,di).RMSE_u,'displayName',data{di}.name);
+    end
+    plot([k_now_vec(kn), k_now_vec(kn)], ylimits,'r-.');
+    ylim(ylimits);
+    xlim([0 out(1).t(end)]);
+    grid on; grid minor;
+    set(gca,'Xtick',0:300:900);
+    if kn > 1
+        ylabel('');
+        set(gca,'YTickLabels',[])
+    end
+%     if kn == 1
+%         title(data{di}.name);
+%     end
+    if kn == 1
+        ylabel('$||(\Delta \vec{u})_{\mathrm{\bullet}}||_2$ (m/s)')
+    end
+    xlabel('Time (s)');
+    axis tight
+    set(gca,'ActivePositionProperty','outerposition')
+end
+% ylb = suplabel('$||(\Delta \vec{u})_{\mathrm{\bullet}}||_2$ (m/s)','y');
+% ylb.Position(1)=0.08;
 
 % %% Produce figures
 % % POWER RMSE
@@ -205,52 +239,52 @@ end
 % end
 % % export_fig(outputFigName,'-pdf','-transparent')
 
-% %% Produce figures
-% BOTH FLOW AND POWER RMSE
-close all; h= figure; h.Position = [385.8000 397 707.2000 length(k_now_vec)*191.2000];
-tmp_Pe = 1e-6*([out.RMSE_P]-repmat(out(1,1).RMSE_P,1,length(k_now_vec)*length(data)));
-tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
-
-ylimits_u = [-0.5, 2];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
-ylimits_P = [-1.5 0.5];%round(10*[min(tmp_Pe), max(tmp_Pe)])/10;
-set(h,'defaultTextInterpreter','latex')
-jFig = 0;
-for di = 1:2
-    plotPower = (di == 2);
-    for kn = 1:length(k_now_vec)
-        subaxis(2,length(k_now_vec),length(k_now_vec)*(di-1)+kn)
-        hold all;
-        if plotPower
-            plot(out(kn,di).t,0*out(kn,di).t,'k--','displayName',data{1}.name);
-            plot(out(kn,di).t,1e-6*(out(kn,di).RMSE_P-out(kn,1).RMSE_P),'displayName',data{di}.name);            
-            ylim(ylimits_P);
-            plot([k_now_vec(kn), k_now_vec(kn)], ylimits_P,'r-.');
-        else
-            plot(out(kn,di+1).t,0*out(kn,di+1).t,'k--','displayName',data{1}.name);
-            plot(out(kn,di+1).t,out(kn,di+1).RMSE_u-out(kn,1).RMSE_u,'displayName',data{di+1}.name);
-            ylim(ylimits_u);
-            plot([k_now_vec(kn), k_now_vec(kn)], ylimits_u,'r-.');
-        end
-        xlim([0 out(1).t(end)]);
-        grid on; grid minor;
-        set(gca,'Xtick',0:300:900);
-        if kn == 1
-            if di == 1
-                ylabel({'$(\Delta u)_{\mathrm{EnKF}}-$';'$(\Delta u)_{\mathrm{OL}}$ (m/s)'});
-            else
-                ylabel({'$(\Delta P)_{\mathrm{EnKF}}-$';'$(\Delta P)_{\mathrm{OL}}$ (MW)'});
-            end
-        else
-            set(gca,'YTickLabels',[])
-        end
-        if di == 2
-            xlabel('Time (s)');
-            set(gca,'ActivePositionProperty','outerposition')
-        else
-            set(gca,'XTickLabels',[])
-        end
-    end
-end
+% % %% Produce figures
+% % BOTH FLOW AND POWER RMSE
+% close all; h= figure; h.Position = [385.8000 397 707.2000 length(k_now_vec)*191.2000];
+% tmp_Pe = 1e-6*([out.RMSE_P]-repmat(out(1,1).RMSE_P,1,length(k_now_vec)*length(data)));
+% tmp_ue = [out.RMSE_u]-repmat(out(1,1).RMSE_u,1,length(k_now_vec)*length(data));
+% 
+% ylimits_u = [-0.5, 2];%round(10*[min(tmp_ue), max(tmp_ue)])/10;
+% ylimits_P = [-1.5 0.5];%round(10*[min(tmp_Pe), max(tmp_Pe)])/10;
+% set(h,'defaultTextInterpreter','latex')
+% jFig = 0;
+% for di = 1:2
+%     plotPower = (di == 2);
+%     for kn = 1:length(k_now_vec)
+%         subaxis(2,length(k_now_vec),length(k_now_vec)*(di-1)+kn)
+%         hold all;
+%         if plotPower
+%             plot(out(kn,di).t,0*out(kn,di).t,'k--','displayName',data{1}.name);
+%             plot(out(kn,di).t,1e-6*(out(kn,di).RMSE_P-out(kn,1).RMSE_P),'displayName',data{di}.name);            
+%             ylim(ylimits_P);
+%             plot([k_now_vec(kn), k_now_vec(kn)], ylimits_P,'r-.');
+%         else
+%             plot(out(kn,di+1).t,0*out(kn,di+1).t,'k--','displayName',data{1}.name);
+%             plot(out(kn,di+1).t,out(kn,di+1).RMSE_u-out(kn,1).RMSE_u,'displayName',data{di+1}.name);
+%             ylim(ylimits_u);
+%             plot([k_now_vec(kn), k_now_vec(kn)], ylimits_u,'r-.');
+%         end
+%         xlim([0 out(1).t(end)]);
+%         grid on; grid minor;
+%         set(gca,'Xtick',0:300:900);
+%         if kn == 1
+%             if di == 1
+%                 ylabel({'$(\Delta u)_{\mathrm{EnKF}}-$';'$(\Delta u)_{\mathrm{OL}}$ (m/s)'});
+%             else
+%                 ylabel({'$(\Delta P)_{\mathrm{EnKF}}-$';'$(\Delta P)_{\mathrm{OL}}$ (MW)'});
+%             end
+%         else
+%             set(gca,'YTickLabels',[])
+%         end
+%         if di == 2
+%             xlabel('Time (s)');
+%             set(gca,'ActivePositionProperty','outerposition')
+%         else
+%             set(gca,'XTickLabels',[])
+%         end
+%     end
+% end
 % export_fig(outputFigName,'-pdf','-transparent')
 % 
 % 
