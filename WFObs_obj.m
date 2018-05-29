@@ -62,19 +62,7 @@ classdef WFObs_obj<handle
             strucObs      = self.strucObs;
             max_it        = self.max_it;
             conv_eps      = self.conv_eps;                     
-            
-            % Process measurements
-            measuredData.measFlow = false;
-            measuredData.measPw   = false;
-            for i = 1:length(measuredData.entry)
-                if strcmp(measuredData.entry(i).type,'P')
-                    measuredData.measPw = true;
-                elseif strcmp(measuredData.entry(i).type,'u') || strcmp(measuredData.entry(i).type,'v')
-                    measuredData.measFlow = true;
-                else
-                    error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
-                end
-            
+                        
             % Timestep forward
             sol.k    = sol.k + 1;           
             sol.time = Wp.sim.time(sol.k+1);
@@ -83,6 +71,14 @@ classdef WFObs_obj<handle
             sol.measuredData = measuredData;
             [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
 
+            % Determine if measurements changed
+            if sol.k > 1
+                strucObs.measurementsChanged = ~(...
+                    strcmp([strucObs.measuredDataOld.type],[measuredData.type]) && ...
+                    all([strucObs.measuredDataOld.idx] == [measuredData.idx]));
+            end
+            strucObs.measuredDataOld = measuredData;
+            
             % Calculate optimal solution according to filter of choice
             [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
 
