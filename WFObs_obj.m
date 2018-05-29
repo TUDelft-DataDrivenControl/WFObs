@@ -82,9 +82,17 @@ classdef WFObs_obj<handle
             % Calculate optimal solution according to filter of choice
             [Wp,sol,strucObs] = WFObs_o(strucObs,Wp,sys,sol,scriptOptions);
 
+            % Reporting
             sol.CPUtime = toc(timerCPU); % Computational cost
             disp([datestr(rem(now,1)) ' __  t(' num2str(sol.k,['%0' num2str(scriptOptions.tlen) 'd']) ') = ' num2str(sol.time,['%0' num2str(scriptOptions.klen) 'd']) ' s __ u_Inf: ' num2str(Wp.site.u_Inf,'%10.2f\n') ', v_Inf: ' num2str(Wp.site.v_Inf,'%10.2f\n') ', it. time: ' num2str(sol.CPUtime,'%10.2f\n') ' s.']);
-            
+            if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
+                if strucObs.pe.enabled
+                    for iT = 1:length(strucObs.pe.vars)
+                        disp([datestr(rem(now,1)) ' __  t(' num2str(sol.k,['%0' num2str(scriptOptions.tlen) 'd']) ') = ' num2str(sol.time,['%0' num2str(scriptOptions.klen) 'd']) ' s __ ' strucObs.pe.vars{iT} ' estimated as ' num2str(Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}),'%10.2f\n') '.']);
+                    end
+                end
+            end
+        
             % Write to self
             self.Wp            = Wp;
             self.sol           = sol;
@@ -95,6 +103,7 @@ classdef WFObs_obj<handle
         % Plot u and v flowfield of current solution
         function [] = visualize(self)
             WFObs_s_plotContours(self.Wp,self.sol);
+            drawnow();
         end
     end
 end
