@@ -1,21 +1,37 @@
 clear all; clc;
 
 % Time settings
-k_now_vec  = [10 150  300 750]; % Starting point of forecast
+k_now_vec  = [10 150  400]; % Starting point of forecast
 
 % Data sources
 data = {};
 
 % COMPARE ExKF, EnKF and UKF
-data{end+1} = struct(...
-    'name','OL',...
-    'path','../../results/apc_EnKF/sim_poorLmu_2/workspace.mat');
+% data{end+1} = struct(...
+%     'name','OL',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\Archived\2018 Wind Energy\MATLAB_out\Clean_run\APC_sim/workspace.mat');
+% data{end+1} = struct(...
+%     'name','OL',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2018 Wind Energy Science\MATLAB_out\Clean_run\APC_sim\workspace.mat');
 data{end+1} = struct(...
     'name','EnKF',...
-    'path','../../results/apc_EnKF/enkf_poorLmu_2/workspace.mat');
-outputFigName = ['k' strrep(num2str(k_now_vec),' ','_') '_flowContours_SOWFAComparison'];
+    'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2018 Wind Energy Science\MATLAB_out\Clean_run\APC_enkf\workspace.mat');
+% outputFigName = ['TORQUE2018_k' strrep(num2str(k_now_vec),' ','_') '_flowContours_SOWFAComparison'];
+outputFigName = ['TEMP'];
 
+% Colorbar limits
+climits_u = [0 13];
+climits_e = [0 3.5];
 
+vertSpacing = 0.01;
+HorSpacing = 0.05;
+% if length(data) <= 1
+%     vertSpacing = 0.01;
+%     HorSpacing = 0.00;
+% else
+%     vertSpacing = 0.00;
+%     HorSpacing = 0.02;
+% end
 
 %% Core operations
 addpath('../../WFSim/libraries/export_fig'); % Add export_fig library
@@ -51,16 +67,21 @@ if length(k_now_vec) == 4
 end
 set(h,'defaultTextInterpreter','latex')
 set(0,'defaultTextInterpreter','latex')
-climits_u = [0 13];
-climits_e = [0 4];
 nF_vert = length(k_now_vec); % number of figures vertically
 nF_horz = 1+2*length(data);  % number of figures horizontally
 
 % applied correction for yaw angle: wake was forming at wrong side
+% if length(data) <= 1
+%     vertSpacing = 0.01;
+%     HorSpacing = 0.00;
+% else
+%     vertSpacing = 0.00;
+%     HorSpacing = 0.02;
+% end
 for kn = 1:length(k_now_vec)       
     for j = 1:(1+2*length(data))
         rotorRotation = -.5*WS{1}.Wp.turbine.Drotor*exp(1i*-WS{1}.Wp.turbine.input(k_now_vec(kn)).phi'*pi/180);
-        subaxis(nF_vert,nF_horz,nF_horz*(kn-1)+j,'SpacingVert',0.00,'SpacingHoriz',0.02);
+        subaxis(nF_vert,nF_horz,nF_horz*(kn-1)+j,'SpacingVert',vertSpacing,'SpacingHoriz',HorSpacing);
         if j == 1
             contourf(x,y,out(kn,1).uq,'Linecolor','none');
             caxis(climits_u);
@@ -139,4 +160,4 @@ for kn = 1:length(k_now_vec)
     colormap(jet)
 end
 
-export_fig(outputFigName,'-pdf','-transparent')
+% export_fig(outputFigName,'-pdf','-transparent')
