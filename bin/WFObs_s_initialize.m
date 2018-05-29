@@ -48,10 +48,6 @@ if strcmp(lower(strucObs.filtertype),'sim') == false
         error(['Please turn on state and/or parameter estimation. '...
             'Alternatively, select "sim" for open-loop simulations.']);
     end
-    if strucObs.measFlow == 0 && strucObs.measPw == 0
-        error(['Please turn on flow and/or power measurements. '...
-            'Alternatively, select "sim" for open-loop simulations.']);
-    end  
 end
     
 if scriptOptions.printProgress

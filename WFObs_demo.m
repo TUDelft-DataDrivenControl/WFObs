@@ -53,30 +53,41 @@ clear all; close all; clc;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Define script settings
-% Command window reporting settings
-scriptOptions.printProgress     = 1;  % Print progress every timestep
-scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
+%% Initialize object
+WFObj=WFObs_obj('apc_9turb_alm_turb'); % See './configurations' for options
 
-% Visualization settings
-scriptOptions.plotMesh          = 0;  % Show meshing and turbine locations
-scriptOptions.Animate           = 0;  % Show results every x iterations (0: no plots)
-   scriptOptions.plotContour    = 1;  % Show flow fields
-   scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
-    scriptOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-   scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
-   scriptOptions.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
+%% Preload LES data
+LESData = load(WFObj.Wp.sim.measurementFile); % Load offline measurements database
 
-% Saving settings
-scriptOptions.savePlots         = 0;  % Save all plots in external files at each time step
-scriptOptions.saveWorkspace     = 0;  % Save complete workspace at the end of simulation
-scriptOptions.savePath          = ['results/tmp']; % Destination folder of saved files
+%% Execute the WFObs core code
+hFigs = [];
+scriptOptions.Animate = 10;
+    scriptOptions.plotContour    = 1;  % Show flow fields
+    scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
+    scriptOptions.powerForecast  = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+    scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
+    scriptOptions.savePlots      = 0;  % Save all plots in external files at each time step
+    scriptOptions.savePath       = ['results/tmp']; % Destination folder of saved files
 
-% Configuration file
-configName = 'apc_9turb_alm_turb'; % See './configurations' for options
-
-%% Execute the WFObs core code (+ overwrite meshing.m settings, if applicable)
-WpOverwrite = struct(); % Struct to overwrite settings from meshing.m
-% WpOverwrite.sim.NN = 1500; % Stop after [x] steps
-run('WFObs_addpaths.m'); % Import libraries for WFObs & WFSim
-outputData = WFObs_core(scriptOptions,configName,WpOverwrite);
+while WFObj.sol.k < WFObj.Wp.sim.NN
+    % Load and format measurements from offline database
+    measuredData = struct();
+    for i = 1:length(WFObj.Wp.turbine.Crx)
+        measuredData(i).idx  = i; % Turbine number
+        measuredData(i).type = 'P'; % Power measurement
+        measuredData(i).value = LESData.turbData.power(WFObj.sol.k+1,i) + ...
+                                1e4*randn();
+        measuredData(i).std  = 1e4; % Standard deviation in W
+    end
+    
+    % Perform estimation
+    WFObj.timestepping(measuredData);
+    
+    % Save reduced-size solution to an array
+    sol              = WFObj.sol;
+    sol.site         = WFObj.Wp.site; % Save site info too
+    sol_array(sol.k) = sol;
+    
+    scriptOptions = mergeStruct(scriptOptions,WFObj.scriptOptions);
+    [ hFigs,~ ] = WFObs_s_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,scriptOptions,WFObj.strucObs,hFigs );
+end

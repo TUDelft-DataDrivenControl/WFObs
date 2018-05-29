@@ -22,12 +22,12 @@ strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
-strucObs.measPw = true;  % Use power measurements (SCADA) from turbines in estimates
-    strucObs.measSigma.P = 1e4;   % Stand. dev. of artificial noise on Power measurements in [W]
-strucObs.measFlow = false; % Use flow measurements (LIDAR) in estimates
-    strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-    strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-    strucObs.sensorsPath = 'sensors_2turb_alm'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
+% strucObs.measPw = true;  % Use power measurements (SCADA) from turbines in estimates
+%     strucObs.measSigma.P = 1e4;   % Stand. dev. of artificial noise on Power measurements in [W]
+% % strucObs.measFlow = false; % Use flow measurements (LIDAR) in estimates
+%     strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+%     strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+%     strucObs.sensorsPath = 'sensors_2turb_alm'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
         
 
 %% Kalman filter settings
