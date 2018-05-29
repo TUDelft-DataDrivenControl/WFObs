@@ -1,4 +1,4 @@
-function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initialize( scriptOptions,configName )
+function [ Wp,sol,sys,strucObs,scriptOptions ] = WFObs_s_initialize( scriptOptions,configName )
 % WFOBS_S_INITIALIZE  Initialize the WFSim model and the estimator settings
 %
 %   SUMMARY
@@ -12,9 +12,6 @@ function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initializ
 %
 %     - scriptOptions: this struct contains all simulation settings, not
 %     related to the wind farm itself (solution methodology, outputs, etc.)
-%
-%     - LESData: this struct contains all the flow fields and turbine data
-%                from the LES data.
 %
 %     - Wp: this struct contains all the simulation settings related to the
 %           wind farm, the turbine inputs, the atmospheric properties, etc.
@@ -31,7 +28,6 @@ function [ Wp,sol,sys,strucObs,scriptOptions,LESData,hFigs ] = WFObs_s_initializ
 %         sys.B2:    Important matrix in the boundary conditions.
 %         sys.bc:    Important vector in the boundary conditions.
 %
-%     - hFigs: cell array of Figures to (re)plot figures into.
 %
 
 % Load configuration file from the 'configurations' folder
@@ -58,24 +54,18 @@ if strcmp(lower(strucObs.filtertype),'sim') == false
     end  
 end
     
-% Create destination folder for output files
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    mkdir(scriptOptions.savePath);
-end;
-
-% Save simulation & filter settings
-if (scriptOptions.savePlots + scriptOptions.saveWorkspace > 0)
-    save([scriptOptions.savePath '/' strucObs.filtertype '_settings.mat']);
-end;
-
 if scriptOptions.printProgress
     disp(' WindFarmObserver (WFObs)');
     disp([' Case:  ' configName ]);
     disp(' ');
-end;
+end
 
 % load a default random seed for consistency
-if strucObs.loadRandomSeed; load('randomseed'); rng(randomseed); clear randomseed; end;
+if strucObs.loadRandomSeed
+    load('randomseed')
+    rng(randomseed)
+    clear randomseed;
+end
 
 % Default settings: following WFSim options are never used in WFObs
 scriptOptions.Projection      = 0;    % Use projection
@@ -91,6 +81,7 @@ end;
 % Set default model convergence settings
 scriptOptions.conv_eps     = 1e-6; % Convergence parameter
 scriptOptions.max_it_dyn   = 1;    % Convergence parameter
+
 if Wp.sim.startUniform
     scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
 else
@@ -104,39 +95,6 @@ if scriptOptions.exportPressures == 0
 else
     strucObs.size_output = Wp.Nu + Wp.Nv + Wp.Np;
 end;
-
-% Define measurement locations
-if strucObs.measFlow
-    sensorsfile        = load(strucObs.sensorsPath);
-    strucObs.obs_array = unique([sensorsfile.sensors{1}.obsid; sensorsfile.sensors{2}.obsid]);
-    
-    % Calculate obs_array locations
-    strucObs.obs_array_locu = struct('x',{},'y',{});
-    strucObs.obs_array_locv = struct('x',{},'y',{});
-    for j = 1:length(strucObs.obs_array)
-        [ ~,locSensor,typeFlow ] = WFObs_s_sensors_nr2grid( strucObs.obs_array(j), Wp.mesh);
-        if strcmp(typeFlow,'u')
-            strucObs.obs_array_locu(end+1) = locSensor;
-        else
-            strucObs.obs_array_locv(end+1) = locSensor;
-        end
-    end
-else
-    strucObs.obs_array = [];
-end;
-
-try
-    % Load measurements from LES simulation (*.mat file)
-    LESData    = load(Wp.sim.measurementFile); % Load measurements
-    LESData.ud = LESData.u + strucObs.measSigma.u*randn(size(LESData.u)); % Add noise
-    LESData.vd = LESData.v + strucObs.measSigma.v*randn(size(LESData.v)); % Add noise
-    LESData.Pd = LESData.turbData.power + strucObs.measSigma.P*randn(size(LESData.turbData.power));
-catch
-    warning('Problem loading LES data. Please check if LESData has been downloaded succesfully. Otherwise, delete the LESData folder and try again.'); 
-end
-
-% Setup blank figure windows
-hFigs = {};
 
 % Create global RCM vector
 [~, sysRCM] = WFSim_timestepping( sol, sys, Wp, scriptOptions );
