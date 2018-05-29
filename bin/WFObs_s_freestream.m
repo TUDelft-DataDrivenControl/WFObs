@@ -27,68 +27,67 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 %       (temporary) files used for updates, such as covariance matrices,
 %       ensemble/sigma point sets, measurement noise, etc.
 %
-if strucObs.U_Inf.estimate && sol.k > 25 % Skip initialization period   
-    if sol.measuredData.measPw
-        % Import variables
-        input        = Wp.turbine.input(sol.k);
-        measuredData = sol.measuredData;
+kSkip = 20;
+if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period   
+    % Import variables
+    input        = Wp.turbine.input(sol.k);
+    measuredData = sol.measuredData;
 
-        wd = 270.; % wind direction in degrees. should actually be something like:
-        % wd = mean(measured.windVaneMeasurements)
-        % but currently no anemometer measurements yet from SOWFA...
+    wd = 270.; % wind direction in degrees. should actually be something like:
+    % wd = mean(measured.windVaneMeasurements)
+    % but currently no anemometer measurements yet from SOWFA...
 
-        upstreamTurbinesAll = WFObs_s_freestream_findUnwaked( Wp, wd );
-        
-        % Find all upstream turbines of which measurements are available
-        upstreamTurbinesMeasured = [];
-        for i = 1:length(sol.measuredData.entry)
-            if strcmp(sol.measuredData.entry(i).type,'P')
-                if any(sol.measuredData.entry(i).idx == upstreamTurbinesAll)
-                    upstreamTurbinesMeasured = [upstreamTurbinesMeasured sol.measuredData.entry(i).idx];
-                end
+    upstreamTurbinesAll = WFObs_s_freestream_findUnwaked( Wp, wd );
+
+    % Find all upstream turbines of which measurements are available
+    upstreamTurbinesMeasured = [];
+    measurementIdPowerUpstream = [];
+    for i = 1:length(sol.measuredData)
+        if strcmp(sol.measuredData(i).type,'P')
+            if any(sol.measuredData(i).idx == upstreamTurbinesAll)
+                upstreamTurbinesMeasured = [upstreamTurbinesMeasured sol.measuredData(i).idx];
+                measurementIdPowerUpstream = [measurementIdPowerUpstream i];
             end
         end
-        
-        % Use upstream measured turbine powers to estimate U_infty
-        if length(upstreamTurbinesMeasured) > 0
-            U_est = [];
-            eta = 0.95; % Correction factor to correct for ADM/WFSim mismatch
-            psc = Wp.turbine.powerscale; % Powerscale [-]
-            Rho = Wp.site.Rho; % Air density [kg/m3]
-            Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]
-            CTp  = [Wp.turbine.input(sol.k).CT_prime]; % CT' [-]
+    end
 
-            % Calculate U_Inf for each turbine
-            U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*((measuredData.power(upstreamTurbinesMeasured)...
-                        ./(eta*psc*0.5*Rho*Ar*CTp(upstreamTurbinesMeasured))).^(1/3));
+    % Use upstream measured turbine powers to estimate U_infty
+    if length(upstreamTurbinesMeasured) > 0
+        U_est = [];
+        eta = 0.95; % Correction factor to correct for ADM/WFSim mismatch
+        psc = Wp.turbine.powerscale; % Powerscale [-]
+        Rho = Wp.site.Rho; % Air density [kg/m3]
+        Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]
+        CTp  = [Wp.turbine.input(sol.k).CT_prime]; % CT' [-]
 
-            % Determine previous average and current instantaneous U_Inf
-            U_Inf_Previous      = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
-            U_Inf_Instantaneous = mean(U_Inf_vec);
+        % Calculate U_Inf for each turbine
+        U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*(([measuredData(measurementIdPowerUpstream).value]'...
+                    ./(eta*psc*0.5*Rho*Ar*CTp(upstreamTurbinesMeasured))).^(1/3));
 
-            % Low-pass filter the mean instantaneous U_Inf
-            tau = strucObs.U_Inf.intFactor; % Time constant of LPF. 0 = instant updates, 1 = no updates. 0.86 means after 30 seconds, 1% of old solution is left
-            U_Inf_Filtered = tau*U_Inf_Previous+(1-tau)*U_Inf_Instantaneous;
+        % Determine previous average and current instantaneous U_Inf
+        U_Inf_Previous      = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
+        U_Inf_Instantaneous = mean(U_Inf_vec);
 
-            % Reformat to x and y direction
-            u_Inf = U_Inf_Filtered*cosd(270-wd);
-            v_Inf = U_Inf_Filtered*sind(270-wd);
+        % Low-pass filter the mean instantaneous U_Inf
+        tau = strucObs.U_Inf.intFactor; % Time constant of LPF. 0 = instant updates, 1 = no updates. 0.86 means after 30 seconds, 1% of old solution is left
+        U_Inf_Filtered = tau*U_Inf_Previous+(1-tau)*U_Inf_Instantaneous;
 
-            % Shift entire solution space to accomodate for new freestream conditions
-            [sol.u,sol.uu] = deal(sol.u+(u_Inf-Wp.site.u_Inf)); % Update all states
-            [sol.v,sol.vv] = deal(sol.v+(v_Inf-Wp.site.v_Inf)); % Update all states
+        % Reformat to x and y direction
+        u_Inf = U_Inf_Filtered*cosd(270-wd);
+        v_Inf = U_Inf_Filtered*sind(270-wd);
 
-            % Update inflow parameters in Wp
-            Wp.site.u_Inf = u_Inf;
-            Wp.site.v_Inf = v_Inf;
+        % Shift entire solution space to accomodate for new freestream conditions
+        [sol.u,sol.uu] = deal(sol.u+(u_Inf-Wp.site.u_Inf)); % Update all states
+        [sol.v,sol.vv] = deal(sol.v+(v_Inf-Wp.site.v_Inf)); % Update all states
 
-            % Compute system boundary conditions and corresponding matrices B1, B2
-            [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); 
-        else
-            disp('WARNING: Trying to estimate freestream wind speed, but no measurements are available of upstream turbines.');
-        end
+        % Update inflow parameters in Wp
+        Wp.site.u_Inf = u_Inf;
+        Wp.site.v_Inf = v_Inf;
+
+        % Compute system boundary conditions and corresponding matrices B1, B2
+        [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); 
     else
-        disp('WARNING: Trying to estimate freestream wind speed, but no power measurements available.');
+        disp('WARNING: Trying to estimate freestream wind speed, but no measurements are available of upstream turbines.');
     end
 end
 end
