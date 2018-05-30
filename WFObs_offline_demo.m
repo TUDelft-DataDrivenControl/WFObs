@@ -56,15 +56,15 @@ clear all; close all; clc;
 %% Settings for offline WFObs simulations with a LES database
 configName          = 'TORQUE_axi_2turb_alm_turb';
 
-measPw.enabled      = false;  % Boolean for using power measurements
-measPw.turbIds      = [1 2];   %[1 2] % Measurements from all turbines
-measPw.noiseSigma   = 1e4;   % Standard deviation noise added to measurement
-measPw.sigma        = 1e4;   % Standard deviation
+measPw.enabled      = true;  % Boolean for using power measurements
+measPw.turbIds      = [1];   %[1 2] % Measurements from all turbines
+measPw.noiseSigma   = 2e4;   % Standard deviation noise added to measurement
+measPw.sigma        = 2e4;   % Standard deviation
 
 measFlow.enabled    = true; % Boolean for using flow measurements
 measFlow.sensorFile = 'setup_sensors/sensors_2turb_alm.mat';
-measFlow.noiseSigma = 5e-2; % Standard deviation noise added to measurement
-measFlow.sigma      = 5e-2; % Standard deviation
+measFlow.noiseSigma = 1e-1; % Standard deviation noise added to measurement
+measFlow.sigma      = 1e-1; % Standard deviation
 
 %% Initialize object
 WFObj=WFObs_obj(configName); % See './configurations' for options
@@ -77,7 +77,7 @@ LESData      = load(WFObj.Wp.sim.measurementFile);
 hFigs = [];
 scriptOptions.Animate = 10;
 scriptOptions.plotContour    = 1;  % Show flow fields
-scriptOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
+scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
 scriptOptions.powerForecast  = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
 scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
 scriptOptions.savePlots      = 0;  % Save all plots in external files at each time step
@@ -90,7 +90,7 @@ end
 
 while WFObj.sol.k < WFObj.Wp.sim.NN
     % Load and format measurements from offline database
-    measuredData = struct();
+    measuredData = [];
     if measPw.enabled % Setup power measurements
         for i = 1:length(measPw.turbIds)
             measuredData(i).idx   = measPw.turbIds(i); % Turbine number
@@ -102,7 +102,7 @@ while WFObj.sol.k < WFObj.Wp.sim.NN
     end
     if measFlow.enabled % Setup flow measurements
         for jT = [1 2] % jT=1 for 'u', jT=2 for 'v' measurements
-            iOffset = length(measuredData)*(length(measuredData)>1);
+            iOffset = length(measuredData);
             for i = 1:sensorInfo.sensors{jT}.N
                 measuredData(iOffset+i).idx = sensorInfo.sensors{jT}.loc(i,:); % Sensor location
                 measuredData(iOffset+i).std = measFlow.sigma; % Standard deviation in W
@@ -128,6 +128,6 @@ while WFObj.sol.k < WFObj.Wp.sim.NN
     sol.site         = WFObj.Wp.site; % Save site info too
     sol_array(sol.k) = sol;
     
-    scriptOptions = mergeStruct(scriptOptions,WFObj.scriptOptions);
-    [ hFigs,~ ] = WFObs_s_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,scriptOptions,WFObj.strucObs,hFigs );
+    scriptOptions = mergeStruct(WFObj.scriptOptions,scriptOptions);
+    [ hFigs,scriptOptions ] = WFObs_s_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,scriptOptions,WFObj.strucObs,hFigs );
 end
