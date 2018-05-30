@@ -18,7 +18,7 @@ Wp.name = '2turb_alm_turb'; % Name of WFSim meshing (from '/WFSim/bin/core/meshi
 strucObs.loadRandomSeed = true; 
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
@@ -38,8 +38,8 @@ strucObs.se.enabled = true; % Estimate the model states (flow fields)?
     strucObs.se.P0.v = 0.10; % Initial state covariance for lat. flow
     
     % Process noise covariance matrix (diagonal values on Q matrix)
-    strucObs.se.Qk.u = 1e-0; % Autocovariance for long. flow process noise
-    strucObs.se.Qk.v = 1e-2; % Autocovariance for lat.  flow process noise
+    strucObs.se.Qk.u = 1e-2; % Autocovariance for long. flow process noise
+    strucObs.se.Qk.v = 1e-4; % Autocovariance for lat.  flow process noise
     
     % Measurement noise covariance matrix (diagonal values on R matrix) 
     strucObs.se.Rk.P = 4e8;  % Autocovariance for turbine power measurements [if strucObs.measPw == 1]
