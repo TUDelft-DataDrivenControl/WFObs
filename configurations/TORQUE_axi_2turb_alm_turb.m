@@ -18,17 +18,17 @@ Wp.name = '2turb_alm_turb'; % Name of WFSim meshing (from '/WFSim/bin/core/meshi
 strucObs.loadRandomSeed = true; 
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
    
 % Measurement definitions
-strucObs.measPw = true;  % Use power measurements (SCADA) from turbines in estimates
-    strucObs.measSigma.P = 2e4;   % Stand. dev. of artificial noise on Power measurements in [W]
-strucObs.measFlow = false; % Use flow measurements (LIDAR) in estimates
-    strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-    strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
-    strucObs.sensorsPath = 'sensors_2turb_alm_downstream'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
-        
+% strucObs.measPw = true;  % Use power measurements (SCADA) from turbines in estimates
+%     strucObs.measSigma.P = 2e4;   % Stand. dev. of artificial noise on Power measurements in [W]
+% strucObs.measFlow = false; % Use flow measurements (LIDAR) in estimates
+%     strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+%     strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+%     strucObs.sensorsPath = 'sensors_2turb_alm_downstream'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
+%         
 
 %% Kalman filter settings
 % State estimation settings
@@ -38,8 +38,8 @@ strucObs.se.enabled = true; % Estimate the model states (flow fields)?
     strucObs.se.P0.v = 0.10; % Initial state covariance for lat. flow
     
     % Process noise covariance matrix (diagonal values on Q matrix)
-    strucObs.se.Qk.u = 1e-2; % Autocovariance for long. flow process noise
-    strucObs.se.Qk.v = 1e-4; % Autocovariance for lat.  flow process noise
+    strucObs.se.Qk.u = 1e-0; % Autocovariance for long. flow process noise
+    strucObs.se.Qk.v = 1e-2; % Autocovariance for lat.  flow process noise
     
     % Measurement noise covariance matrix (diagonal values on R matrix) 
     strucObs.se.Rk.P = 4e8;  % Autocovariance for turbine power measurements [if strucObs.measPw == 1]
@@ -52,7 +52,7 @@ strucObs.se.enabled = true; % Estimate the model states (flow fields)?
         strucObs.se.Qk.p = 0.00; % Autocovariance for pressure process noise
 
 % Parameter estimation settings
-strucObs.pe.enabled = true; % Estimate model parameters?
+strucObs.pe.enabled = false; % Estimate model parameters?
     strucObs.pe.vars = {'site.lmu'}; % If empty {} then no estimation
     strucObs.pe.P0   = [0.5]; % Initial state covariance(s) for model variable(s)
     strucObs.pe.Qk   = [1e-4]; % Autocovariance(s) process noise for model variable(s)
