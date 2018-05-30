@@ -45,11 +45,11 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs,measuredData )
     end
 
 if strcmp(lower(strucObs.f_locl),'off')
-    strucObs.auto_corrfactor = ones(strucObs.M,strucObs.M);
+    strucObs.auto_corrfactor = ones(length(measuredData),length(measuredData));
     if strucObs.pe.enabled
-        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);%/strucObs.M;
+        strucObs.cross_corrfactor = ones(strucObs.L,length(measuredData));%/strucObs.M;
     else
-        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);
+        strucObs.cross_corrfactor = ones(strucObs.L,length(measuredData));
     end
 else
     disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while for larger meshes...']);
@@ -73,7 +73,7 @@ else
     for i = 1:length(measuredData)
         if strcmp(measuredData(i).type,'P')
             outputLocArray = [outputLocArray; turbLocArray(measuredData(i).idx,:)];
-        elseif strcmp(measuredData(i).type,'u') || strcmp(measuredData.entry(i).type,'v')
+        elseif strcmp(measuredData(i).type,'u') || strcmp(measuredData(i).type,'v')
             outputLocArray = [outputLocArray; measuredData(i).idx];
         else
             error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
@@ -98,10 +98,10 @@ else
     
     % First calculate the cross-correlation between output and states
     if strucObs.se.enabled
-        rho_locl.cross = sparse(length(stateLocArray),length(outputLocArray));
+        rho_locl.cross = sparse(length(stateLocArray),size(outputLocArray,1));
         for iii = 1:length(stateLocArray) % Loop over all default states
             loc1 = stateLocArray(iii,:);
-            for jjj = 1:length(outputLocArray) % Loop over all measurements
+            for jjj = 1:size(outputLocArray,1) % Loop over all measurements
                 loc2 = outputLocArray(jjj,:);
                 dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
                 rho_locl.cross(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -119,7 +119,7 @@ else
                 crossmat_temp = [];
                 for iturb = 1:Wp.turbine.N
                     loc1 = turbLocArray(iturb,:);
-                    for jjj = 1:length(outputLocArray)
+                    for jjj = 1:size(outputLocArray,1)
                         loc2 = outputLocArray(jjj,:);
                         dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output
                         crossmat_temp(iturb,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -130,7 +130,7 @@ else
 
             elseif strcmp(strucObs.pe.subStruct{iT},'site') % Correlated with everything in the field equally
 %                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)];
-                rho_locl.cross = [rho_locl.cross; ones(1,length(outputLocArray))/length(outputLocArray)]; % Normalized to reduce sensitivity
+                rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))/size(outputLocArray,1)]; % Normalized to reduce sensitivity
 
             else
                 disp(['No rules have been set for localization for the online adaption of ' strucObs.pe.vars{iT} '.'])
@@ -141,9 +141,9 @@ else
     
     % Secondly, calculate the autocorrelation of output
     rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
-    for iii = 1:length(outputLocArray) % for each output
+    for iii = 1:size(outputLocArray,1) % for each output
         loc1 = outputLocArray(iii,:);
-        for jjj = 1:length(outputLocArray) % for each output
+        for jjj = 1:size(outputLocArray,1) % for each output
             loc2 = outputLocArray(jjj,:);
             dx = sqrt(sum((loc1-loc2).^2));
             rho_locl.auto(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );

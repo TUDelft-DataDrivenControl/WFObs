@@ -2,8 +2,8 @@ clear all; close all; clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %%             WIND FARM OBSERVER (WFObs) by B.M. Doekemeijer
-%                 Delft University of Technology, 2017
-%              Repo: https://github.com/Bartdoekemeijer/WFObs
+%                 Delft University of Technology, 2018
+%          Repo: https://github.com/TUDelft-DataDrivenControl/WFObs
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %
 %

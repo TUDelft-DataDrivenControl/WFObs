@@ -160,6 +160,10 @@ parfor(ji=1:strucObs.nrens)
         FState = strucObs.FStateGen(); % Use generator to determine noise
         xf = solpar.x(1:strucObs.size_output); % Forecasted particle state
         xf = xf + FState;
+        
+        % Process noise back into appropriate format
+        solpar.u(3:end-1,2:end-1) = reshape(xf(1:(Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)),Wp.mesh.Ny-2,Wp.mesh.Nx-3)';
+        solpar.v(2:end-1,3:end-1) = reshape(xf((Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)+1:(Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)+(Wp.mesh.Nx-2)*(Wp.mesh.Ny-3)),Wp.mesh.Ny-3,Wp.mesh.Nx-2)';        
 %         yf = xf(strucObs.obs_array);
     else
         xf = [];
@@ -175,17 +179,17 @@ parfor(ji=1:strucObs.nrens)
     
     % Calculate output vector
     yf = [];
-    flowInterpolant_u = griddedInterpolant(Wp.mesh.ldyy',Wp.mesh.ldxx2',sol.u','linear');
+    flowInterpolant_u = griddedInterpolant(Wp.mesh.ldyy',Wp.mesh.ldxx2',solpar.u','linear');
 %     flowInterpolant.u.Values = sol.u';
-    flowInterpolant_v = griddedInterpolant(Wp.mesh.ldyy2',Wp.mesh.ldxx',sol.v','linear');
+    flowInterpolant_v = griddedInterpolant(Wp.mesh.ldyy2',Wp.mesh.ldxx',solpar.v','linear');
 %     flowInterpolant.v.Values = sol.v';
     for i = 1:length(sol.measuredData)
         if strcmp(sol.measuredData(i).type,'P')
             yf = [yf; solpar.turbine.power(sol.measuredData(i).idx)];
         elseif strcmp(sol.measuredData(i).type,'u')
-            yf = [yf; flowInterpolant_u(sol.measuredData(i).idx(1),sol.measuredData(i).idx(2))];
+            yf = [yf; flowInterpolant_u(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
         elseif strcmp(sol.measuredData(i).type,'v')
-            yf = [yf; flowInterpolant_v(sol.measuredData(i).idx(1),sol.measuredData(i).idx(2))];
+            yf = [yf; flowInterpolant_v(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
         else
             error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
         end
