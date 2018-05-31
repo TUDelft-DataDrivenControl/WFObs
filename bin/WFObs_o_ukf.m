@@ -13,6 +13,8 @@ function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)
 %   
 
 %% Initialization step of the Unscented KF (at k == 1)
+nrobs = length(sol.measuredData); % Number of observations
+
 if sol.k==1     
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
@@ -60,7 +62,7 @@ if sol.k==1
     gamma           = sqrt(L+lambda);
     
     strucObs.nrens  = 2*L+1; % number of sigma points
-    strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
+%     strucObs.nrobs  = length(strucObs.obs_array); % number of measurements  
     
     % Weight vectors for UKF update
     strucObs.Wm     = [lambda/(L+lambda); repmat(1/(2*(L+lambda)),2*L,1)];
@@ -72,17 +74,19 @@ if sol.k==1
     % Covariance matrices for UKF
     strucObs.Qk = Qk;
     strucObs.Pk = P0;
-    R_fullState = diag([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
-    strucObs.Rk = R_fullState(strucObs.obs_array,strucObs.obs_array);
-    if strucObs.measPw 
-        strucObs.Rk = blkdiag(strucObs.Rk,eye(Wp.turbine.N)*strucObs.se.Rk.P);
-    end
-    
+%     R_fullState = diag([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
+%     strucObs.Rk = R_fullState(strucObs.obs_array,strucObs.obs_array);
+%     if strucObs.measPw 
+%         strucObs.Rk = blkdiag(strucObs.Rk,eye(Wp.turbine.N)*strucObs.se.Rk.P);
+%     end
+    R_standard_devs = [sol.measuredData.std]';
+    strucObs.Rk     = diag(R_standard_devs).^2;
+
     % Other UKF-related parameters
     strucObs.L      = L;
     strucObs.lambda = lambda;
     strucObs.gamma  = gamma;
-    strucObs.M      = strucObs.nrobs+strucObs.measPw*Wp.turbine.N; % total length of measurements
+%     strucObs.M      = strucObs.nrobs+strucObs.measPw*Wp.turbine.N; % total length of measurements
 end
 
 % Calculate sigma points
@@ -106,7 +110,7 @@ strucObs.Aen(:,strucObs.L+2:end) = strucObs.Aen(:,strucObs.L+2:end) - Uscented_d
 
 %% Parallelized solving of the forward propagation step in the UKF
 Aenf  = zeros(strucObs.L,strucObs.nrens);   % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.M,strucObs.nrens);   % Initialize empty output matrix
+Yenf  = zeros(nrobs,strucObs.nrens);   % Initialize empty output matrix
 
 parfor(ji=1:strucObs.nrens)
     syspar   = sys; % Copy system matrices
@@ -151,22 +155,42 @@ parfor(ji=1:strucObs.nrens)
     Aenf(:,ji) = xf;
     
     % Calculate output vector
-    if strucObs.measPw
-        Yenf(:,ji) = [solpar.x(strucObs.obs_array); solpar.turbine.power];
-    else
-        Yenf(:,ji) = [solpar.x(strucObs.obs_array)];
+    yf = [];
+    flowInterpolant_u = griddedInterpolant(Wp.mesh.ldyy',Wp.mesh.ldxx2',solpar.u','linear');
+%     flowInterpolant.u.Values = sol.u';
+    flowInterpolant_v = griddedInterpolant(Wp.mesh.ldyy2',Wp.mesh.ldxx',solpar.v','linear');
+%     flowInterpolant.v.Values = sol.v';
+    for i = 1:length(sol.measuredData)
+        if strcmp(sol.measuredData(i).type,'P')
+            yf = [yf; solpar.turbine.power(sol.measuredData(i).idx)];
+        elseif strcmp(sol.measuredData(i).type,'u')
+            yf = [yf; flowInterpolant_u(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
+        elseif strcmp(sol.measuredData(i).type,'v')
+            yf = [yf; flowInterpolant_v(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
+        else
+            error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
+        end
     end
+
+    Yenf(:,ji) = [yf];
+
+%     if strucObs.measPw
+%         Yenf(:,ji) = [solpar.x(strucObs.obs_array); solpar.turbine.power];
+%     else
+%         Yenf(:,ji) = [solpar.x(strucObs.obs_array)];
+%     end
 end
 
 
 %% Analysis update of the Unscented KF
-if strucObs.measPw
-    y_meas = [sol.measuredData.sol(strucObs.obs_array);sol.measuredData.power];
-else
-    y_meas = [sol.measuredData.sol(strucObs.obs_array)];
-end
+y_meas = [sol.measuredData.value]';
+% if strucObs.measPw
+%     y_meas = [sol.measuredData.sol(strucObs.obs_array);sol.measuredData.power];
+% else
+%     y_meas = [sol.measuredData.sol(strucObs.obs_array)];
+% end
 xmean = sum(repmat(strucObs.Wm',strucObs.L,1) .* Aenf, 2);
-ymean = sum(repmat(strucObs.Wm',strucObs.M,1) .* Yenf, 2);
+ymean = sum(repmat(strucObs.Wm',length(sol.measuredData),1) .* Yenf, 2);
 Aenft = Aenf-repmat(xmean,1,strucObs.nrens);
 Yenft = Yenf-repmat(ymean,1,strucObs.nrens);
 Pfxxk = Aenft*strucObs.W*Aenft' + strucObs.Qk; % Pxx for k|k-1
