@@ -2,29 +2,40 @@ clear all; close all; clc;
 %
 % exportFigsFromWorkspace.m
 %
-time_vec = [1:998];
-plotError   = false; % Export final contour, centerline, power-time and error-time plots
-plotPower   = false;
-powerFC     = 0; % Plot x-seconds open-loop forecast
-plotContour = true;
-plotCline   = false;
+time_vec = [1:50:3500];
 
-savePath = ['figures/tmp_out/']; % Save path
+saveFigs = true;
+savePath = ['figures/6turb_varyingTurb/sim/']; % Save path
 
 % Visualization settings
-options.plotMesh          = 0;  % Show meshing and turbine locations
-options.Animate           = 1;  % Show results every x iterations (0: no plots)
-   options.plotContour    = 1;  % Show flow fields
-   options.plotPower      = 1;  % Plot true and predicted power capture vs. time
-    options.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-   options.plotError      = 0;  % plot RMS and maximum error vs. time
-   options.plotCenterline = 1;  % Plot centerline speed of the wake (m/s)
+expOptions.plotContour    = 1;  % Show flow fields
+expOptions.plotPower      = 0;  % Plot true and predicted power capture vs. time
+ expOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+expOptions.plotError      = 0;  % plot RMS and maximum error vs. time
+expOptions.plotCenterline = 0;  % Plot centerline speed of the wake (m/s)
    
 % Data sources
 data = {};
 data{end+1} = struct(...
-    'name','EnKF',...
-    'path','../../results/APC/apc_enkf_dualEst_measPw/workspace.mat');
+    'name','Sim',...
+    'path','D:\bmdoekemeijer\My Documents\MATLAB\WFObs\results\TORQUE2018\2turb_varyingTurb_sim\workspace.mat');
+
+% data{end+1} = struct(...
+%     'name','EnKF (old tuning)',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\APC\apc_9turb_alm_turb_n50\workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF (new Q, n=50)',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\APC\APC_enkf_newQ_n50\workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF (new Q, n=70)',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\APC\APC_enkf_newQ_n70\workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF (Power meas.)',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\MEAScomparison_2turb_alm_turb_enkf_n30_Pwr\workspace.mat');
+% data{end+1} = struct(...
+%     'name','EnKF (Upw. LiDAR)',...
+%     'path','D:\bmdoekemeijer\My Documents\SurfDrive\PhD\Dissemination\2017 Wind Energy\MATLAB_out\MEAScomparison_2turb_alm_turb_enkf_n30_upwLidar\workspace.mat');
+
 % data{end+1} = struct(...
 %     'name','ExKF',...
 %     'path','../../results/WE2017/axi_2turb_alm_turb_measFlow_exkf_stateEst/workspace.mat');
@@ -53,20 +64,14 @@ for di = 1:length(data)
     
     % Load measurements from LES simulation (*.mat file)
     Wp_tmp = meshing(Wp.name,false,false);
-    LESData    = load(Wp_tmp.sim.measurementFile); % Load measurements
-    LESData.ud = LESData.u + strucObs.noise_obs*randn(size(LESData.u)); % Add noise
-    LESData.vd = LESData.v + strucObs.noise_obs*randn(size(LESData.v)); % Add noise
+    LESData = load(Wp_tmp.sim.measurementFile); % Load measurements
     clear Wp_tmp
     
     % Format figures
-    options.Animate        = 1;
-    options.plotContour    = plotContour;
-    options.plotCenterline = plotCline;
-    options.plotPower      = plotPower;
-    options.powerForecast  = powerFC;
-    options.plotError      = 0;
-    options.savePlots      = 1;
-    options.savePath       = savePath;
+    options           = expOptions;
+    options.Animate   = 1;  % Show results every x iterations (0: no plots)
+    options.savePlots = saveFigs;
+    options.savePath  = [savePath '/' data{di}.name];
     
     % Determine and create output directory
     mkdir(options.savePath);

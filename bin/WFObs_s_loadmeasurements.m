@@ -21,11 +21,13 @@ function [ measuredData ] = WFObs_s_loadmeasurements( LESData, k )
 %        *measuredData.vq     lateral velocities, undisturbed
 %
 
-measuredData.uq    = squeeze(LESData.u(k,:,:));
-measuredData.vq    = squeeze(LESData.v(k,:,:));
-measuredData.u     = squeeze(LESData.ud(k,:,:));
-measuredData.v     = squeeze(LESData.vd(k,:,:));
-measuredData.solq  = [vec(measuredData.uq(3:end-1,2:end-1)'); vec(measuredData.vq(2:end-1,3:end-1)')];
-measuredData.sol   = [vec(measuredData.u(3:end-1,2:end-1)') ; vec(measuredData.v(2:end-1,3:end-1)') ];
-measuredData.power(:,1) = LESData.turbData.power(k,:);
+measuredData.uq    = squeeze(LESData.u(k,:,:)); % True flow signal
+measuredData.vq    = squeeze(LESData.v(k,:,:)); % True flow signal
+measuredData.u     = squeeze(LESData.ud(k,:,:)); % Disturbed flow signal
+measuredData.v     = squeeze(LESData.vd(k,:,:)); % Disturbed flow signal
+measuredData.solq  = [vec(measuredData.uq(3:end-1,2:end-1)'); ... % True state vector
+                      vec(measuredData.vq(2:end-1,3:end-1)')];
+measuredData.sol   = [vec(measuredData.u(3:end-1,2:end-1)') ; ... % Dist. state vector
+                      vec(measuredData.v(2:end-1,3:end-1)') ];
+measuredData.power(:,1) = LESData.Pd(k,:); % Disturbed power signal
 end

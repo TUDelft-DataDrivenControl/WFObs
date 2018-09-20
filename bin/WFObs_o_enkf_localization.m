@@ -46,7 +46,7 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
 
 if strcmp(lower(strucObs.f_locl),'off')
     strucObs.auto_corrfactor = ones(strucObs.M,strucObs.M);
-    if strucObs.tune.est
+    if strucObs.pe.enabled
         strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);%/strucObs.M;
     else
         strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);
@@ -56,7 +56,7 @@ else
     rho_locl = struct; % initialize empty structure
     
     % Generate the locations of all model flow states
-    if strucObs.stateEst || strucObs.measFlow
+    if strucObs.se.enabled || strucObs.measFlow
         stateLocArray = zeros(strucObs.size_output,2);
         for iii = 1:strucObs.size_output
             [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
@@ -65,7 +65,7 @@ else
     end
     
     % Generate the locations of all turbines
-    if strucObs.tune.est || strucObs.measPw
+    if strucObs.pe.enabled || strucObs.measPw
         turbLocArray = zeros(Wp.turbine.N,2);
         for iii = 1:Wp.turbine.N
             turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
@@ -98,7 +98,7 @@ else
 %     %%%%% ---- %%%%%%%%%%%%%%%%%%%%
     
     % First calculate the cross-correlation between output and states
-    if strucObs.stateEst
+    if strucObs.se.enabled
         rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
         for iii = 1:strucObs.size_output % Loop over all default states
             loc1 = stateLocArray(iii,:);
@@ -114,9 +114,9 @@ else
     end;
     
     % Add cross-correlation between output and model tuning parameters
-    if strucObs.tune.est
-        for iT = 1:length(strucObs.tune.vars)
-            if strcmp(strucObs.tune.subStruct{iT},'turbine') % Correlated with all turbines
+    if strucObs.pe.enabled
+        for iT = 1:length(strucObs.pe.vars)
+            if strcmp(strucObs.pe.subStruct{iT},'turbine') % Correlated with all turbines
                 crossmat_temp = [];
                 for iturb = 1:Wp.turbine.N
                     loc1 = turbLocArray(iturb,:);
@@ -126,15 +126,15 @@ else
                         crossmat_temp(iturb,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
                     end;
                 end;
-                if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.tune.vars{iT} '.']); end;
+                if (sum(crossmat_temp,1) <= 0); disp(['Localization too conservative: no correlation between measurements and ' strucObs.pe.vars{iT} '.']); end;
                 rho_locl.cross = [rho_locl.cross; max(crossmat_temp)];
 
-            elseif strcmp(strucObs.tune.subStruct{iT},'site') % Correlated with everything in the field equally
+            elseif strcmp(strucObs.pe.subStruct{iT},'site') % Correlated with everything in the field equally
 %                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)];
                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
 
             else
-                disp(['No rules have been set for localization for the online adaption of ' strucObs.tune.vars{iT} '.'])
+                disp(['No rules have been set for localization for the online adaption of ' strucObs.pe.vars{iT} '.'])
             end;
         end;
     end

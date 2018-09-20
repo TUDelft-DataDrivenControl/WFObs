@@ -17,17 +17,24 @@ measuredData = sol_in.measuredData;
 if sol_in.k == 1
     if strucObs.measPw
         error(['ExKF currently does not support power measurements. '...
-               'Please change to the EnKF/UKF or set up flow measurements.']);
+               'Please change to the EnKF/UKF or use flow measurements.']);
+    end
+    
+    if strucObs.pe.enabled
+        error(['ExKF currently does not support parameter estimation. '...
+               'Please change to the EnKF/UKF or use state estimation only.']);
     end
     
     % Setup covariance and system output matrices
     strucObs.Htt = sparse(eye(Wp.Nu+Wp.Nv+options.exportPressures*Wp.Np));
     strucObs.Htt = strucObs.Htt(strucObs.obs_array,:);    
-    strucObs.Pk  = blkdiag(eye(Wp.Nu)*strucObs.P_0.u,eye(Wp.Nv)*strucObs.P_0.v);
-    strucObs.Qx  = blkdiag(eye(Wp.Nu)*strucObs.Q_k.u,eye(Wp.Nv)*strucObs.Q_k.v);
+    strucObs.Pk  = blkdiag(eye(Wp.Nu)*strucObs.se.P0.u,eye(Wp.Nv)*strucObs.se.P0.v);
+    strucObs.Qk  = blkdiag(eye(Wp.Nu)*strucObs.se.Qk.u,eye(Wp.Nv)*strucObs.se.Qk.v);
+    strucObs.Rk  = blkdiag(eye(Wp.Nu)*strucObs.se.Rk.u,eye(Wp.Nv)*strucObs.se.Rk.v);
+    strucObs.Rk  = strucObs.Rk(strucObs.obs_array,strucObs.obs_array);
     if options.exportPressures
-        strucObs.Pk = blkdiag(strucObs.Pk,eye(Wp.Np)*strucObs.P_0.p);
-        strucObs.Qx = blkdiag(strucObs.Qx,eye(Wp.Np)*strucObs.Q_k.p);
+        strucObs.Pk = blkdiag(strucObs.Pk,eye(Wp.Np)*strucObs.P0.p);
+        strucObs.Qk = blkdiag(strucObs.Qk,eye(Wp.Np)*strucObs.Qk.p);
     end
 end;
 
@@ -45,12 +52,12 @@ if ~options.exportPressures
     solf.x = solf.x(1:strucObs.size_output);
 end;
 
-Pf = Fk*strucObs.Pk*Fk' + strucObs.Qx;  % Covariance matrix P for x(k) knowing y(k-1)
+Pf = Fk*strucObs.Pk*Fk' + strucObs.Qk;  % Covariance matrix P for x(k) knowing y(k-1)
 
 % ExKF analysis update
 sol_out     = sol_in; % Copy previous solution before updating x
 Kgain       = Pf(:,strucObs.obs_array)*pinv(Pf(strucObs.obs_array,...
-                   strucObs.obs_array)+strucObs.R_k); % Kalman gain           
+                   strucObs.obs_array)+strucObs.Rk); % Kalman gain           
 sol_out.x   = solf.x + Kgain*(measuredData.sol(strucObs.obs_array)...
                  -solf.x(strucObs.obs_array)); % Optimally predicted state vector
 strucObs.Pk = (eye(size(Pf))-Kgain*strucObs.Htt)*Pf;  % State covariance matrix

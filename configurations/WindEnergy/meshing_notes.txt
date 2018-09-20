@@ -1,0 +1,6 @@
+for APC:
+- sim: change lmu to 0.50
+- EnKF: change lmu to 0.50 and u_Inf to 9.0
+
+for 2turb_ALM:
+- all: change lmu to 0.20

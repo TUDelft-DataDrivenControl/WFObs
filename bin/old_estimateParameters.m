@@ -2,15 +2,15 @@ function [ WpUpdated ] = WFObs_s_estimateParameters( Wp,sol_array,sys,strucObs,s
 
 % Import variables
 k           = sol_array(end).k;
-updateFreq  = strucObs.tune.updateFreq;
-skipInitial = strucObs.tune.skipInitial;
-pastWindow  = strucObs.tune.pastWindow;
+updateFreq  = strucObs.pe.updateFreq;
+skipInitial = strucObs.pe.skipInitial;
+pastWindow  = strucObs.pe.pastWindow;
 WpUpdated   = Wp;
 
 % Define the to-be-optimized cost function
     function J = costFunction(x,yTrue,Wp_in,sol_in,sys_in,options)
-        for j = 1:length(strucObs.tune.subStructs)
-            Wp_in.(strucObs.tune.subStructs{j}).(strucObs.tune.varNames{j}) = x(j);
+        for j = 1:length(strucObs.pe.subStructs)
+            Wp_in.(strucObs.pe.subStructs{j}).(strucObs.pe.varNames{j}) = x(j);
         end
         [ sol_out,~ ] = WFSim_timestepping( sol_in, sys_in, Wp_in, options );
         yMeas         = sol_out.x(strucObs.obs_array);
@@ -22,8 +22,8 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
     disp('Updating model parameters using time-averaged data.');
     
     % Init variables
-    varNames   = strucObs.tune.varNames;
-    subStructs = strucObs.tune.subStructs;
+    varNames   = strucObs.pe.varNames;
+    subStructs = strucObs.pe.subStructs;
     
     yTrue          = zeros(length(strucObs.obs_array),1);
     input_tmp.CT_prime = zeros(Wp.turbine.N,1);
@@ -78,12 +78,12 @@ if ~rem(k-skipInitial-pastWindow+updateFreq,updateFreq) && k >= skipInitial + pa
 
     % Optimize variables
     cost         = @(x) costFunction(x,yTrue,Wp_tmp,sol_init,sys_tmp,options);
-    if strucObs.tune.plotOptim
+    if strucObs.pe.plotOptim
         optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{@optimplotx, @optimplotfval} ); % Display convergence
     else
         optimOptions = optimset('Display','final','MaxFunEvals',1e4,'PlotFcns',{} );
     end
-    xopt         = fmincon(cost,strucObs.tune.x0,[],[],[],[],strucObs.tune.lb,strucObs.tune.ub,[],optimOptions);
+    xopt         = fmincon(cost,strucObs.pe.x0,[],[],[],[],strucObs.pe.lb,strucObs.pe.ub,[],optimOptions);
     
     % Overwrite Wp parameters with optimized ones
     for jt = 1:length(subStructs)

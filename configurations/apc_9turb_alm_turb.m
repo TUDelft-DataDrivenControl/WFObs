@@ -1,133 +1,89 @@
-%% SOWFA source directories, meshing and measurement options
-Wp.name = 'apc_9turb_alm_turb';  % Name of meshing (from '/WFSim/bin/core/meshing.m')
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+%%      WFOBS CONFIGURATION FILE  [TEMPLATE LAST UPDATED: 14 Nov. 2017]  %%
+%                                                                         %
+%        this file contains the complete set of inputs required for the   %
+%        observer to do its work. The following settings are defined:     %
+%           - Wind farm simulation case from WFSim (Wp.name)              %
+%           - Loading of a consistent random seed for 1:1 comparisons     %
+%           - Estimation settings of the freestream conditions            %
+%           - Measurement definitions and artificial noise levels         %
+%           - Kalman filter settings                                      %
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
-%% WFSim model settings
-scriptOptions.startUniform = true; % Start from a uniform flow field (1) or from a fully developed waked flow field (0).
-scriptOptions.conv_eps     = 1e-6; % Convergence parameter
-scriptOptions.max_it_dyn   = 1;    % Convergence parameter
+%% General settings
+% Wind farm case to simulate
+Wp.name = 'apc_9turb_alm_turb'; % Name of WFSim meshing (from '/WFSim/bin/core/meshing.m')
 
-if scriptOptions.startUniform
-    scriptOptions.max_it = 1;   % Iteration limit for simulation start-up
-else
-    scriptOptions.max_it = 50;  % Iteration limit for simulation start-up
-end
-
-
-%% Filter settings
-% General settings
-strucObs.loadRandomSeed = true; % Load a predefined random seed (for one-to-one comparisons between simulation cases)
-strucObs.noise_obs      = 0.10; % Disturbance amplitude (m/s) in output data by randn*noiseampl ('0' for no noise)
-strucObs.noise_init     = 0.00; % Disturbance amplitude (m/s) in initial flow field by randn*noiseinit ('0' recommended)
+% Load a predefined random seed (for one-to-one comparisons between simulation cases)
+strucObs.loadRandomSeed = true; 
 
 % Estimate freestream conditions
-strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
+strucObs.U_Inf.estimate  = true;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
-
+   
 % Measurement definitions
-strucObs.measPw      = true;  % Use power measurements (SCADA) from turbines in estimates
-strucObs.measFlow    = false;   % Use flow measurements (LIDAR) in estimates
-strucObs.sensorsPath = 'sensors_apc_9turb_alm'; % measurement setup filename (see '/setup_sensors/sensors_layouts')
+strucObs.measPw = true;  % Use power measurements (SCADA) from turbines in estimates
+    strucObs.measSigma.P = 1e4;   % Stand. dev. of artificial noise on Power measurements in [W]
+strucObs.measFlow = false; % Use flow measurements (LIDAR) in estimates
+    strucObs.measSigma.u = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+    strucObs.measSigma.v = 1e-1;  % Stand. dev. of artificial noise on Flow measurements in [m/s]
+    strucObs.sensorsPath = 'sensors_2turb_alm'; % Flow measurement setup filename (see '/setup_sensors/sensors_layouts')
+        
 
-% Kalman filter settings
-strucObs.filtertype = 'sim'; % Observer types are outlined next
-switch lower(strucObs.filtertype)
+%% Kalman filter settings
+% State estimation settings
+strucObs.se.enabled = true; % Estimate the model states (flow fields)?
+    % Initial state error covariance matrix (diagonal values on P_0 matrix)
+    strucObs.se.P0.u = 0.10; % Initial state covariance for long. flow
+    strucObs.se.P0.v = 0.10; % Initial state covariance for lat. flow
     
-    % Extended Kalman filter (ExKF)
-    case {'exkf'}
-        % Covariances
-        strucObs.R_k = 1.0; % Measurement   covariance matrix
-        strucObs.Q_k = 1.0; % Process noise covariance matrix
-        strucObs.P_0 = 0.5; % Initial state covariance matrix
-        
-        % Other model settings
-        scriptOptions.exportPressures = false; % Model/predict/filter pressure terms
-        scriptOptions.Linearversion   = true;  % Calculate linearized system matrices: necessary for ExKF
-        
-        
-    % Sliding mode observer (SMO)    
-    case {'smo'}
-        % tuning parameters
-        strucObs.alpha = 0.01; 
-        
-        % Other model settings
-        scriptOptions.exportPressures = false; % Model/predict/filter pressure terms
-        scriptOptions.Linearversion   = true;  % Calculate linearized system matrices: necessary for SMO
-        
-        
-    % Unscented Kalman filter (UKF)
-    case {'ukf'}
-        % General settings
-        strucObs.stateEst             = true;  % Do state estimation: true/false
-        scriptOptions.exportPressures = false; % Model, predict and filter pressure terms
-        
-        % Covariances
-        strucObs.R_k   = 0.10;  % Measurement   covariance matrix
-        strucObs.R_ePW = 1e-3;  % Measurement noise for turbine power measurements        
-        strucObs.Q_k.u = 0.10;  % Process noise covariance matrix
-        strucObs.Q_k.v = 0.01;  % Process noise covariance matrix
-        strucObs.Q_k.p = 0.0;   % Process noise covariance matrix        
-        strucObs.P_0.u = 0.10;  % Initial state covariance matrix
-        strucObs.P_0.v = 0.10;  % Initial state covariance matrix
-        strucObs.P_0.p = 0.0;   % Initial state covariance matrix      
+    % Process noise covariance matrix (diagonal values on Q matrix)
+    strucObs.se.Qk.u = 1e-2; % Autocovariance for long. flow process noise
+    strucObs.se.Qk.v = 1e-4; % Autocovariance for lat.  flow process noise
+    
+    % Measurement noise covariance matrix (diagonal values on R matrix) 
+    strucObs.se.Rk.P = 1e8;  % Autocovariance for turbine power measurements [if strucObs.measPw == 1]
+    strucObs.se.Rk.u = 1e-2; % Autocovariance for long. flow measurements  [if strucObs.measFlow == 1]
+    strucObs.se.Rk.v = 1e-2; % Autocovariance for lat.  flow measurements  [if strucObs.measFlow == 1]
+    
+    % Export pressure terms (recommended: false)
+    scriptOptions.exportPressures = false; % Estimate pressure terms
+        strucObs.se.P0.p = 0.00; % Initial state covariance for pressure terms
+        strucObs.se.Qk.p = 0.00; % Autocovariance for pressure process noise
 
-        % Online model parameter adaption/estimation/tuning
-        strucObs.tune.est  = false; % Do estimation
-        strucObs.tune.vars = {'turbine.forcescale','site.lmu'}; % If empty {} then no estimation
-        strucObs.tune.Q_k  = [1e-3,1e-2]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.P_0  = [1e-3,1e-2]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [0.00,0.00]; % Lower bound
-        strucObs.tune.ub   = [6.00,6.00]; % Upper bound
+% Parameter estimation settings
+strucObs.pe.enabled = true; % Estimate model parameters?
+    strucObs.pe.vars = {'site.lmu'}; % If empty {} then no estimation
+    strucObs.pe.P0   = [0.5]; % Initial state covariance(s) for model variable(s)
+    strucObs.pe.Qk   = [1e-4]; % Autocovariance(s) process noise for model variable(s)
+    strucObs.pe.lb   = [0.05]; % Lower bound(s) for model variable(s)
+    strucObs.pe.ub   = [4.00]; % Upper bound(s) for model variable(s)
         
+% Observer-specific settings
+strucObs.filtertype = 'enkf'; 
+switch lower(strucObs.filtertype)    
+    case {'exkf'} % Extended Kalman filter (ExKF)
+        % ... The ExKF does not have any specific model settings
+        
+    case {'smo'} % Sliding mode observer (SMO)   
+        strucObs.alpha = 0.01; % tuning parameter
+        % SMO does not use any covariance matrices, relies excl. on alpha
+        
+    case {'ukf'}  % Unscented Kalman filter (UKF)      
         % Sigma-point generation settings
-        strucObs.alpha = 1e0;
-        strucObs.beta  = 2; % 2 is optimal for Gaussian distributions
-        strucObs.kappa = 0;% "0" or "3-L"
-        
-        % Other model settings
-        scriptOptions.Linearversion = false;   % Calculate linearized system matrices
-        
+        strucObs.alpha = 1.0; % Tuning parameter 
+        strucObs.beta  = 2.0; % Tuning parameter (2 optimal for Gaussian distributions)
+        strucObs.kappa = 0.0; % Tuning parameter (state est.: "0" or param est.: "3-L")
 
-    % Ensemble Kalman filter (EnKF)    
-    case {'enkf'}
-        % General settings
-        strucObs.nrens = 70; % Ensemble size
-        scriptOptions.exportPressures = false; % Include pressure terms in ensemble members (default: false)
-        
-        % Model state covariances
-        strucObs.stateEst = true;  % Estimate model states
-        strucObs.R_e      = 0.10;  % Standard dev. for measurement noise ensemble
-        strucObs.R_ePw    = 5e3;   % Measurement noise for turbine power measurements        
-        strucObs.Q_e.u    = 0.01;  % Standard dev. for process noise 'u' in m/s
-        strucObs.Q_e.v    = 0.01;  % Standard dev. for process noise 'v' in m/s
-        strucObs.Q_e.p    = 0.00;  % Standard dev. for process noise 'p' in m/s        
-        strucObs.W_0.u    = 0.90;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.v    = 0.30;  % Width (in m/s) of uniform dist. around opt. estimate for initial ensemble
-        strucObs.W_0.p    = 0.00;  % Only used for case Projection = 0
-        
-        % Inflation and localization
-        strucObs.r_infl = 1.025;  % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
+    case {'enkf'} % Ensemble Kalman filter (EnKF) 
+        strucObs.nrens  = 50;        % Ensemble size
+        strucObs.r_infl = 1.025;     % Covariance inflation factor (typically 1.00-1.20, no inflation: 1)
         strucObs.f_locl = 'gaspari'; % Localization method: 'off', 'gaspari' (Gaspari-Cohn 1999) or 'heaviside' (Heaviside step function: 0s or 1s)
-        strucObs.l_locl = 131;    % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
-        
-        % Parameter estimation settings
-        strucObs.tune.est  = true; % Estimate model parameters
-        strucObs.tune.vars = {'site.lmu'};
-        strucObs.tune.Q_e  = [0.01]; % Standard dev. for process noise 'u' in m/s
-        strucObs.tune.W_0  = [3.00]; % Width of uniform dist. around opt. estimate for initial ensemble
-        strucObs.tune.lb   = [0.05]; % Lower bounds
-        strucObs.tune.ub   = [8.00]; % Upper bounds
+        strucObs.l_locl = 131;       % Gaspari-Cohn: typically sqrt(10/3)*L with L the cut-off length. Heaviside: cut-off length (m).
 
-        % Other settings
-        scriptOptions.Linearversion = false; % Disable unnecessary calculations in model
-        
+    case {'sim'} % No filter, just open-loop simulation
+        scriptOptions.exportPressures = true;  % Force 'true', required for sim case.
 
-    % No filter, just open-loop simulation
-    case {'sim'}
-        scriptOptions.exportPressures = true;  % Must be 'true' for sim case.
-        scriptOptions.Linearversion   = false; % Calculate linearized system matrices
-        strucObs.measFlow             = false; % Use flow measurements (LIDAR) in estimates
-        strucObs.measPw               = false; % Use power measurements (SCADA) from turbines in estimates
-        
     otherwise
         error('not a valid filter/simulation specified.');
 end
