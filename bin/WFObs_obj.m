@@ -79,6 +79,9 @@ classdef WFObs_obj<handle
                 strucObs.measurementsTypeChanged = ~(...
                     strcmp([strucObs.measuredDataOld.type],[measuredData.type]) && ...
                     all([strucObs.measuredDataOld.idx] == [measuredData.idx]));
+                if strucObs.measurementsTypeChanged
+                    error('Not sure how to handle time-varying measurement types yet...');
+                end
             end
             strucObs.measuredDataOld = measuredData;
             

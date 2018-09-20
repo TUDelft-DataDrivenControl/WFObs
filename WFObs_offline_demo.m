@@ -56,7 +56,7 @@ clear all; close all; clc;
 %% Settings for offline WFObs simulations with a LES database
 configName          = 'TORQUE_axi_2turb_alm_turb';
 
-postProcOptions.Animate       = 1;  % Animation frequency
+postProcOptions.Animate       = 20;  % Animation frequency
 postProcOptions.plotContour   = 1;  % Show flow fields
 postProcOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
 postProcOptions.powerForecast = 10; % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
@@ -64,7 +64,7 @@ postProcOptions.plotError     = 1;  % plot RMS and maximum error vs. time
 postProcOptions.savePlots     = 0;  % Save all plots in external files at each time step
 postProcOptions.savePath      = ['results/tmp']; % Destination folder of saved files
 
-measPw.enabled      = true;  % Boolean for using power measurements
+measPw.enabled      = false;  % Boolean for using power measurements
 measPw.turbIds      = [1 2]; % Turbine ids from which measurements are taken
 measPw.noiseStd     = 2e4;   % Standard deviation noise added to measurement
 measPw.measStd      = 2e4;   % Standard deviation assumed by KF

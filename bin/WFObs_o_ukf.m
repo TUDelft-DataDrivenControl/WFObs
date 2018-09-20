@@ -173,12 +173,6 @@ parfor(ji=1:strucObs.nrens)
     end
 
     Yenf(:,ji) = [yf];
-
-%     if strucObs.measPw
-%         Yenf(:,ji) = [solpar.x(strucObs.obs_array); solpar.turbine.power];
-%     else
-%         Yenf(:,ji) = [solpar.x(strucObs.obs_array)];
-%     end
 end
 
 
