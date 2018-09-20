@@ -12,7 +12,12 @@ classdef WFObs_obj<handle
         %% Constructor function initializes default inputData
         function self = WFObs_obj( configName, WpOverwrite, dispOptions )         
             % Import libraries for WFObs & WFSim
-            run('WFObs_addpaths.m'); 
+            [WFObsPath, ~, ~] = fileparts(which('WFObs_obj.m')); % Get /bin/ path
+            addpath([WFObsPath '/../bin']);                         % Add /bin/ path
+            addpath([WFObsPath '/../configurations'])               % Add /configurations/ path
+            addpath([WFObsPath '/../setup_sensors'])                % Add /sensors/ paths
+            run(    [WFObsPath '/../WFSim/WFSim_addpaths.m'])       % Add /WFSim/ paths
+            clear WFObsPath
             
             if nargin < 3
                 % Necessary options for backwards compatibility

@@ -56,16 +56,16 @@ clear all; close all; clc;
 %% Settings for offline WFObs simulations with a LES database
 configName          = 'TORQUE_axi_2turb_alm_turb';
 
-scriptOptions.Animate = 10; % Animation frequency
-scriptOptions.plotContour    = 1;  % Show flow fields
-scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
-scriptOptions.powerForecast  = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
-scriptOptions.savePlots      = 0;  % Save all plots in external files at each time step
-scriptOptions.savePath       = ['results/tmp']; % Destination folder of saved files
+postProcOptions.Animate       = 1;  % Animation frequency
+postProcOptions.plotContour   = 1;  % Show flow fields
+postProcOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
+postProcOptions.powerForecast = 10; % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+postProcOptions.plotError     = 1;  % plot RMS and maximum error vs. time
+postProcOptions.savePlots     = 0;  % Save all plots in external files at each time step
+postProcOptions.savePath      = ['results/tmp']; % Destination folder of saved files
 
 measPw.enabled      = true;  % Boolean for using power measurements
-measPw.turbIds      = [1];   %[1 2] % Measurements from all turbines
+measPw.turbIds      = [1 2]; % Turbine ids from which measurements are taken
 measPw.noiseStd     = 2e4;   % Standard deviation noise added to measurement
 measPw.measStd      = 2e4;   % Standard deviation assumed by KF
 
@@ -75,8 +75,9 @@ measFlow.noiseStd   = 1e-1; % Standard deviation noise added to measurement
 measFlow.measStd    = 1e-1; % Standard deviation assumed by KF
 
 %% Initialize object
+addpath('bin'); % Add the main 'bin' folder
+addpath('offline_vis_tools'); % Add the postProcessing folder
 WFObj=WFObs_obj(configName); % See './configurations' for options
-addpath('bin/postProcessing'); % Add the postProcessing folder
 
 %% Preload LES measurement data and setup sensors
 LESData = load(WFObj.Wp.sim.measurementFile);
@@ -130,10 +131,13 @@ while WFObj.sol.k < WFObj.Wp.sim.NN
     WFObj.timestepping(inputData,measuredData);
     
     % Save reduced-size solution to an array
-    sol              = WFObj.sol;
-    sol.site         = WFObj.Wp.site; % Save site info too (contains model parameters that may be estimated)
+    sol = WFObj.sol;
+    flowError = [sol.v(:)-vec(LESData.v(sol.k,:,:));sol.u(:)-vec(LESData.u(sol.k,:,:))];
+    sol.score.RMSE_flow     = rms(flowError); % Total flow RMSE (m/s)
+    sol.score.maxError_flow = max(abs(flowError)); % Maximum error
+    sol.site = WFObj.Wp.site; % Save site info too (contains model parameters that may be estimated)
     sol_array(sol.k) = sol;
     
-    scriptOptions = mergeStruct(WFObj.scriptOptions,scriptOptions);
-    [ hFigs,scriptOptions ] = WFObs_s_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,scriptOptions,WFObj.strucObs,hFigs );
+    postProcOptions = mergeStruct(WFObj.scriptOptions,postProcOptions);
+    [ hFigs,postProcOptions ] = WFObs_p_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,postProcOptions,WFObj.strucObs,hFigs );
 end
