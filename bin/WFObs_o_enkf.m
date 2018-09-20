@@ -112,7 +112,7 @@ else
     end
     
     % Update localization function if necessary
-    if strucObs.measurementsChanged
+    if strucObs.measurementsTypeChanged
         disp('Measurements have changed. Updating localization functions...');
         strucObs = WFObs_o_enkf_localization( Wp,strucObs,sol.measuredData );
     end

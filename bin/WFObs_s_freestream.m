@@ -1,4 +1,4 @@
-function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
+function [ Wp,sol,sys ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 % WFOBS_S_FREESTREAM  Estimate the freestream conditions u_Inf and v_Inf
 %
 %   SUMMARY
@@ -30,7 +30,7 @@ function [ Wp,sol,sys,strucObs ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 kSkip = 20;
 if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period   
     % Import variables
-    input        = Wp.turbine.input(sol.k);
+    inputData    = sol.inputData;
     measuredData = sol.measuredData;
 
     wd = 270.; % wind direction in degrees. should actually be something like:
@@ -58,7 +58,7 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
         psc = Wp.turbine.powerscale; % Powerscale [-]
         Rho = Wp.site.Rho; % Air density [kg/m3]
         Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]
-        CTp  = [Wp.turbine.input(sol.k).CT_prime]; % CT' [-]
+        CTp  = [inputData.CT_prime]; % CT' [-]
 
         % Calculate U_Inf for each turbine
         U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*(([measuredData(measurementIdPowerUpstream).value]'...

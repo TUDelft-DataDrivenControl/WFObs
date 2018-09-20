@@ -56,26 +56,7 @@ clear all; close all; clc;
 %% Settings for offline WFObs simulations with a LES database
 configName          = 'TORQUE_axi_2turb_alm_turb';
 
-measPw.enabled      = true;  % Boolean for using power measurements
-measPw.turbIds      = [1];   %[1 2] % Measurements from all turbines
-measPw.noiseSigma   = 2e4;   % Standard deviation noise added to measurement
-measPw.sigma        = 2e4;   % Standard deviation
-
-measFlow.enabled    = true; % Boolean for using flow measurements
-measFlow.sensorFile = 'setup_sensors/sensors_2turb_alm.mat';
-measFlow.noiseSigma = 1e-1; % Standard deviation noise added to measurement
-measFlow.sigma      = 1e-1; % Standard deviation
-
-%% Initialize object
-WFObj=WFObs_obj(configName); % See './configurations' for options
-addpath('bin/postProcessing'); % Add the postProcessing folder
-
-%% Preload LES measurement data and setup sensors
-LESData      = load(WFObj.Wp.sim.measurementFile);
-
-%% Execute the WFObs core code
-hFigs = [];
-scriptOptions.Animate = 10;
+scriptOptions.Animate = 10; % Animation frequency
 scriptOptions.plotContour    = 1;  % Show flow fields
 scriptOptions.plotPower      = 1;  % Plot true and predicted power capture vs. time
 scriptOptions.powerForecast  = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
@@ -83,37 +64,61 @@ scriptOptions.plotError      = 0;  % plot RMS and maximum error vs. time
 scriptOptions.savePlots      = 0;  % Save all plots in external files at each time step
 scriptOptions.savePath       = ['results/tmp']; % Destination folder of saved files
 
+measPw.enabled      = true;  % Boolean for using power measurements
+measPw.turbIds      = [1];   %[1 2] % Measurements from all turbines
+measPw.noiseStd     = 2e4;   % Standard deviation noise added to measurement
+measPw.measStd      = 2e4;   % Standard deviation assumed by KF
+
+measFlow.enabled    = true; % Boolean for using flow measurements
+measFlow.sensorFile = 'setup_sensors/sensors_2turb_alm.mat';
+measFlow.noiseStd   = 1e-1; % Standard deviation noise added to measurement
+measFlow.measStd    = 1e-1; % Standard deviation assumed by KF
+
+%% Initialize object
+WFObj=WFObs_obj(configName); % See './configurations' for options
+addpath('bin/postProcessing'); % Add the postProcessing folder
+
+%% Preload LES measurement data and setup sensors
+LESData = load(WFObj.Wp.sim.measurementFile);
+
+%% Execute the WFObs core code
+hFigs = [];
+
 % Load sensor file (backwards compatibility, legacy format)
 if measFlow.enabled
     sensorInfo = load(measFlow.sensorFile);
 end
 
 while WFObj.sol.k < WFObj.Wp.sim.NN
-    % Load and format measurements from offline database
+    
+    % Load and format measurements from preloaded database
     measuredData = [];
     if measPw.enabled % Setup power measurements
         for i = 1:length(measPw.turbIds)
             measuredData(i).idx   = measPw.turbIds(i); % Turbine number
             measuredData(i).type  = 'P'; % Power measurement
             measuredData(i).value = LESData.turbData.power(WFObj.sol.k+1,...
-                            measPw.turbIds(i)) + measPw.noiseSigma*randn();
-            measuredData(i).std   = measPw.sigma; % Standard deviation in W
+                                    measPw.turbIds(i)) + measPw.noiseStd*randn(); % With artificial noise
+            measuredData(i).std   = measPw.measStd; % Standard deviation in W
         end
     end
+    
     if measFlow.enabled % Setup flow measurements
         for jT = [1 2] % jT=1 for 'u', jT=2 for 'v' measurements
             iOffset = length(measuredData);
             for i = 1:sensorInfo.sensors{jT}.N
                 measuredData(iOffset+i).idx = sensorInfo.sensors{jT}.loc(i,:); % Sensor location
-                measuredData(iOffset+i).std = measFlow.sigma; % Standard deviation in W
+                measuredData(iOffset+i).std = measFlow.measStd; % Standard deviation in W
                 if jT == 1
                     measuredData(iOffset+i).type  = 'u'; % Long. flow measurement
                     measuredData(iOffset+i).value = LESData.u(WFObj.sol.k+1, ...
-                        sensorInfo.sensors{1}.grid(i,1),sensorInfo.sensors{1}.grid(i,2));
+                        sensorInfo.sensors{1}.grid(i,1),sensorInfo.sensors{1}.grid(i,2)) + ...
+                        measFlow.noiseStd*randn(); % Plus artificial noise
                 elseif jT == 2
                     measuredData(iOffset+i).type  = 'v'; % Lat. flow measurement
                     measuredData(iOffset+i).value = LESData.v(WFObj.sol.k+1, ...
-                        sensorInfo.sensors{2}.grid(i,1),sensorInfo.sensors{2}.grid(i,2));
+                        sensorInfo.sensors{2}.grid(i,1),sensorInfo.sensors{2}.grid(i,2)) + ...
+                        measFlow.noiseStd*randn(); % Plus artificial noise
                 end
             end
         end
@@ -121,11 +126,12 @@ while WFObj.sol.k < WFObj.Wp.sim.NN
     end
     
     % Perform estimation
-    WFObj.timestepping(measuredData);
+    inputData = WFObj.Wp.turbine.input(WFObj.sol.k+1);
+    WFObj.timestepping(inputData,measuredData);
     
     % Save reduced-size solution to an array
     sol              = WFObj.sol;
-    sol.site         = WFObj.Wp.site; % Save site info too
+    sol.site         = WFObj.Wp.site; % Save site info too (contains model parameters that may be estimated)
     sol_array(sol.k) = sol;
     
     scriptOptions = mergeStruct(WFObj.scriptOptions,scriptOptions);

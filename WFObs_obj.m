@@ -7,26 +7,27 @@ classdef WFObs_obj<handle
         sys
         strucObs
         hFigs  
-        max_it
-        conv_eps
     end
     methods
         %% Constructor function initializes default inputData
-        function self = WFObs_obj( configName, WpOverwrite )         
+        function self = WFObs_obj( configName, WpOverwrite, dispOptions )         
             % Import libraries for WFObs & WFSim
             run('WFObs_addpaths.m'); 
             
-            % Necessary options for backwards compatibility
-            scriptOptions.printProgress     = 1;  % Print progress every timestep
-            scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
-            scriptOptions.plotMesh          = 0;  % Plot mesh at t=0
+            if nargin < 3
+                % Necessary options for backwards compatibility
+                scriptOptions.printProgress     = 1;  % Print progress every timestep
+                scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
+                scriptOptions.plotMesh          = 0;  % Plot mesh at t=0
+            else
+                scriptOptions.printProgress     = dispOptions.printProgress;    % Print progress every timestep
+                scriptOptions.printConvergence  = dispOptions.printConvergence; % Print convergence parameters every timestep
+                scriptOptions.plotMesh          = dispOptions.plotMesh; % Plot mesh at t=0
+            end
             
             % Initialize model and observer variables
             [Wp,sol,sys,strucObs,scriptOptions] = ...
                 WFObs_s_initialize(scriptOptions,configName);
-
-            max_it   = scriptOptions.max_it;    % Convergence constraints
-            conv_eps = scriptOptions.conv_eps;  % Convergence constraints
 
             % Overwrite variables if WpOverwrite is specified
             if exist('WpOverwrite','var')
@@ -44,14 +45,12 @@ classdef WFObs_obj<handle
             self.sol           = sol;
             self.sys           = sys;
             self.strucObs      = strucObs;
-            self.max_it        = max_it;
-            self.conv_eps      = conv_eps;
         end
         
         
         
         %% WFObs single execution
-        function [sol] = timestepping(self,measuredData)
+        function [sol] = timestepping(self,inputData,measuredData)
             timerCPU = tic; % Start iteration timer
             
             % Load from self
@@ -59,21 +58,20 @@ classdef WFObs_obj<handle
             Wp            = self.Wp;
             sol           = self.sol;
             sys           = self.sys;
-            strucObs      = self.strucObs;
-            max_it        = self.max_it;
-            conv_eps      = self.conv_eps;                     
+            strucObs      = self.strucObs;               
                         
             % Timestep forward
             sol.k    = sol.k + 1;           
-            sol.time = Wp.sim.time(sol.k+1);
+            sol.time = sol.time + Wp.sim.h;
 
             % Determine freestream inflow properties from SCADA data
+            sol.inputData    = inputData;
             sol.measuredData = measuredData;
-            [ Wp,sol,sys,strucObs ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
+            [ Wp,sol,sys ] = WFObs_s_freestream(Wp,sol,sys,strucObs);
 
-            % Determine if measurements changed
+            % Determine if measurements type changed: FOR FUTURE WORK
             if sol.k > 1
-                strucObs.measurementsChanged = ~(...
+                strucObs.measurementsTypeChanged = ~(...
                     strcmp([strucObs.measuredDataOld.type],[measuredData.type]) && ...
                     all([strucObs.measuredDataOld.idx] == [measuredData.idx]));
             end
