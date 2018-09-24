@@ -55,16 +55,18 @@ clear all; close all; clc;
 
 %% Settings for offline WFObs simulations with a LES database
 configName          = 'TORQUE_axi_2turb_alm_turb';
+WpOverwrite         = struct();
+WpOverwrite.site.lmu   = 3.0;
 
-postProcOptions.Animate       = 20;  % Animation frequency
+postProcOptions.Animate       = 10;  % Animation frequency
 postProcOptions.plotContour   = 1;  % Show flow fields
 postProcOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
-postProcOptions.powerForecast = 10; % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+postProcOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
 postProcOptions.plotError     = 1;  % plot RMS and maximum error vs. time
 postProcOptions.savePlots     = 0;  % Save all plots in external files at each time step
 postProcOptions.savePath      = ['results/tmp']; % Destination folder of saved files
 
-measPw.enabled      = false;  % Boolean for using power measurements
+measPw.enabled      = true;  % Boolean for using power measurements
 measPw.turbIds      = [1 2]; % Turbine ids from which measurements are taken
 measPw.noiseStd     = 2e4;   % Standard deviation noise added to measurement
 measPw.measStd      = 2e4;   % Standard deviation assumed by KF
@@ -77,7 +79,7 @@ measFlow.measStd    = 1e-1; % Standard deviation assumed by KF
 %% Initialize object
 addpath('bin'); % Add the main 'bin' folder
 addpath('offline_vis_tools'); % Add the postProcessing folder
-WFObj=WFObs_obj(configName); % See './configurations' for options
+WFObj=WFObs_obj(configName,WpOverwrite); % See './configurations' for options
 
 %% Preload LES measurement data and setup sensors
 LESData = load(WFObj.Wp.sim.measurementFile);
