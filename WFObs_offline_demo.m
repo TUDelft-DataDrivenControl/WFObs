@@ -53,44 +53,44 @@ clear all; close all; clc;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Settings for offline WFObs simulations with a LES database
-configName          = 'TORQUE_axi_2turb_alm_turb';
-WpOverwrite         = struct();
-WpOverwrite.site.lmu   = 3.0;
+%% Set-up WFSim model
+addpath('WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
+addpath('WFSim/controlDefinitions') % Make use of a predefined timeseries of control inputs
+addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
+Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
+modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
-postProcOptions.Animate       = 10;  % Animation frequency
-postProcOptions.plotContour   = 1;  % Show flow fields
-postProcOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
-postProcOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-postProcOptions.plotError     = 1;  % plot RMS and maximum error vs. time
-postProcOptions.savePlots     = 0;  % Save all plots in external files at each time step
-postProcOptions.savePath      = ['results/tmp']; % Destination folder of saved files
+%% Setup WFObs
+addpath('filterDefinitions') % Folder with predefined KF settings
+strucObs = filterSet_apc_9turb_alm_turb(); % Observer/KF settings
+turbInputSet = controlSet_sowfa_9turb_apc_alm_turbl(Wp); % Turbine input data
 
-measPw.enabled      = true;  % Boolean for using power measurements
-measPw.turbIds      = [1 2]; % Turbine ids from which measurements are taken
-measPw.noiseStd     = 2e4;   % Standard deviation noise added to measurement
-measPw.measStd      = 2e4;   % Standard deviation assumed by KF
 
-measFlow.enabled    = true; % Boolean for using flow measurements
-measFlow.sensorFile = 'setup_sensors/sensors_2turb_alm.mat';
-measFlow.noiseStd   = 1e-1; % Standard deviation noise added to measurement
-measFlow.measStd    = 1e-1; % Standard deviation assumed by KF
+% Script settings
+scriptOptions.printProgress = 1;
+scriptOptions.plotMesh     = 0;
+
+scriptOptions.Animate       = 10;  % Animation frequency
+scriptOptions.plotContour   = 1;  % Show flow fields
+scriptOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
+scriptOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
+scriptOptions.plotError     = 1;  % plot RMS and maximum error vs. time
+scriptOptions.savePlots     = 0;  % Save all plots in external files at each time step
+scriptOptions.savePath      = ['results/tmp']; % Destination folder of saved files
 
 %% Initialize object
 addpath('bin'); % Add the main 'bin' folder
 addpath('offline_vis_tools'); % Add the postProcessing folder
-WFObj=WFObs_obj(configName,WpOverwrite); % See './configurations' for options
+WFObj = WFObs_obj( Wp,modelOptions,strucObs,scriptOptions ); % See './configurations' for options
 
 %% Preload LES measurement data and setup sensors
-LESData = load(WFObj.Wp.sim.measurementFile);
+addpath('sensorDefinitions')
+[measPwOptions,measFlowOptions] = sensorSet_2turb_alm();
+LESData = load('');
+
 
 %% Execute the WFObs core code
 hFigs = [];
-
-% Load sensor file (backwards compatibility, legacy format)
-if measFlow.enabled
-    sensorInfo = load(measFlow.sensorFile);
-end
 
 while WFObj.sol.k < WFObj.Wp.sim.NN
     
@@ -140,6 +140,6 @@ while WFObj.sol.k < WFObj.Wp.sim.NN
     sol.site = WFObj.Wp.site; % Save site info too (contains model parameters that may be estimated)
     sol_array(sol.k) = sol;
     
-    postProcOptions = mergeStruct(WFObj.scriptOptions,postProcOptions);
-    [ hFigs,postProcOptions ] = WFObs_p_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,postProcOptions,WFObj.strucObs,hFigs );
+    scriptOptions = mergeStruct(WFObj.scriptOptions,scriptOptions);
+    [ hFigs,scriptOptions ] = WFObs_p_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,scriptOptions,WFObj.strucObs,hFigs );
 end

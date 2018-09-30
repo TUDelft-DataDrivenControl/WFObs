@@ -1,55 +1,39 @@
 classdef WFObs_obj<handle
     properties
-        configName
+        modelOptions
         scriptOptions
-        Wp
-        sol
-        sys
+        model
         strucObs
         hFigs  
     end
     methods
         %% Constructor function initializes default inputData
-        function self = WFObs_obj( configName, WpOverwrite, dispOptions )         
+        function self = WFObs_obj( Wp,modelOptions,strucObs,scriptOptions )         
             % Import libraries for WFObs & WFSim
             [WFObsPath, ~, ~] = fileparts(which('WFObs_obj.m')); % Get /bin/ path
             addpath([WFObsPath '/../bin']);                         % Add /bin/ path
-            addpath([WFObsPath '/../configurations'])               % Add /configurations/ path
             addpath([WFObsPath '/../setup_sensors'])                % Add /sensors/ paths
             run(    [WFObsPath '/../WFSim/WFSim_addpaths.m'])       % Add /WFSim/ paths
             clear WFObsPath
             
-            if nargin < 3
+            if nargin < 4
                 % Necessary options for backwards compatibility
-                scriptOptions.printProgress     = 1;  % Print progress every timestep
-                scriptOptions.printConvergence  = 0;  % Print convergence parameters every timestep
-                scriptOptions.plotMesh          = 0;  % Plot mesh at t=0
-            else
-                scriptOptions.printProgress     = dispOptions.printProgress;    % Print progress every timestep
-                scriptOptions.printConvergence  = dispOptions.printConvergence; % Print convergence parameters every timestep
-                scriptOptions.plotMesh          = dispOptions.plotMesh; % Plot mesh at t=0
-            end
+                scriptOptions.Animate       = 0; % No animations
+                scriptOptions.printProgress = 1; % Print progress every timestep
+                scriptOptions.plotMesh      = 0; % Plot mesh at t=0
+            end;
             
             % Initialize model and observer variables
-            [Wp,sol,sys,strucObs,scriptOptions] = ...
-                WFObs_s_initialize(scriptOptions,configName);
-
-            % Overwrite variables if WpOverwrite is specified
-            if exist('WpOverwrite','var')
-                if scriptOptions.printProgress
-                    disp([datestr(rem(now,1)) ' __  Overwriting variables in Wp...']);
-                end
-                Wp = mergeStruct(Wp,WpOverwrite);
-                [sys.B1,sys.B2,sys.bc] = Compute_B1_B2_bc(Wp); % Update boundary conditions
-            end
-            
+            [ Wp,sol,sys,strucObs ] = ...
+                WFObs_s_initialize( Wp, strucObs, modelOptions, scriptOptions );
+                       
             % Write to self
             self.scriptOptions = scriptOptions;
-            self.configName    = configName; % Configuration file path
-            self.Wp            = Wp;
-            self.sol           = sol;
-            self.sys           = sys;
-            self.strucObs      = strucObs;
+            self.model.modelOptions = modelOptions;
+            self.model.Wp = Wp;
+            self.model.sol = sol;
+            self.model.sys = sys;
+            self.strucObs = strucObs;
         end
         
         
@@ -60,9 +44,9 @@ classdef WFObs_obj<handle
             
             % Load from self
             scriptOptions = self.scriptOptions;
-            Wp            = self.Wp;
-            sol           = self.sol;
-            sys           = self.sys;
+            Wp            = self.model.Wp;
+            sol           = self.model.sol;
+            sys           = self.model.sys;
             strucObs      = self.strucObs;               
                         
             % Timestep forward
@@ -100,10 +84,10 @@ classdef WFObs_obj<handle
             end
         
             % Write to self
-            self.Wp            = Wp;
-            self.sol           = sol;
-            self.sys           = sys;
-            self.strucObs      = strucObs;
+            self.model.Wp  = Wp;
+            self.model.sol = sol;
+            self.model.sys = sys;
+            self.strucObs  = strucObs;
         end
 
         % Plot u and v flowfield of current solution
