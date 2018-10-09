@@ -1,4 +1,4 @@
-function [ hFigs,postProcOptions ] = WFObs_s_animations( Wp,sol_array,sys,LESData,measuredData,postProcOptions,strucObs,hFigs )
+function [ hFigs,postProcOptions ] = WFObs_p_animations( strucObs,model,sol_array,LESData,postProcOptions,hFigs )
 % WFOBS_S_ANIMATIONS  Show progress by plotting several figures
 %
 %   SUMMARY
@@ -37,7 +37,9 @@ function [ hFigs,postProcOptions ] = WFObs_s_animations( Wp,sol_array,sys,LESDat
 %
 
 % Import variables
-sol          = sol_array(end); 
+Wp = model.Wp;
+sol = model.sol;
+sys = model.sys;
 measuredData = sol.measuredData;
 
 % Produce figures
