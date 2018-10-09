@@ -1,4 +1,4 @@
-function [Wp,sol_out,strucObs] = WFObs_o_exkf(strucObs,Wp,sys_in,sol_in,options)
+function [strucObs,model] = WFObs_o_exkf(strucObs,model)
 % WFOBS_O_EXKF  Extended KF algorithm for recursive state estimation
 %
 %   SUMMARY
@@ -10,6 +10,13 @@ function [Wp,sol_out,strucObs] = WFObs_o_exkf(strucObs,Wp,sys_in,sol_in,options)
 %   RELEVANT INPUT/OUTPUT VARIABLES
 %      see 'WFObs_o.m' for the complete list.
 %
+
+% Setup variables
+Wp = model.Wp;
+sys_in = model.sys;
+sol_in = model.sol;
+options = model.modelOptions;
+turbInput = sol_in.turbInput;
 
 % Import measurement data variable
 measuredData = sol_in.measuredData;
@@ -56,7 +63,7 @@ end;
 % ExKF forecast update
 soltemp   = sol_in;
 soltemp.k = soltemp.k - 1;
-[solf,sysf]             = WFSim_timestepping( soltemp, sys_in, Wp, options );       % Forward propagation
+[solf,sysf]             = WFSim_timestepping( soltemp, sys_in, Wp, turbInput, options ); % Forward propagation
 Fk(sysf.pRCM,sysf.pRCM) = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Al(sysf.pRCM,sysf.pRCM); % Linearized A-matrix at time k
 Bk(sysf.pRCM,:)         = sysf.A(sysf.pRCM,sysf.pRCM)\sysf.Bl(sysf.pRCM,:);         % Linearized B-matrix at time k
 
@@ -78,5 +85,11 @@ strucObs.Pk = (eye(size(Pf))-Kgain*strucObs.Htt)*Pf;  % State covariance matrix
 
 % Export new solution from estimation
 [sol_out,~]  = MapSolution(Wp,sol_out,Inf,options); % Map solution to flowfields
-[~,sol_out]  = Actuator(Wp,sol_out,options);        % Recalculate power after analysis update
+
+% Recalculate power after analysis update
+sol_out.turbInput.dCT_prime = zeros(Wp.turbine.N,1);
+[~,sol_out]  = Actuator(Wp,sol_out,options); 
+
+% Export variables
+model.sol = sol_out;
 end

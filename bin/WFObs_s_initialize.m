@@ -1,4 +1,4 @@
-function [ Wp,sol,sys,strucObs ] = WFObs_s_initialize( Wp, strucObs, modelOptions, scriptOptions )
+function [ Wp,sol,sys,strucObs ] = WFObs_s_initialize( Wp, strucObs, modelOptions, verboseOptions )
 % WFOBS_S_INITIALIZE  Initialize the WFSim model and the estimator settings
 %
 %   SUMMARY
@@ -38,7 +38,7 @@ if strcmp(lower(strucObs.filtertype),'sim') == false
     end
 end
     
-if scriptOptions.printProgress
+if verboseOptions.printProgress
     disp(' WindFarmObserver (WFObs)');
     disp(' ');
 end
@@ -50,11 +50,11 @@ if strucObs.loadRandomSeed
     clear randomseed;
 end
 
-if scriptOptions.printProgress
+if verboseOptions.printProgress
     disp([datestr(rem(now,1)) ' __  Initializing simulation model.']);
 end;
 
-[Wp,sol,sys] = InitWFSim(Wp,modelOptions,scriptOptions.plotMesh); % Initialize model
+[Wp,sol,sys] = InitWFSim(Wp,modelOptions,verboseOptions.plotMesh); % Initialize model
 
 % Define what the system should predict (with or without pressures)
 strucObs.size_state = Wp.Nu + Wp.Nv + Wp.Np;
@@ -69,10 +69,7 @@ turbInput = struct('t',0,'CT_prime',2*ones(Wp.turbine.N,1),'phi',zeros(Wp.turbin
 [~, sysRCM] = WFSim_timestepping( sol, sys, Wp, turbInput, modelOptions );
 sys.pRCM    = sysRCM.pRCM;
 
-% scriptOptions.klen = length(num2str(Wp.sim.NN));        % used for proper spacing in cmd output window
-% scriptOptions.tlen = length(num2str(Wp.sim.time(end))); % length
-
-if scriptOptions.printProgress
+if verboseOptions.printProgress
     disp([datestr(rem(now,1)) ' __  Finished initialization sequence.']);
 end;
 end

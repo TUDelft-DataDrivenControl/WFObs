@@ -1,4 +1,4 @@
-function [ Wp,sol,sys ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
+function [ model ] = WFObs_s_freestream( strucObs,model )
 % WFOBS_S_FREESTREAM  Estimate the freestream conditions u_Inf and v_Inf
 %
 %   SUMMARY
@@ -27,10 +27,16 @@ function [ Wp,sol,sys ] = WFObs_s_freestream( Wp,sol,sys,strucObs )
 %       (temporary) files used for updates, such as covariance matrices,
 %       ensemble/sigma point sets, measurement noise, etc.
 %
+
+% Import variables
+Wp  = model.Wp;
+sol = model.sol;
+sys = model.sys;
+
 kSkip = 20;
 if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period   
     % Import variables
-    inputData    = sol.inputData;
+    turbInput    = sol.turbInput;
     measuredData = sol.measuredData;
 
     wd = 270.; % wind direction in degrees. should actually be something like:
@@ -58,7 +64,7 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
         psc = Wp.turbine.powerscale; % Powerscale [-]
         Rho = Wp.site.Rho; % Air density [kg/m3]
         Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]
-        CTp  = [inputData.CT_prime]; % CT' [-]
+        CTp  = [turbInput.CT_prime]; % CT' [-]
 
         % Calculate U_Inf for each turbine
         U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*(([measuredData(measurementIdPowerUpstream).value]'...
@@ -90,6 +96,11 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
         disp('WARNING: Trying to estimate freestream wind speed, but no measurements are available of upstream turbines.');
     end
 end
+
+% Export variables
+model.Wp  = Wp;
+model.sol = sol;
+model.sys = sys;
 
 
 function [ unwakedTurbines ] = findUnwakedTurbines( Wp, wd )

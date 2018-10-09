@@ -1,4 +1,4 @@
-function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)    
+function [strucObs,model] = WFObs_o_ukf(strucObs,model)   
 % WFOBS_O_UKF  Unscented KF algorithm for recursive state estimation
 %
 %   SUMMARY
@@ -11,6 +11,13 @@ function [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options)
 %   RELEVANT INPUT/OUTPUT VARIABLES
 %      see 'WFObs_o.m' for the complete list.
 %   
+
+%% Setup variables
+Wp  = model.Wp;
+sys = model.sys;
+sol = model.sol;
+options = model.modelOptions;
+turbInput = sol.turbInput;
 
 %% Initialization step of the Unscented KF (at k == 1)
 nrobs = length(sol.measuredData); % Number of observations
@@ -141,7 +148,7 @@ parfor(ji=1:strucObs.nrens)
 
     % Forward propagation
     solpar.k          = solpar.k - 1;
-    [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, options );
+    [ solpar,syspar ] = WFSim_timestepping( solpar, sys, Wppar, turbInput, options );
     
     xf = [];
     if strucObs.se.enabled 
@@ -202,15 +209,18 @@ if strucObs.pe.enabled
         Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = min(...
             strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),xSolAll(end-length(strucObs.pe.vars)+iT)));
     end
+    model.Wp = Wp; % Export variable
 end
 
 % Update states, either from estimation or through open-loop
 if strucObs.se.enabled
     sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
     [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
+    sol.turbInput.dCT_prime = zeros(Wp.turbine.N,1);
     [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
 else
     % Note: this is identical to 'sim' case in WFObs_o(..)
     sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
     [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
 end
+model.sol = sol; % Export variable

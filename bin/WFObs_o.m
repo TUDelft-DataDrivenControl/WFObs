@@ -1,4 +1,4 @@
-function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,options)
+function [ strucObs,model ] = WFObs_o(strucObs,model)
 % WFOBS_O  Header function to call the correct estimation function
 %
 %   SUMMARY
@@ -53,21 +53,18 @@ function [ Wp,sol,strucObs ] = WFObs_o(strucObs,Wp,sys,sol,options)
 switch lower(strucObs.filtertype)
     case 'exkf'
         % Extended Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_exkf(strucObs,Wp,sys,sol,options);
-    case 'smo'
-        % Sliding mode observer
-        [Wp,sol,strucObs] = WFObs_o_smo(strucObs,Wp,sys,sol,options);        
+        [strucObs,model] = WFObs_o_exkf(strucObs,model);   
     case 'enkf'
         % Ensemble Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options);
+        [strucObs,model] = WFObs_o_enkf(strucObs,model);
     case 'ukf'
         % Unscented Kalman filtering
-        [Wp,sol,strucObs] = WFObs_o_ukf( strucObs,Wp,sys,sol,options); 
+        [strucObs,model] = WFObs_o_ukf( strucObs,model); 
     case 'sim'
         % Open-loop simulations
-        sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
-        sol.time = Wp.sim.time(sol.k+1);% Timestep backward
-        [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
+        model.sol.k    = model.sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
+        model.sol.time = model.sol.time - model.Wp.sim.h;% Timestep backward (since below function automatically increases time again)
+        [model.sol,~]  = WFSim_timestepping(model.sol,model.sys,model.Wp,model.sol.turbInput,model.modelOptions);
     otherwise
         error('not a valid filter specified.');
 end;
