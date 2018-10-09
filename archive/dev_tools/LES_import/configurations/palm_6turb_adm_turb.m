@@ -31,5 +31,5 @@ meshSetup.distance_S  = 250 ; % distance (m) upwind   first  turbine to export
 meshSetup.distance_N  = 250;  % distance (m) downwind  last  turbine to export
 meshSetup.distance_W  = 150 ; % distance (m) west most left  turbine (from hub) to export
 meshSetup.distance_E  = 150 ; % distance (m) east most right turbine (from hub) to export
-meshSetup.Nx          = 100;   % Number of grid points in x-direction (-)
+meshSetup.Nx          = 100;  % Number of grid points in x-direction (-)
 meshSetup.Ny          = 50;   % Number of grid points in y-direction (-)
