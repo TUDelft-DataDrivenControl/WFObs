@@ -3,3 +3,4 @@
 
 # Add exclusions for:
 !.gitignore
+!*.url
