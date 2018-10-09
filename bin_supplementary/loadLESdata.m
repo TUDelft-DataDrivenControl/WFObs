@@ -10,7 +10,7 @@ function [LESData] = loadLESdata(fileLocation)
     LESData.PwrInterpolant = @(currentTime) LinearPwrInterpolation(currentTime, LESData);
     
     function PowerOut = LinearPwrInterpolation(currentTime,LESData)
-        timeIndex = interp1(LESData.turb.rawData.time,1:length(LESData.turb.rawData.time),currentTime,'nearest','none');
+        timeIndex = interp1(LESData.turb.rawData.time,1:length(LESData.turb.rawData.time),currentTime,'nearest');
         PowerOut = LESData.turb.rawData.power(timeIndex,:);
     end
 end
