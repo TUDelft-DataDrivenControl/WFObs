@@ -55,91 +55,46 @@ clear all; close all; clc;
 
 %% Set-up WFSim model
 addpath('WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
-addpath('WFSim/controlDefinitions') % Make use of a predefined timeseries of control inputs
+Wp = layoutSet_sowfa_2turb_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
 addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
-Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
 modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
-%% Setup WFObs
+%% Setup KF settings
 addpath('filterDefinitions') % Folder with predefined KF settings
-strucObs = filterSet_apc_9turb_alm_turb(); % Observer/KF settings
-turbInputSet = controlSet_sowfa_9turb_apc_alm_turbl(Wp); % Turbine input data
-
-
-% Script settings
-scriptOptions.printProgress = 1;
-scriptOptions.plotMesh     = 0;
-
-scriptOptions.Animate       = 10;  % Animation frequency
-scriptOptions.plotContour   = 1;  % Show flow fields
-scriptOptions.plotPower     = 1;  % Plot true and predicted power capture vs. time
-scriptOptions.powerForecast = 0;  % Plot power forecast (0 = disabled, x = number of steps) (only if plotPower = 1)
-scriptOptions.plotError     = 1;  % plot RMS and maximum error vs. time
-scriptOptions.savePlots     = 0;  % Save all plots in external files at each time step
-scriptOptions.savePath      = ['results/tmp']; % Destination folder of saved files
-
-%% Initialize object
-addpath('bin'); % Add the main 'bin' folder
-addpath('offline_vis_tools'); % Add the postProcessing folder
-WFObj = WFObs_obj( Wp,modelOptions,strucObs,scriptOptions ); % See './configurations' for options
+strucObs = filterSet_WES2018(); % Observer/KF settings
 
 %% Preload LES measurement data and setup sensors
 addpath('sensorDefinitions')
-[measPwOptions,measFlowOptions] = sensorSet_2turb_alm();
-LESData = load('');
+measOptions = sensorSet_flow_upstream(Wp);
+LESDataFile = 'data_LES/2turb_alm_turb.mat';
+               
+% External animations for this script specifically
+scriptOptions.Animate     = 2; % Animation frequency
+scriptOptions.plotContour = 0;  % Show flow fields
+scriptOptions.plotPower   = 1;  % Plot true and predicted power capture vs. time
+scriptOptions.plotError   = 1;  % plot RMS and maximum error vs. time
+scriptOptions.savePlots   = 0;  % Save all plots in external files at each time step
+scriptOptions.savePath    = ['results/tmp']; % Destination folder of saved files
+
+
+%% Initialize object
+addpath('bin','bin_supplementary'); % Add the main 'bin' folder and the postProcessing folder
+WFObj = WFObs_obj( Wp,modelOptions,strucObs ); % Initialize WFObj object
 
 
 %% Execute the WFObs core code
 hFigs = [];
+LESData = loadLESdata(LESDataFile); % Load pregenerated LES data
+while WFObj.model.sol.time < LESData.flow.time(end) % While measurements available
 
-while WFObj.sol.k < WFObj.Wp.sim.NN
-    
-    % Load and format measurements from preloaded database
-    measuredData = [];
-    if measPw.enabled % Setup power measurements
-        for i = 1:length(measPw.turbIds)
-            measuredData(i).idx   = measPw.turbIds(i); % Turbine number
-            measuredData(i).type  = 'P'; % Power measurement
-            measuredData(i).value = LESData.turbData.power(WFObj.sol.k+1,...
-                                    measPw.turbIds(i)) + measPw.noiseStd*randn(); % With artificial noise
-            measuredData(i).std   = measPw.measStd; % Standard deviation in W
-        end
-    end
-    
-    if measFlow.enabled % Setup flow measurements
-        for jT = [1 2] % jT=1 for 'u', jT=2 for 'v' measurements
-            iOffset = length(measuredData);
-            for i = 1:sensorInfo.sensors{jT}.N
-                measuredData(iOffset+i).idx = sensorInfo.sensors{jT}.loc(i,:); % Sensor location
-                measuredData(iOffset+i).std = measFlow.measStd; % Standard deviation in W
-                if jT == 1
-                    measuredData(iOffset+i).type  = 'u'; % Long. flow measurement
-                    measuredData(iOffset+i).value = LESData.u(WFObj.sol.k+1, ...
-                        sensorInfo.sensors{1}.grid(i,1),sensorInfo.sensors{1}.grid(i,2)) + ...
-                        measFlow.noiseStd*randn(); % Plus artificial noise
-                elseif jT == 2
-                    measuredData(iOffset+i).type  = 'v'; % Lat. flow measurement
-                    measuredData(iOffset+i).value = LESData.v(WFObj.sol.k+1, ...
-                        sensorInfo.sensors{2}.grid(i,1),sensorInfo.sensors{2}.grid(i,2)) + ...
-                        measFlow.noiseStd*randn(); % Plus artificial noise
-                end
-            end
-        end
-        clear iOffset
-    end
+    % Grab turbine inputs and measurements from preloaded LES database (legacy format)
+    currentTime = WFObj.model.sol.time;
+    [inputData,measuredData] = getDataLES_LegacyFormat(LESData,measOptions,currentTime);
     
     % Perform estimation
-    inputData = WFObj.Wp.turbine.input(WFObj.sol.k+1);
-    WFObj.timestepping(inputData,measuredData);
+    sol = WFObj.timestepping(inputData,measuredData);
     
-    % Save reduced-size solution to an array
-    sol = WFObj.sol;
-    flowError = [sol.v(:)-vec(LESData.v(sol.k,:,:));sol.u(:)-vec(LESData.u(sol.k,:,:))];
-    sol.score.RMSE_flow     = rms(flowError); % Total flow RMSE (m/s)
-    sol.score.maxError_flow = max(abs(flowError)); % Maximum error
-    sol.site = WFObj.Wp.site; % Save site info too (contains model parameters that may be estimated)
-    sol_array(sol.k) = sol;
-    
-    scriptOptions = mergeStruct(WFObj.scriptOptions,scriptOptions);
-    [ hFigs,scriptOptions ] = WFObs_p_animations( WFObj.Wp,sol_array,WFObj.sys,LESData,measuredData,scriptOptions,WFObj.strucObs,hFigs );
+    % Post-processing
+    sol_array(sol.k) = cleanupSolStruct(WFObj.model,LESData); % Save reduced-size solution to an array
+    [ hFigs,scriptOptions ] = WFObs_p_animations( WFObj.strucObs,WFObj.model,sol_array,LESData,scriptOptions,hFigs ); % Create figures
 end
