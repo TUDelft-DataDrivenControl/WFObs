@@ -2,7 +2,7 @@ function [sol_out] = formatSol(model,sol_true)
     sol_in = model.sol;
     Wp = model.Wp;
     
-    flowError = [sol_in.v(:)-sol_true.v; sol_in.u(:)-sol_true.u];
+    flowError = [sol_in.v(:)-sol_true.v(:); sol_in.u(:)-sol_true.u(:)];
     
     sol_out = struct(...
         'k',sol_in.k,...
