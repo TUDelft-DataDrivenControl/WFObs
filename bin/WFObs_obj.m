@@ -3,7 +3,7 @@ classdef WFObs_obj<handle
         verboseOptions
         model
         strucObs
-        hFigs  
+        hFig
     end
     methods
         %% Constructor function initializes default inputData
@@ -16,7 +16,6 @@ classdef WFObs_obj<handle
             
             if nargin < 4
                 % Necessary options for backwards compatibility
-                verboseOptions.Animate       = 0; % No animations
                 verboseOptions.printProgress = 1; % Print progress every timestep
                 verboseOptions.plotMesh      = 0; % Plot mesh at t=0
             end;
@@ -32,6 +31,7 @@ classdef WFObs_obj<handle
             self.model.sol = sol;
             self.model.sys = sys;
             self.strucObs = strucObs;
+            self.hFig = {};
         end
         
         
@@ -79,7 +79,7 @@ classdef WFObs_obj<handle
                     end
                 end
             end
-        
+                    
             % Write to self
             self.model = model;
             self.strucObs  = strucObs;
@@ -91,7 +91,7 @@ classdef WFObs_obj<handle
 
         % Plot u and v flowfield of current solution
         function [] = visualize(self)
-            WFObs_s_plotContours(self.Wp,self.sol);
+            [self.hFig] = WFObs_s_plotContours(self.model.Wp, self.model.sol, self.hFig);
             drawnow();
         end
     end

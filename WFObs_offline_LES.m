@@ -69,10 +69,10 @@ measOptions = sensorSet_power_only(Wp);
 LESDataFile = 'data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat';
                
 % External animations for this script specifically
-scriptOptions.Animate     = 10; % Animation frequency
+scriptOptions.Animate     = 5; % Animation frequency
 scriptOptions.plotContour = 1;  % Show flow fields
 scriptOptions.plotPower   = 1;  % Plot true and predicted power capture vs. time
-scriptOptions.plotError   = 1;  % plot RMS and maximum error vs. time
+scriptOptions.plotError   = 0;  % plot RMS and maximum error vs. time
 scriptOptions.savePlots   = 0;  % Save all plots in external files at each time step
 scriptOptions.savePath    = ['results/tmp']; % Destination folder of saved files
 
@@ -94,6 +94,13 @@ while WFObj.model.sol.time < LESData.flow.time(end) % While measurements availab
     sol = WFObj.timestepping(inputData,measuredData);
     
     % Post-processing
-    sol_array(sol.k) = cleanupSolStruct(WFObj.model,LESData); % Save reduced-size solution to an array
-    [ hFigs,scriptOptions ] = WFObs_p_animations( WFObj.strucObs,WFObj.model,sol_array,LESData,scriptOptions,hFigs ); % Create figures
+    solTrue = struct(...
+        'u',LESData.uInterpolant(sol.time*ones(size(WFObj.model.Wp.mesh.ldxx2(:))),...
+                                WFObj.model.Wp.mesh.ldxx2(:),WFObj.model.Wp.mesh.ldyy(:)),...
+        'v',LESData.vInterpolant(sol.time*ones(size(WFObj.model.Wp.mesh.ldxx(:))),...
+                                WFObj.model.Wp.mesh.ldxx(:),WFObj.model.Wp.mesh.ldyy2(:)),...
+        'P',LESData.PwrInterpolant(currentTime)' );
+    
+    sol_array(sol.k) = formatSol(WFObj.model,solTrue); % Save reduced-size solution to an array
+    [ hFigs,scriptOptions ] = WFObs_p_animations( WFObj.strucObs,WFObj.model.Wp,sol_array,scriptOptions,hFigs ); % Create figures
 end
