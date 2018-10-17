@@ -19,13 +19,44 @@
 %
 
 % Setup zeroMQ server
+addpath('bin','bin_supplementary/online_zmq')
 zmqServer = zeromqObj('/home/bmdoekemeijer/OpenFOAM/zeroMQ/jeromq-0.4.4-SNAPSHOT.jar',5553,300,true);
 
 % Setup WFSim
-addpath('WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
-Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
+Wp = struct('description','9 NREL 5MW turbines SSC demo case');
+Wp.sim = struct(...
+    'h',1.0,... % timestep (s)
+    'startUniform',true ... % Start from a uniform flow field (T) or from a fully developed waked flow field (F).
+    );
+Wp.turbine = struct(...
+    'Crx',[468   1100  1732   468 1100 1732  468    1100   1732],... % X-coordinates of turbines (m)
+    'Cry',[320.8 320.8 320.8  700 700  700   1079.2 1079.2 1079.2],... % Y-coordinates of turbines (m)
+    'Drotor',126,... % Rotor diameter (m), note that WFSim only supports a uniform Drotor for now
+    'powerscale',0.97,... % Turbine power scaling
+    'forcescale',2.0 ... % Turbine force scaling
+    );
+Wp.site = struct(...
+    'u_Inf',12.0214,... % Initial long. wind speed in m/s
+    'v_Inf',0.0,... % Initial lat. wind speed in m/s
+    'p_init',0.0,... % Initial values for pressure terms (Pa)
+    'turbul',true,... % Use mixing length turbulence model (true/false)
+    'turbModel','WFSim3',...  % Turbulence model of choice
+    'lmu',4.0,... %1.20,... % Mixing length in x-direction (m)
+    'm',7,... % Turbulence model gridding property
+    'n',1,... % Turbulence model gridding property
+    'mu',0.0,... % Dynamic flow viscosity
+    'Rho',1.20 ... % Air density
+    );
+Wp.mesh = struct(...
+    'gridType','lin',... % Grid type ('lin' the only supported one currently)
+    'Lx',2400,... % Domain length in x-direction
+    'Ly',1400,... % Domain length in y-direction
+    'Nx',80,... % Number of cells in x-direction
+    'Ny',42 ... % Number of cells in y-direction
+    );
+    
 addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
-modelOptions = solverSet_default(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
+modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
 % Setup EnKF
 addpath('filterDefinitions') % Folder with predefined KF settings
@@ -34,8 +65,7 @@ addpath('sensorDefinitions') % Folder with sensor settings
 measOptions = sensorSet_power_only(Wp); % Measurement options
 
 % Initialize WFObs object
-addpath('bin','bin_supplementary/online_zmq')
-WFObj = WFObs_obj( Wp,modelOptions,strucObs ); % Initialize WFObj object
+WFObj = WFObs_obj( Wp,modelOptions,strucObs );
 
 % Initial control settings
 nTurbs = length(Wp.turbine.Crx);
