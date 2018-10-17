@@ -13,12 +13,9 @@ end
 % Plot figure, if applicable
 if postProcOptions.plotPower
     % Format all power predictions and measurements as a vector
-    %[pwLES,pwWFSim] = deal(zeros(Wp.turbine.N,length(sol_array)));
-    solArrayTurb = [sol_array.turbine];
-    pwWFSim      = [solArrayTurb.power];
-    timeWFSim    = [sol_array.time];
-    timeLES      = [LESData.turb.rawData.time];
-    pwLES        = LESData.turb.rawData.power';
+    time    = [sol_array.time];
+    pwWFSim = [sol_array.PEst];
+    pwLES   = [sol_array.PTrue];
     
     % if postProcOptions.powerForecast > 0
     %     disp(['Forecasting currently disabled. This is especially difficult since' ...
@@ -52,8 +49,8 @@ if postProcOptions.plotPower
     subplotDim = numSubplots(Wp.turbine.N); % Determine optimal layout for subplots
     for j = 1:Wp.turbine.N
         subplot(subplotDim(1),subplotDim(2),j);
-        plot(timeLES,pwLES(j,:),'k-','lineWidth',0.25,'DisplayName', ['LES']); hold on
-        plot(timeWFSim,pwWFSim(j,:),'-','lineWidth',1.0,'DisplayName', ['WFObs: ' strucObs.filtertype]); hold on;
+        plot(time,pwLES(j,:),'k-','lineWidth',0.25,'DisplayName', ['LES']); hold on
+        plot(time,pwWFSim(j,:),'-','lineWidth',1.0,'DisplayName', ['WFObs: ' strucObs.filtertype]); hold on;
         %     if postProcOptions.powerForecast > 0 && length(timeFC) > 0
         %         plot(timeFC,pwFC(j,:),'-','lineWidth',0.75,'DisplayName',['WFObs: ' strucObs.filtertype ' (FC)']); hold on;
         %     end

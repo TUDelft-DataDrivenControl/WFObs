@@ -13,12 +13,10 @@ end
 
 if postProcOptions.plotError
     % Format all error scores as a vector
-    [RMSE,maxError] = deal(zeros(1,length(sol_array)));
-    for jt = 1:length(sol_array)
-        time(jt)     = sol_array(jt).time;
-        RMSE(jt)     = sol_array(jt).score.RMSE_flow;
-        maxError(jt) = sol_array(jt).score.maxError_flow;
-    end;
+    time     = [sol_array.time];
+    RMSE     = [sol_array.RMSE_flow];
+    maxError = [sol_array.maxError_flow];
+    
     % Plot results
     set(0,'CurrentFigure',hFigs{3}); clf;
     plot(time,maxError,'DisplayName','Max. error (m/s)'); hold on;

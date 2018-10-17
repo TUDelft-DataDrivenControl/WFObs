@@ -15,10 +15,8 @@ end
 % Plot figure, if applicable
 if postProcOptions.plotContour
     % u velocity component
-    LES_sol.u = LESData.uInterpolant(sol.time*ones(size(Wp.mesh.ldxx2(:))),Wp.mesh.ldxx2(:),Wp.mesh.ldyy(:));
-    LES_sol.u = reshape(LES_sol.u,size(sol.u));
     data{1} = struct('x',Wp.mesh.ldyy, 'y',Wp.mesh.ldxx2,...
-        'zEst',sol.u,'zTrue',LES_sol.u,...
+        'zEst',sol.uEst,'zTrue',sol.uTrue,...
         'zLims',[0 14],'zErrLims',[0 3],...
         'title','u');
     
@@ -36,9 +34,9 @@ if postProcOptions.plotContour
     
     % Check which measurements were used and format to fields
     measInfo = struct('P',[],'u',[],'v',[]);
-    for j = 1:length(measuredData)
-        measInfo.(measuredData(j).type) = [measInfo.(measuredData(j).type);...
-            measuredData(j).idx];
+    for j = 1:length(sol.measuredData)
+        measInfo.(sol.measuredData(j).type) = [measInfo.(sol.measuredData(j).type);...
+                                               sol.measuredData(j).idx];
     end
     
     % Plot u on 1st row (and optionally v on 2nd row)
