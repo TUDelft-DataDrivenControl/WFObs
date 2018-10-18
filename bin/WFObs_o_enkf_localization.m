@@ -1,4 +1,4 @@
-function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
+function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs,measuredData )
 % WFOBS_O_ENKF_LOCALIZATION  Localization function for the EnKF
 %
 %   SUMMARY
@@ -45,40 +45,39 @@ function [ strucObs ] = WFObs_o_enkf_localization( Wp,strucObs )
     end
 
 if strcmp(lower(strucObs.f_locl),'off')
-    strucObs.auto_corrfactor = ones(strucObs.M,strucObs.M);
+    strucObs.auto_corrfactor = ones(length(measuredData),length(measuredData));
     if strucObs.pe.enabled
-        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);%/strucObs.M;
+        strucObs.cross_corrfactor = ones(strucObs.L,length(measuredData));%/strucObs.M;
     else
-        strucObs.cross_corrfactor = ones(strucObs.L,strucObs.M);
+        strucObs.cross_corrfactor = ones(strucObs.L,length(measuredData));
     end
 else
     disp([datestr(rem(now,1)) ' __  Calculating localization matrices. This may take a while for larger meshes...']);
     rho_locl = struct; % initialize empty structure
     
     % Generate the locations of all model flow states
-    if strucObs.se.enabled || strucObs.measFlow
-        stateLocArray = zeros(strucObs.size_output,2);
-        for iii = 1:strucObs.size_output
-            [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
-            stateLocArray(iii,:) = [loci.x, loci.y];
-        end
+    stateLocArray = zeros(strucObs.size_output,2);
+    for iii = 1:strucObs.size_output
+        [~,loci,~]           = WFObs_s_sensors_nr2grid(iii,Wp.mesh);
+        stateLocArray(iii,:) = [loci.x, loci.y];
     end
     
     % Generate the locations of all turbines
-    if strucObs.pe.enabled || strucObs.measPw
-        turbLocArray = zeros(Wp.turbine.N,2);
-        for iii = 1:Wp.turbine.N
-            turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
-        end
+    turbLocArray = zeros(Wp.turbine.N,2);
+    for iii = 1:Wp.turbine.N
+        turbLocArray(iii,:) = [Wp.turbine.Crx(iii),Wp.turbine.Cry(iii)];
     end
     
     % Generate the locations of all outputs
     outputLocArray = [];
-    if strucObs.measFlow
-        outputLocArray = [outputLocArray; stateLocArray(strucObs.obs_array,:)];
-    end
-    if strucObs.measPw
-        outputLocArray = [outputLocArray; turbLocArray];
+    for i = 1:length(measuredData)
+        if strcmp(measuredData(i).type,'P')
+            outputLocArray = [outputLocArray; turbLocArray(measuredData(i).idx,:)];
+        elseif strcmp(measuredData(i).type,'u') || strcmp(measuredData(i).type,'v')
+            outputLocArray = [outputLocArray; measuredData(i).idx];
+        else
+            error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
+        end
     end
      
 %     %%%%% ---- %%%%%%%%%%%%%%%%%%%%    
@@ -99,10 +98,10 @@ else
     
     % First calculate the cross-correlation between output and states
     if strucObs.se.enabled
-        rho_locl.cross = sparse(strucObs.size_output,strucObs.M);
-        for iii = 1:strucObs.size_output % Loop over all default states
+        rho_locl.cross = sparse(length(stateLocArray),size(outputLocArray,1));
+        for iii = 1:length(stateLocArray) % Loop over all default states
             loc1 = stateLocArray(iii,:);
-            for jjj = 1:strucObs.M % Loop over all measurements
+            for jjj = 1:size(outputLocArray,1) % Loop over all measurements
                 loc2 = outputLocArray(jjj,:);
                 dx = sqrt(sum((loc1-loc2).^2)); % displacement between state and output
                 rho_locl.cross(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -120,7 +119,7 @@ else
                 crossmat_temp = [];
                 for iturb = 1:Wp.turbine.N
                     loc1 = turbLocArray(iturb,:);
-                    for jjj = 1:strucObs.M
+                    for jjj = 1:size(outputLocArray,1)
                         loc2 = outputLocArray(jjj,:);
                         dx = sqrt(sum((loc1-loc2).^2)); % displacement between turbine and output
                         crossmat_temp(iturb,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
@@ -131,7 +130,7 @@ else
 
             elseif strcmp(strucObs.pe.subStruct{iT},'site') % Correlated with everything in the field equally
 %                 rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)];
-                rho_locl.cross = [rho_locl.cross; ones(1,strucObs.M)/strucObs.M]; % Normalized to reduce sensitivity
+                rho_locl.cross = [rho_locl.cross; ones(1,size(outputLocArray,1))/size(outputLocArray,1)]; % Normalized to reduce sensitivity
 
             else
                 disp(['No rules have been set for localization for the online adaption of ' strucObs.pe.vars{iT} '.'])
@@ -142,9 +141,9 @@ else
     
     % Secondly, calculate the autocorrelation of output
     rho_locl.auto = sparse(size(outputLocArray,1),size(outputLocArray,1));
-    for(iii = 1:size(outputLocArray,1)) % for each output
+    for iii = 1:size(outputLocArray,1) % for each output
         loc1 = outputLocArray(iii,:);
-        for jjj = 1:strucObs.M % for each output
+        for jjj = 1:size(outputLocArray,1) % for each output
             loc2 = outputLocArray(jjj,:);
             dx = sqrt(sum((loc1-loc2).^2));
             rho_locl.auto(iii,jjj) = localizationGain( dx, strucObs.f_locl, strucObs.l_locl );
