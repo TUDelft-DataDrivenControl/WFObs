@@ -1,9 +1,6 @@
 [submodule "WFSim"]
 	path = WFSim
 	url = https://github.com/Bartdoekemeijer/WFSim
-[submodule "bin_supplementary/online"]
-	path = bin_supplementary/online
-	url = https://github.com/TUDelft-DataDrivenControl/zeromqObjMATLAB
 [submodule "bin_supplementary/online_zmq"]
 	path = bin_supplementary/online_zmq
 	url = https://github.com/TUDelft-DataDrivenControl/zeromqObjMATLAB
