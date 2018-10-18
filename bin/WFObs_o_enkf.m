@@ -1,4 +1,4 @@
-function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)     
+function [strucObs,model] = WFObs_o_enkf(strucObs,model)     
 % WFOBS_O_ENKF  Ensemble KF algorithm for recursive state estimation
 %
 %   SUMMARY
@@ -12,7 +12,16 @@ function [Wp,sol,strucObs] = WFObs_o_enkf(strucObs,Wp,sys,sol,options)
 %      see 'WFObs_o.m' for the complete list.
 %    
 
+% Setup variables
+Wp  = model.Wp;
+sys = model.sys;
+sol = model.sol;
+options = model.modelOptions;
+turbInput = sol.turbInput;
+
 %% Initialization step of the Ensemble KF (at k == 1)
+nrobs = length(sol.measuredData); % Number of observations
+
 if sol.k==1    
     % Initialize state vector
     sol.x = [vec(sol.u(3:end-1,2:end-1)'); vec(sol.v(2:end-1,3:end-1)')];
@@ -75,27 +84,20 @@ if sol.k==1
     end
 
     strucObs.L        = length(x0); % Number of elements in each particle
-    strucObs.nrobs    = length(strucObs.obs_array); % number of state measurements
-    strucObs.M        = strucObs.nrobs+strucObs.measPw*Wp.turbine.N; % total length of measurements
+%     strucObs.nrobs    = length(strucObs.obs_array); % number of state measurements
+%     strucObs.M        = nrobs;      % total length of measurements
     strucObs.initdist = initdist;   % Initial distribution of particles
     
     % Calculate initial particle distribution
     strucObs.Aen = repmat(x0,1,strucObs.nrens) + initdist; % Initial ensemble
     
     % Determine output noise generator
-    if strucObs.measFlow
-        R_standard_devs = sqrt([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
-        strucObs.RNoiseGen = @() repmat(R_standard_devs(strucObs.obs_array,1),1,strucObs.nrens).*randn(strucObs.nrobs,strucObs.nrens);
-    else
-        strucObs.RNoiseGen = [];
-    end
-    if strucObs.measPw
-        strucObs.RNoiseGen = @() [strucObs.RNoiseGen();...
-                                  sqrt(strucObs.se.Rk.P)*randn(Wp.turbine.N,strucObs.nrens)];
-    end
+%         R_standard_devs = sqrt([repmat(strucObs.se.Rk.u,Wp.Nu,1); repmat(strucObs.se.Rk.v,Wp.Nv,1)]);
+    R_standard_devs    = [sol.measuredData.std]';
+    strucObs.RNoiseGen = @() repmat(R_standard_devs,1,strucObs.nrens).*randn(nrobs,strucObs.nrens);
 
     % Calculate localization (and inflation) auto-corr. and cross-corr. matrices
-    strucObs = WFObs_o_enkf_localization( Wp,strucObs );
+    strucObs = WFObs_o_enkf_localization( Wp,strucObs,sol.measuredData );
 
     % Save old inflow settings
     if strucObs.se.enabled
@@ -115,12 +117,18 @@ else
         strucObs.inflowOld.u_Inf = Wp.site.u_Inf;
         strucObs.inflowOld.v_Inf = Wp.site.v_Inf;
     end
+    
+    % Update localization function if necessary
+    if strucObs.measurementsTypeChanged
+        disp('Measurements have changed. Updating localization functions...');
+        strucObs = WFObs_o_enkf_localization( Wp,strucObs,sol.measuredData );
+    end
 end
 
 
 %% Parallelized solving of the forward propagation step in the EnKF
 Aenf  = zeros(strucObs.L,strucObs.nrens);  % Initialize empty forecast matrix
-Yenf  = zeros(strucObs.M,strucObs.nrens);  % Initialize empty output matrix
+Yenf  = zeros(nrobs,strucObs.nrens);  % Initialize empty output matrix
 
 tuneParam_tmp = zeros(length(strucObs.pe.vars),1);
 parfor(ji=1:strucObs.nrens)
@@ -152,17 +160,21 @@ parfor(ji=1:strucObs.nrens)
 
     % Forward propagation
     solpar.k   = solpar.k - 1;
-    [solpar,~] = WFSim_timestepping( solpar, syspar, Wppar, options );
+    [solpar,~] = WFSim_timestepping( solpar, syspar, Wppar, turbInput, options );
     
     % Add process noise to model states and/or model parameters
     if strucObs.se.enabled
         FState = strucObs.FStateGen(); % Use generator to determine noise
         xf = solpar.x(1:strucObs.size_output); % Forecasted particle state
         xf = xf + FState;
-        yf = xf(strucObs.obs_array);
+        
+        % Process noise back into appropriate format
+        solpar.u(3:end-1,2:end-1) = reshape(xf(1:(Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)),Wp.mesh.Ny-2,Wp.mesh.Nx-3)';
+        solpar.v(2:end-1,3:end-1) = reshape(xf((Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)+1:(Wp.mesh.Nx-3)*(Wp.mesh.Ny-2)+(Wp.mesh.Nx-2)*(Wp.mesh.Ny-3)),Wp.mesh.Ny-3,Wp.mesh.Nx-2)';        
+%         yf = xf(strucObs.obs_array);
     else
         xf = [];
-        yf = solpar.x(strucObs.obs_array);
+%         yf = solpar.x(strucObs.obs_array);
     end
     if strucObs.pe.enabled
         FParam = strucObs.FParamGen(); % Use generator to determine noise
@@ -173,20 +185,29 @@ parfor(ji=1:strucObs.nrens)
     Aenf(:,ji) = xf; 
     
     % Calculate output vector
-    if strucObs.measPw
-        Yenf(:,ji) = [yf; solpar.turbine.power];
-    else
-        Yenf(:,ji) = [yf];
+    yf = [];
+    flowInterpolant_u = griddedInterpolant(Wp.mesh.ldyy',Wp.mesh.ldxx2',solpar.u','linear');
+%     flowInterpolant.u.Values = sol.u';
+    flowInterpolant_v = griddedInterpolant(Wp.mesh.ldyy2',Wp.mesh.ldxx',solpar.v','linear');
+%     flowInterpolant.v.Values = sol.v';
+    for i = 1:length(sol.measuredData)
+        if strcmp(sol.measuredData(i).type,'P')
+            yf = [yf; solpar.turbine.power(sol.measuredData(i).idx)];
+        elseif strcmp(sol.measuredData(i).type,'u')
+            yf = [yf; flowInterpolant_u(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
+        elseif strcmp(sol.measuredData(i).type,'v')
+            yf = [yf; flowInterpolant_v(sol.measuredData(i).idx(2),sol.measuredData(i).idx(1))];
+        else
+            error('You specified an incompatible measurement. Please use types ''u'', ''v'', or ''P'' (capital-sensitive).');
+        end
     end
+
+    Yenf(:,ji) = [yf];
 end
 
 %% Analysis update of the Ensemble KF
 % Create and disturb measurement ensemble
-if strucObs.measPw
-    y_meas = [sol.measuredData.sol(strucObs.obs_array);sol.measuredData.power];
-else
-    y_meas = [sol.measuredData.sol(strucObs.obs_array)];
-end
+y_meas = [sol.measuredData.value]'; % Measurement vector
 RNoise = strucObs.RNoiseGen();
 Den    = repmat(y_meas,1,strucObs.nrens) + RNoise;
 
@@ -199,7 +220,8 @@ Dent    = Den - Yenf; % Difference between measurement and predicted output
 Aenf  = Aenf*(1/strucObs.nrens)*ones(strucObs.nrens)+sqrt(strucObs.r_infl)*Aenft;
 
 strucObs.Aen = Aenf + strucObs.cross_corrfactor.* (Aenft*Yenft') * ...
-                pinv( strucObs.auto_corrfactor .* (Yenft*Yenft') + RNoise*RNoise')*Dent;
+               pinv( strucObs.auto_corrfactor .* (Yenft*Yenft') + RNoise*RNoise')*Dent;
+
 xSolAll = mean(strucObs.Aen,2);
 
 
@@ -210,15 +232,18 @@ if strucObs.pe.enabled
         Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}) = ...
              min(strucObs.pe.ub(iT),max(strucObs.pe.lb(iT),xSolAll(end-length(strucObs.pe.vars)+iT)));
     end
+    model.Wp = Wp; % Export variable
 end
 
 % Update states, either from estimation or through open-loop
 if strucObs.se.enabled
     sol.x    = xSolAll(1:strucObs.size_output); % Write optimal estimate to sol
     [sol,~]  = MapSolution(Wp,sol,Inf,options); % Map solution to flow fields
+    sol.turbInput.dCT_prime = zeros(Wp.turbine.N,1);
     [~,sol]  = Actuator(Wp,sol,options);        % Recalculate power after analysis update
 else
     % Note: this is identical to 'sim' case in WFObs_o(..)
     sol.k    = sol.k - 1; % Necessary since WFSim_timestepping(...) already includes time propagation
     [sol,~]  = WFSim_timestepping(sol,sys,Wp,options);
 end
+model.sol = sol; % Export variable
