@@ -59,7 +59,6 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
 
     % Use upstream measured turbine powers to estimate U_infty
     if length(upstreamTurbinesMeasured) > 0
-        U_est = [];
         eta = 0.95; % Correction factor to correct for ADM/WFSim mismatch
         psc = Wp.turbine.powerscale; % Powerscale [-]
         Rho = Wp.site.Rho; % Air density [kg/m3]
@@ -69,9 +68,10 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
         % Calculate U_Inf for each turbine
         U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*(([measuredData(measurementIdPowerUpstream).value]'...
                     ./(eta*psc*0.5*Rho*Ar*CTp(upstreamTurbinesMeasured))).^(1/3));
-
+        U_Inf_vec = U_Inf_vec.*cosd(model.sol.turbInput.phi(upstreamTurbinesMeasured))
+        
         % Determine previous average and current instantaneous U_Inf
-        U_Inf_Previous      = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
+        U_Inf_Previous = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
         U_Inf_Instantaneous = mean(U_Inf_vec);
 
         % Low-pass filter the mean instantaneous U_Inf
