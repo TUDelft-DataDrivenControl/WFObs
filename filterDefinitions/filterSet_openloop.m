@@ -41,11 +41,11 @@ strucObs.se.Qk.p = 0.00; % Autocovariance for pressure process noise
 
 % Parameter estimation settings
 strucObs.pe.enabled = false; % Estimate model parameters?
-strucObs.pe.vars = {'site.lmu'}; % If empty {} then no estimation
+strucObs.pe.vars = {'site.lm_slope'}; % If empty {} then no estimation
 strucObs.pe.P0   = [0.5]; % Initial state covariance(s) for model variable(s)
 strucObs.pe.Qk   = [1e-4]; % Autocovariance(s) process noise for model variable(s)
-strucObs.pe.lb   = [0.05]; % Lower bound(s) for model variable(s)
-strucObs.pe.ub   = [5.00]; % Upper bound(s) for model variable(s)
+strucObs.pe.lb   = [0.001]; % Lower bound(s) for model variable(s)
+strucObs.pe.ub   = [4.000]; % Upper bound(s) for model variable(s)
 
 % Observer-specific settings
 strucObs.filtertype = 'sim';
