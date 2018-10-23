@@ -9,10 +9,10 @@ classdef WFObs_obj<handle
         %% Constructor function initializes default inputData
         function self = WFObs_obj( Wp,modelOptions,strucObs,verboseOptions )         
             % Import libraries for WFObs & WFSim
-            [WFObsPath, ~, ~] = fileparts(which('WFObs_obj.m')); % Get /bin/ path
-            addpath([WFObsPath '/../bin']);                         % Add /bin/ path
-            run([WFObsPath '/../WFSim/WFSim_addpaths.m'])       % Add /WFSim/ paths
-            clear WFObsPath
+            WFObsPath = fileparts(mfilename('fullpath')); % Get WFObs/bin/ path
+            addpath(WFObsPath); % Add /bin/ path
+            addpath([WFObsPath '/../WFSim/bin/core']) % Add /WFSim/ paths
+            addpath([WFObsPath '/../WFSim/libraries']) % Add /WFSim/ paths
             
             if nargin < 4
                 % Necessary options for backwards compatibility
@@ -69,13 +69,15 @@ classdef WFObs_obj<handle
             [strucObs,model] = WFObs_o(strucObs,model);
 
             % Reporting
-            [tlen,klen] = deal(4);
             model.sol.CPUtime = toc(timerCPU); % Computational cost
-            disp([datestr(rem(now,1)) ' __  t(' num2str(model.sol.k,['%0' num2str(tlen) 'd']) ') = ' num2str(model.sol.time,['%0' num2str(klen) 'd']) ' s __ u_Inf: ' num2str(model.Wp.site.u_Inf,'%10.2f\n') ', v_Inf: ' num2str(model.Wp.site.v_Inf,'%10.2f\n') ', it. time: ' num2str(model.sol.CPUtime,'%10.2f\n') ' s.']);
-            if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
-                if strucObs.pe.enabled
-                    for iT = 1:length(strucObs.pe.vars)
-                        disp([datestr(rem(now,1)) ' __  t(' num2str(model.sol.k,['%0' num2str(tlen) 'd']) ') = ' num2str(model.sol.time,['%0' num2str(klen) 'd']) ' s __ ' strucObs.pe.vars{iT} ' estimated as ' num2str(model.Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}),'%10.2f\n') '.']);
+            if self.verboseOptions.printProgress
+                [tlen,klen] = deal(4);
+                disp([datestr(rem(now,1)) ' __  t(' num2str(model.sol.k,['%0' num2str(tlen) 'd']) ') = ' num2str(model.sol.time,['%0' num2str(klen) 'd']) ' s __ u_Inf: ' num2str(model.Wp.site.u_Inf,'%10.2f\n') ', v_Inf: ' num2str(model.Wp.site.v_Inf,'%10.2f\n') ', it. time: ' num2str(model.sol.CPUtime,'%10.2f\n') ' s.']);
+                if strcmp(lower(strucObs.filtertype),'enkf') | strcmp(lower(strucObs.filtertype),'ukf')
+                    if strucObs.pe.enabled
+                        for iT = 1:length(strucObs.pe.vars)
+                            disp([datestr(rem(now,1)) ' __  t(' num2str(model.sol.k,['%0' num2str(tlen) 'd']) ') = ' num2str(model.sol.time,['%0' num2str(klen) 'd']) ' s __ ' strucObs.pe.vars{iT} ' estimated as ' num2str(model.Wp.(strucObs.pe.subStruct{iT}).(strucObs.pe.structVar{iT}),'%10.2f\n') '.']);
+                        end
                     end
                 end
             end
