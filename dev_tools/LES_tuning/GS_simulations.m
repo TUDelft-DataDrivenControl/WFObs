@@ -2,16 +2,16 @@ clear all; close all; clc;
 
 %% Grid search settings
 gsStruct = struct(...
-    'forcescale', 1.4:1.4:1.4, ...
-    'lm_slope', 0.005:0.01:0.10, ...
-    'd_lower', 10:40:130,...
-    'd_upper', 400:50:800,...
+    'forcescale', 1.5:0.1:2.5, ...
+    'lm_slope', 0.005:0.005:0.10, ...
+    'd_lower', 0.1:20:200.1,...
+    'd_upper', 300:50:1000,...
     'outputDir', ['GS_out/']... % Output directory
     ); 
 
 %% Set-up WFSim model
 addpath('../../WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
-Wp = layoutSet_sowfa_2turb_yaw_alm_uniform(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
+Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
 addpath('../../WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
 modelOptions = solverSet_default(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
@@ -22,11 +22,9 @@ strucObs = filterSet_openloop(); % Observer/KF settings
 %% Preload LES measurement data and setup sensors
 addpath('../../sensorDefinitions')
 measOptions = sensorSet_power_only(Wp); % irrelevant
-LESDataFile = '../../data_LES/LESData_sowfa_2turb_yaw_alm_uniform.mat';
+LESDataFile = '../../data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat';
 
 % External animations for this script specifically
-scriptOptions = struct('Animate',0,'plotContour',0,'plotPower',0,...
-    'plotError',0,'savePlots',0,'savePath','deleteMe');
 verboseOptions = struct('printProgress', 0, 'plotMesh', 0);
 
 %% Initialize object
@@ -63,6 +61,7 @@ end
 disp(['Simulating this case for a total of NN = ' num2str(length(jRange)) ' parameter sets.']);
 
 parfor h = 1:length(jRange)
+    parTic = tic;
     j = jRange(h);
     destFileName = [gsStruct.outputDir '/' num2str(j) '.mat'];
     if exist(destFileName,'file') == 0
@@ -74,16 +73,17 @@ parfor h = 1:length(jRange)
         WpPar.site.d_lower = datapoints(3,j);
         WpPar.site.d_upper = datapoints(4,j);
         
-        try
+        %try
             % Run simulation with updated Wp settings
             sol_array_par = runWFObs(WpPar,modelOptions,strucObs,measOptions,LESData,verboseOptions);
             parsave(destFileName,WpPar,sol_array_par) % Save to file
-        catch
-            disp(['Error for WpOverwrite at j = ' num2str(j) '. Not saving.']);
-        end
+        %catch
+        %    disp(['Error for WpOverwrite at j = ' num2str(j) '. Not saving.']);
+        %end
     else
         disp([num2str(j) '.mat already exists.']);
     end
+    disp([datestr(rem(now,1)) ' __  Finished case ' num2str(j) '. Iteration time: ' num2str(toc(parTic),'%10.1f\n') ' s.']);
 end
 
 function [sol_array] = runWFObs(Wp,modelOptions,strucObs,measOptions,LESData,verboseOptions);
@@ -99,6 +99,7 @@ while WFObj.model.sol.time < LESData.flow.time(end)
     
     % Perform estimation
     sol = WFObj.timestepping(inputData,measuredData);
+%     WFObj.visualize() % Visualization
     
     % Post-processing
     sol_array(sol.k) = struct(...
