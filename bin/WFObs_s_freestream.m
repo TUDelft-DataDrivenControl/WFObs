@@ -68,7 +68,7 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
         % Calculate U_Inf for each turbine
         U_Inf_vec = (1+0.25*CTp(upstreamTurbinesMeasured)).*(([measuredData(measurementIdPowerUpstream).value]'...
                     ./(eta*psc*0.5*Rho*Ar*CTp(upstreamTurbinesMeasured))).^(1/3));
-        U_Inf_vec = U_Inf_vec.*cosd(model.sol.turbInput.phi(upstreamTurbinesMeasured))
+        U_Inf_vec = U_Inf_vec.*cosd(model.sol.turbInput.phi(upstreamTurbinesMeasured));
         
         % Determine previous average and current instantaneous U_Inf
         U_Inf_Previous = sqrt(sol.u(1,1)^2+sol.v(1,1)^2); % = sqrt(Wp.site.u_Inf^2+Wp.site.v_Inf^2);
