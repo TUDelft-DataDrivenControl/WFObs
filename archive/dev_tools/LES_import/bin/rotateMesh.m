@@ -17,8 +17,8 @@ flowDataOut = flowDataIn;
 turbDataOut = turbDataIn;
 
 % Rotated turbine locations
-turbDataOut.Crx = cos(WD)*turbDataIn.Crx+sin(WD)*turbDataIn.Cry;
-turbDataOut.Cry = cos(WD)*turbDataIn.Cry-sin(WD)*turbDataIn.Crx;
+turbDataOut.Crx = cos(WD)*turbDataIn.Crx + sin(WD)*turbDataIn.Cry;
+turbDataOut.Cry = cos(WD)*turbDataIn.Cry - sin(WD)*turbDataIn.Crx;
 
 % Rotated mesh
 flowDataOut.xu = +cos(WD) * flowDataIn.xu + sin(WD) * flowDataIn.yu;

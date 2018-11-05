@@ -13,21 +13,24 @@ tlc = [find(minIdxY+maxIdxX==2)]; % top-left idx
 disp('Rotating and translating grid according to u_Inf and v_Inf...')
 u_Inf = median(flowData.u(:));
 v_Inf = median(flowData.v(:));
-WD = atan(v_Inf/u_Inf); % Wind direction [rad]
+WD = -atan(v_Inf/u_Inf); % Wind direction [rad]
 if abs(WD) > deg2rad(2.5) % Only rotate if mismatch > 2.5 degrees 
     [flowData,turbData] = rotateMesh(flowData,turbData,WD);
-    disp('TURBINE YAW ROTATION ONLY VALID FOR (OLD) SOWFA SIMULATIONS!!')
-    turbData.phi = -(turbData.phi - 90. + rad2deg(WD)); % rotate to new field (SOWFA only)
+    disp('TURBINE YAW ROTATION ONLY VALID FOR OLD SOWFA SIMULATIONS!!')
+    if isfield(turbData,'phi')
+        % rotate to new field (SOWFA only)
+        turbData.phi = -(turbData.phi - 90. + rad2deg(WD)); 
+    end
 end
 
 % Translation
 [~,UpstrIndx] = min(turbData.Crx); % Find most upstream turbine
-flowData.xv = flowData.xv   - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
-flowData.xu = flowData.xu   - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
-flowData.yu = flowData.yu   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
-flowData.yv = flowData.yv   - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
-turbData.Crx = turbData.Crx - turbData.Crx(UpstrIndx) + meshSetup.distance_S;
-turbData.Cry = turbData.Cry - turbData.Cry(UpstrIndx) + meshSetup.distance_W;
+flowData.xv = flowData.xv   - min(turbData.Crx) + meshSetup.distance_S;
+flowData.xu = flowData.xu   - min(turbData.Crx) + meshSetup.distance_S;
+flowData.yu = flowData.yu   - min(turbData.Cry) + meshSetup.distance_W;
+flowData.yv = flowData.yv   - min(turbData.Cry) + meshSetup.distance_W;
+turbData.Crx = turbData.Crx - min(turbData.Crx) + meshSetup.distance_S;
+turbData.Cry = turbData.Cry - min(turbData.Cry) + meshSetup.distance_W;
 
 % Align freestream conditions 
 u_Inf = sqrt(u_Inf^2 + v_Inf^2);

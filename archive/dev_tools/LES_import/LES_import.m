@@ -1,7 +1,7 @@
 clear all; clc; close all;
 
 % SETUP: Configuration file location
-configurationName = '-all'; % use '-all' to do a batch run over all configurations
+configurationName = 'sowfa_9turb_ACC2019'; % use '-all' to do a batch run over all configurations
 
 
 % CORE: Loop over all specified configuration files

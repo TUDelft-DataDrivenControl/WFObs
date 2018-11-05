@@ -8,16 +8,21 @@ tic;
 [filesInFolder,flowData,turbDataRaw,dataSource] = loadLESData(scriptOptions,rawTurbData);
 
 % Filter and resample turbine data
-disp('Filtering and resampling turbine and flow data...')
-time            = 0:meshSetup.dt:min([flowData.time(end),turbDataRaw.time(end)]);
-turbData        = resampleTurbData(turbDataRaw,filterSettings.turbData,time);
+if isempty(turbDataRaw)
+    disp('Filtering and resampling flow data...')
+    time = 0:meshSetup.dt:flowData.time(end);
+else
+    disp('Filtering and resampling turbine and flow data...')
+    time            = 0:meshSetup.dt:min([flowData.time(end),turbDataRaw.time(end)]);
+    turbData        = resampleTurbData(turbDataRaw,filterSettings.turbData,time);
+end
 turbData.Crx    = rawTurbData.Crx;
 turbData.Cry    = rawTurbData.Cry;
 turbData.Drotor = rawTurbData.Drotor;
 turbData.HH     = rawTurbData.hubHeight;
 
 % Create resample vector for flow data
-k_flow = interp1(flowData.time,1:length(flowData.time),time,'nearest');
+k_flow = interp1(flowData.time,1:length(flowData.time),time,'nearest',1);
 
 % Rotate and translate mesh to align wind with vertical axis
 [ flowData,turbData,u_Inf,v_Inf,WD,cornerPoints ] = rotateTranslate( flowData,turbData,meshSetup );
@@ -87,7 +92,7 @@ for k = 1:NN
     vk_remeshed = vInterpolant(Wp.ldyy2(:),Wp.ldxx(:)); 
     
     % Calculate CT_prime from flow data
-    if CT_given == false
+    if CT_given == false && ~isempty(turbDataRaw)
         for j = 1:Nt
             UrMean_unf(k,j) = mean(uInterpolant(rotorPts.y{j},rotorPts.x{j}));
         end
@@ -146,59 +151,67 @@ for k = 1:NN
 end
 
 %% Post-processing
-CT_prime = zeros(NN,Nt);
-if CT_given % Ct' (Ct' = Ct/(1-a)^2, by Goit et al.)
-    CT_prime_unf = turbData.CT./((1-turbData.a).^2);
-    CT_prime     = CT_prime_unf;
-else
-    UrMean = UrMean_unf;
-    if filterSettings.Ur.MM % Filter average flow velocity on rotor
-        mmLimits = ceil([filterSettings.Ur.tL filterSettings.Ur.tR]/meshSetup.dt);
-        UrMean   = movmean(UrMean,mmLimits,1);
+if ~isempty(turbDataRaw)
+    CT_prime = zeros(NN,Nt);
+    if CT_given % Ct' (Ct' = Ct/(1-a)^2, by Goit et al.)
+        CT_prime_unf = turbData.CT./((1-turbData.a).^2);
+        CT_prime     = CT_prime_unf;
+    else
+        UrMean = UrMean_unf;
+        if filterSettings.Ur.MM % Filter average flow velocity on rotor
+            mmLimits = ceil([filterSettings.Ur.tL filterSettings.Ur.tR]/meshSetup.dt);
+            UrMean   = movmean(UrMean,mmLimits,1);
+        end
+        for j = 1:Nt % Determine CT_prime from turbine oop bending moment
+            % Calculate raw/direct signal without any filtering
+            CT_prime_unf(:,j) = 2*interp1(turbDataRaw.time,turbDataRaw.Mz(:,j),time)'./ ...
+                (meshSetup.rho*UrMean_unf(:,j).^2*0.25*pi*turbData.Drotor(j)^2*turbData.HH);
+            
+            % Signal using filtered Umean
+            CT_prime(:,j) = 2*turbData.Mz(:,j)./(meshSetup.rho*UrMean(:,j).^2 ...
+                *0.25*pi*turbData.Drotor(j)^2*turbData.HH);
+        end
     end
-    for j = 1:Nt % Determine CT_prime from turbine oop bending moment
-        % Calculate raw/direct signal without any filtering
-        CT_prime_unf(:,j) = 2*interp1(turbDataRaw.time,turbDataRaw.Mz(:,j),time)'./ ...
-            (meshSetup.rho*UrMean_unf(:,j).^2*0.25*pi*turbData.Drotor(j)^2*turbData.HH);
-        
-        % Signal using filtered Umean
-        CT_prime(:,j) = 2*turbData.Mz(:,j)./(meshSetup.rho*UrMean(:,j).^2 ...
-                         *0.25*pi*turbData.Drotor(j)^2*turbData.HH);
+    if filterSettings.CTp.MM % Filter CT_prime directly
+        mmLimits = ceil([filterSettings.CTp.tL filterSettings.CTp.tR]/meshSetup.dt);
+        CT_prime = movmean(CT_prime,mmLimits,1);
+    end;
+    
+    % Compare filtered with nonfiltered signal
+    figure;
+    figLayout = numSubplots(Nt);
+    for j = 1:Nt
+        subplot(figLayout(1),figLayout(2),j);
+        plot(time,CT_prime_unf(:,j),'-','displayName','Unfiltered');
+        hold on;
+        plot(time,CT_prime(:,j),'--','displayName','Filtered');
+        grid on;
+        xlabel('Time (s)')
+        ylabel(['CT'' (-)'])
+        title(['Turbine ' num2str(j)])
     end
-end
-if filterSettings.CTp.MM % Filter CT_prime directly
-    mmLimits = ceil([filterSettings.CTp.tL filterSettings.CTp.tR]/meshSetup.dt);
-    CT_prime = movmean(CT_prime,mmLimits,1);
-end;
-
-% Compare filtered with nonfiltered signal
-figure;
-figLayout = numSubplots(Nt);
-for j = 1:Nt
-    subplot(figLayout(1),figLayout(2),j);   
-    plot(time,CT_prime_unf(:,j),'-','displayName','Unfiltered'); 
-    hold on; 
-    plot(time,CT_prime(:,j),'--','displayName','Filtered'); 
-    grid on;
-    xlabel('Time (s)')
-    ylabel(['CT'' (-)'])    
-    title(['Turbine ' num2str(j)])
-end
-legend('Unfiltered','Filtered')
-
-% Format inputs
-turbDataFields = fieldnames(turbData);
-for j = 1:NN
-    for jField = 1:length(turbDataFields)
-        jField = turbDataFields{jField};
-        inputData(j).t(:,1)        = turbData.time(j);
-        inputData(j).phi(:,1)      = turbData.phi(j,:);
-        inputData(j).CT_prime(:,1) = CT_prime(j,:);
-        inputData(j).CT_prime_unfiltered(:,1) = CT_prime_unf(j,:);
+    legend('Unfiltered','Filtered')
+    
+    % Format inputs
+    turbDataFields = fieldnames(turbData);
+    for j = 1:NN
+        for jField = 1:length(turbDataFields)
+            jField = turbDataFields{jField};
+            inputData(j).t(:,1)        = turbData.time(j);
+            inputData(j).phi(:,1)      = turbData.phi(j,:);
+            inputData(j).CT_prime(:,1) = CT_prime(j,:);
+            inputData(j).CT_prime_unfiltered(:,1) = CT_prime_unf(j,:);
+        end
     end
 end
 
 % Write properties for meshing
+flow = struct(...
+    'time',time,...
+    'xu',
+    'u',u,...
+    'v',v,...
+    
 meshingOut.gridType  = 'lin';
 meshingOut.Lx        = Wp.Lx;
 meshingOut.Ly        = Wp.Ly;
