@@ -1,17 +1,20 @@
 clear all; close all; clc;
+addpath('../../WFSim/bin/core');
+addpath('../../bin_supplementary/offline_tools');
 
 sourceFolder = 'GS_out';
 outputFile = 'GS_postProcessed.mat';
-LESDataFile = '../../data_LES/LESData_sowfa_2turb_yaw_alm_uniform.mat'; % Specify LES data file
+LESDataFile = '../../data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat'; % Specify LES data file
 
 % List all files
 filesSource = dir(sourceFolder);
 if length(filesSource) < 3
     error('Please specify a valid directory.');
 end
-for j = 3:length(filesSource)
-    fileList{j-2} = [filesSource(j).folder '/' filesSource(j).name];
+for i = 3:length(filesSource)
+    fileList{i-2} = [filesSource(i).folder '/' filesSource(i).name];
 end
+clear i 
 
 % Post-processing
 load(fileList{1}); % Load first file to get WpPar/meshing
@@ -30,9 +33,26 @@ for i = 1:length(sol_array)
                 Wp.mesh.Nx,Wp.mesh.Ny), ...
         'P',LESData.PwrInterpolant(sol_array(i).time)' );
 end
-clear LESData Wp WpPar sol_array
+clear WpPar sol_array i
 
-parfor j = 1:length(fileList)
+% Determine centerline locations
+yTurbs = sort(Wp.turbine.Cry);
+threshold = 0.5*Wp.turbine.Drotor;
+thresholdRel = threshold/max(Wp.turbine.Cry);
+yTurbsUnique = uniquetol(yTurbs,thresholdRel);
+for i = 1:length(yTurbsUnique)
+    xCL = Wp.mesh.ldxx2(1):5:Wp.mesh.ldxx(end);
+    yCL = mean(yTurbs(abs((yTurbs-yTurbsUnique(i)))<threshold));
+    yCL = yCL + [-Wp.turbine.Drotor:5:Wp.turbine.Drotor];
+    [X,Y] = ndgrid(xCL,yCL);
+    centerline(i) = struct('X',X,'Y',Y,'U_LES',@(t) mean(LESData.uInterpolant(t*ones(size(X)),X,Y),2));
+end
+% Create flow interpolant of WFSim
+flowInterpolant = griddedInterpolant(Wp.mesh.ldxx2,Wp.mesh.ldyy,zeros(size(Wp.mesh.ldxx2)));
+clear i Wp X Y yTurbs threshold thresholdRel yTurbsUnique xCL yCL LESData
+
+% Process each GS output file
+for j = 1:length(fileList)
     loadedData = load(fileList{j});
     WpPar     = loadedData.WpPar;
     sol_array = loadedData.sol_array;
@@ -42,11 +62,12 @@ parfor j = 1:length(fileList)
                      vec([sol_array.vEst])-vec([solTrue.v])]);
     flowError(isnan(flowError))=[]; % remove NaN entries
     
-    % Correct power measurements
+    % Find optimal power scaling
     powerscaleOpt = mean(mean([solTrue.P]./[sol_array.PEst]));
     for i = 1:length(sol_array)
         sol_array(i).PEst = sol_array(i).PEst * powerscaleOpt;
     end
+    clear i
     
     % Determine power error
     powerLES = [solTrue.P];
@@ -56,11 +77,24 @@ parfor j = 1:length(fileList)
     for i = 1:length(WpPar.turbine.Crx) % = number of turbines
         powerVAF(i) = vaf(powerLES(i,:),powerWFSim(i,:)); % var. accounted for (%)
     end
+    clear i
+    
+    % Determine centerline error
+    for ii = 1:length(sol_array)
+        flowInterpolant.Values = sol_array(ii).uEst;
+        for ic = 1:length(centerline)
+            cline_WFSim = mean(flowInterpolant(centerline(ic).X,centerline(ic).Y),2);
+            cline_LES   = centerline(ic).U_LES(sol_array(ii).time);
+            RMSE_clines(ii,ic) = sqrt(mean(cline_WFSim-cline_LES).^2);
+            VAF_clines(ii,ic) = vaf(cline_LES,cline_WFSim);
+        end
+    end    
+    clear ii ic
     
     % Write to score output struct
     scoreOut(j).mRMSE_flow  = rms(flowError);
-%     scoreOut(i).mRMSE_cline = score.mRMSE_cline;
-%     scoreOut(i).mVAF_cline  = score.mVAF_cline;
+    scoreOut(j).mRMSE_cline = mean(RMSE_clines,1); % time-averaged mRMSE
+    scoreOut(j).mVAF_cline  = mean(VAF_clines,1); % time-averaged VAF
     scoreOut(j).forcescale  = WpPar.turbine.forcescale;
     scoreOut(j).powerscale  = powerscaleOpt;
     scoreOut(j).mRMSE_power = mean(powerError,2)';
@@ -69,6 +103,7 @@ parfor j = 1:length(fileList)
     scoreOut(j).mVAF_power  = mean(powerVAF);
     scoreOut(j).Wp          = WpPar;
 end
+clear j 
 
 save(outputFile,'scoreOut');
 
@@ -82,11 +117,16 @@ disp('Best power RMS fit:')
 disp(scoreOut(idVAF))
 disp(scoreOut(idVAF).Wp.site)
 
-% disp('Best cline VAF fit:')
-% [~,idVAF] = max([scoreOut.mVAF_cline])
-% disp(scoreOut(idVAF))
-% disp(scoreOut(idVAF).Wp.site)
-% 
+disp('Best cline VAF fit:')
+[~,idVAF] = max([scoreOut.mVAF_cline])
+disp(scoreOut(idVAF))
+disp(scoreOut(idVAF).Wp.site)
+
+disp('Best cline RMSE fit:')
+[~,idVAF] = max([scoreOut.mRMSE_cline])
+disp(scoreOut(idVAF))
+disp(scoreOut(idVAF).Wp.site)
+
 % disp('Weighed power+cline VAF fit:')
 % [~,idVAF] = max(sum([scoreOut.mVAF_power])+([scoreOut.mVAF_cline]))
 % disp(scoreOut(idVAF))
@@ -102,37 +142,37 @@ disp(scoreOut(idVAF).Wp.site)
 Wp          = [scoreOut.Wp];
 Wpt         = [Wp.turbine];
 FS          = [Wpt.forcescale];
-% scorePlot1  = [scoreOut.mRMSE_cline];
+scorePlot1  = [scoreOut.mRMSE_cline];
 scorePlot2  = [scoreOut.mRMSE_flow];
 scorePlot3  = [scoreOut.mRMSE_power]*1e-6;
-% scorePlot4  = [scoreOut.mVAF_cline];
+scorePlot4  = [scoreOut.mVAF_cline];
 scorePlot5  = [scoreOut.mVAF_power];
 fs_array = unique(FS);
 for j = 1:length(fs_array)
-%     RMSE1(j) = mean(scorePlot1(FS==fs_array(j)));
+    RMSE1(j) = mean(scorePlot1(FS==fs_array(j)));
     RMSE2(j) = mean(scorePlot2(FS==fs_array(j)));
     RMSE3(j) = mean(scorePlot3(FS==fs_array(j)));
-%     VAF1(j)  = mean(scorePlot4(FS==fs_array(j)));
+    VAF1(j)  = mean(scorePlot4(FS==fs_array(j)));
     VAF2(j)  = mean(scorePlot5(FS==fs_array(j)));
 end
 figure; 
 subplot(1,2,1);
-% plot(fs_array,RMSE1)
-% hold on
+plot(fs_array,RMSE1)
+hold on
 plot(fs_array,RMSE2)
 hold on
 plot(fs_array,RMSE3)
-% legend('Centerline RMSE','Flow RMSE','Power RMSE')
-legend('Flow RMSE','Power RMSE')
+legend('Centerline RMSE','Flow RMSE','Power RMSE')
+% legend('Flow RMSE','Power RMSE')
 ylabel('Average score')
 xlabel('Forcescale')
 grid on;
 subplot(1,2,2);
-% plot(fs_array,VAF1)
-% hold on
+plot(fs_array,VAF1)
+hold on
 plot(fs_array,VAF2)
-% legend('Centerline VAF','Power VAF')
-legend('Power VAF')
+legend('Centerline VAF','Power VAF')
+% legend('Power VAF')
 grid on;
 ylabel('Average score')
 xlabel('Forcescale')
