@@ -52,7 +52,7 @@ flowInterpolant = griddedInterpolant(Wp.mesh.ldxx2,Wp.mesh.ldyy,zeros(size(Wp.me
 clear i Wp X Y yTurbs threshold thresholdRel yTurbsUnique xCL yCL LESData
 
 % Process each GS output file
-for j = 1:length(fileList)
+parfor j = 1:length(fileList)
     loadedData = load(fileList{j});
     WpPar     = loadedData.WpPar;
     sol_array = loadedData.sol_array;
@@ -80,10 +80,12 @@ for j = 1:length(fileList)
     clear i
     
     % Determine centerline error
+    [RMSE_clines,VAF_clines] = deal(zeros(length(sol_array),length(centerline)));
     for ii = 1:length(sol_array)
-        flowInterpolant.Values = sol_array(ii).uEst;
+        flowInterpolantTmp = flowInterpolant;
+        flowInterpolantTmp.Values = sol_array(ii).uEst;
         for ic = 1:length(centerline)
-            cline_WFSim = mean(flowInterpolant(centerline(ic).X,centerline(ic).Y),2);
+            cline_WFSim = mean(flowInterpolantTmp(centerline(ic).X,centerline(ic).Y),2);
             cline_LES   = centerline(ic).U_LES(sol_array(ii).time);
             RMSE_clines(ii,ic) = sqrt(mean(cline_WFSim-cline_LES).^2);
             VAF_clines(ii,ic) = vaf(cline_LES,cline_WFSim);

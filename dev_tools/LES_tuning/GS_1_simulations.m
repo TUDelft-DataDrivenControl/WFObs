@@ -74,13 +74,13 @@ parfor h = 1:length(jRange)
         WpPar.site.d_lower = datapoints(3,j);
         WpPar.site.d_upper = datapoints(4,j);
         
-        %try
+        try
             % Run simulation with updated Wp settings
             sol_array_par = runWFObs(WpPar,modelOptions,strucObs,measOptions,LESData,verboseOptions);
             parsave(destFileName,WpPar,sol_array_par) % Save to file
-        %catch
-        %    disp(['Error for WpOverwrite at j = ' num2str(j) '. Not saving.']);
-        %end
+        catch
+            disp(['Error for WpOverwrite at j = ' num2str(j) '. Not saving.']);
+        end
     else
         disp([num2str(j) '.mat already exists.']);
     end
