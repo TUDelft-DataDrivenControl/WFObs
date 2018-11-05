@@ -3,6 +3,7 @@ function [sol_out] = formatSol(model,sol_true)
     Wp = model.Wp;
     
     flowError = [sol_in.v(:)-sol_true.v(:); sol_in.u(:)-sol_true.u(:)];
+    flowError(isnan(flowError)) = 0;
     
     sol_out = struct(...
         'k',sol_in.k,...
