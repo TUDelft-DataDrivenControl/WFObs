@@ -19,7 +19,7 @@
 %
 
 % Setup zeroMQ server
-addpath('bin','bin_supplementary/online_zmq')
+addpath('../bin','../bin_supplementary/online_zmq')
 zmqServer = zeromqObj('/home/bmdoekemeijer/OpenFOAM/zeroMQ/jeromq-0.4.4-SNAPSHOT.jar',5553,300,true);
 
 % Setup WFSim
@@ -55,13 +55,13 @@ Wp.mesh = struct(...
     'Ny',42 ... % Number of cells in y-direction
     );
     
-addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
+addpath('../WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
 modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
 % Setup EnKF
-addpath('filterDefinitions') % Folder with predefined KF settings
+addpath('../filterDefinitions') % Folder with predefined KF settings
 strucObs = filterSet_WES2018(); % Observer/KF settings
-addpath('sensorDefinitions') % Folder with sensor settings
+addpath('../sensorDefinitions') % Folder with sensor settings
 measOptions = sensorSet_power_only(Wp); % Measurement options
 
 % Initialize WFObs object

@@ -54,22 +54,24 @@ clear all; close all; clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Set-up WFSim model
-addpath('WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
+addpath('../WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
+% Wp = layoutSet_sowfa_9turb_ACC2019(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
 Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
-addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
-modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
+addpath('../WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
+modelOptions = solverSet_default(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
 %% Setup KF settings
-addpath('filterDefinitions') % Folder with predefined KF settings
-strucObs = filterSet_WES2018(); % Observer/KF settings
+addpath('../filterDefinitions') % Folder with predefined KF settings
+strucObs = filterSet_openloop(); % Observer/KF settings
 
 %% Preload LES measurement data and setup sensors
-addpath('sensorDefinitions')
+addpath('../sensorDefinitions')
 measOptions = sensorSet_power_only(Wp);
-LESDataFile = 'data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat';
-               
+LESDataFile = '../data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat';
+% LESDataFile = 'data_LES/sowfa_9turb_ACC2019.mat';
+
 % External animations for this script specifically
-scriptOptions.Animate     = 5; % Animation frequency
+scriptOptions.Animate     = 100; % Animation frequency
 scriptOptions.plotContour = 1;  % Show flow fields
 scriptOptions.plotPower   = 1;  % Plot true and predicted power capture vs. time
 scriptOptions.plotError   = 0;  % plot RMS and maximum error vs. time
@@ -78,7 +80,7 @@ scriptOptions.savePath    = ['results/tmp']; % Destination folder of saved files
 
 
 %% Initialize object
-addpath('bin','bin_supplementary/offline_tools'); % Add the main 'bin' folder and the postProcessing folder
+addpath('../bin','../bin_supplementary/offline_tools'); % Add the main 'bin' folder and the postProcessing folder
 WFObj = WFObs_obj( Wp,modelOptions,strucObs ); % Initialize WFObj object
 
 %% Execute the WFObs core code

@@ -54,17 +54,17 @@ clear all; close all; clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Set-up WFSim model
-addpath('WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
+addpath('../WFSim/layoutDefinitions') % Folder with predefined wind farm layouts
 Wp = layoutSet_sowfa_9turb_apc_alm_turbl(); % Choose which scenario to simulate. See 'layoutDefinitions' folder for the full list.
-addpath('WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
+addpath('../WFSim/solverDefinitions'); % Folder with model options, solver settings, etc.
 modelOptions = solverSet_minimal(Wp); % Choose model solver options. Default for EnKF/UKF: solverSet_minimal. For ExKF: solverSet_linearmatrices.
 
 %% Setup KF settings
-addpath('filterDefinitions') % Folder with predefined KF settings
+addpath('../filterDefinitions') % Folder with predefined KF settings
 strucObs = filterSet_WES2018(); % Observer/KF settings
 
 %% Setup sensors
-addpath('sensorDefinitions')
+addpath('../sensorDefinitions')
 measOptions = sensorSet_power_only(Wp);
 
 %% Setup WFSim as simulation model
@@ -82,7 +82,7 @@ scriptOptions.savePath    = ['results/tmp']; % Destination folder of saved files
 
 
 %% Initialize WFObs object
-addpath('bin','bin_supplementary/online_wfsim'); % Add the main 'bin' folder and the postProcessing folder
+addpath('../bin','../bin_supplementary/online_wfsim'); % Add the main 'bin' folder and the postProcessing folder
 WFObj = WFObs_obj( Wp,modelOptions,strucObs ); % Initialize WFObj object
 
 %% Execute the WFObs core code
