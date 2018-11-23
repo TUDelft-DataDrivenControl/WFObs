@@ -52,7 +52,8 @@ flowInterpolant = griddedInterpolant(Wp.mesh.ldxx2,Wp.mesh.ldyy,zeros(size(Wp.me
 clear i Wp X Y yTurbs threshold thresholdRel yTurbsUnique xCL yCL LESData
 
 % Process each GS output file
-parfor j = 1:length(fileList)
+for j = 1:length(fileList)
+    tic
     loadedData = load(fileList{j});
     WpPar     = loadedData.WpPar;
     sol_array = loadedData.sol_array;
@@ -104,6 +105,7 @@ parfor j = 1:length(fileList)
     scoreOut(j).VAF_power   = powerVAF;
     scoreOut(j).mVAF_power  = mean(powerVAF);
     scoreOut(j).Wp          = WpPar;
+    toc
 end
 clear j 
 
