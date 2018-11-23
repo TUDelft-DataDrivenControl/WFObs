@@ -3,7 +3,6 @@ clear all; clc; close all;
 % SETUP: Configuration file location
 configurationName = 'sowfa_9turb_ACC2019'; % use '-all' to do a batch run over all configurations
 
-
 % CORE: Loop over all specified configuration files
 addpath('bin');
 mkdir('exportedData');
@@ -19,11 +18,9 @@ for i = 1:length(configurations)
     run(['configurations/' configurations{i}])
     
     % Execute export for configuration [i]
-    clear u v turbData meshingOut
-    [ time,u,v,turbData,meshingOut ] = LES_import_core( scriptOptions,rawTurbData,filterSettings,meshSetup );
+    [ flow,turb ] = LES_import_core( scriptOptions,rawTurbData,filterSettings,meshSetup );
 
     % Save output data for configuration [i]
-    disp('Saving flow and meshing information...');
-    save(['exportedData/' scriptOptions.outputFilename '_data.mat'],'time','u','v','turbData')
-    save(['exportedData/' scriptOptions.outputFilename '_meshing.mat'],'-struct','meshingOut')
+    disp('Saving exported data...');
+    save(['exportedData/' scriptOptions.outputFilename],'flow','turb')
 end

@@ -1,6 +1,6 @@
 clear all; close all; clc;
 
-outputFile = 'GS_postProcessed.mat';
+outputFile = 'W:\WFObs\dev_tools\LES_tuning/GS_postProcessed_9turb_APC.mat';
 
 
 load(outputFile);
@@ -15,12 +15,13 @@ disp(scoreOut(idVAF))
 disp(scoreOut(idVAF).Wp.site)
 
 disp('Best cline VAF fit:')
-[~,idVAF] = max([scoreOut.mVAF_cline])
+N_centerline = length(scoreOut(1).mVAF_cline);
+[~,idVAF] = max(mean(reshape([scoreOut.mVAF_cline],3,[])',2));
 disp(scoreOut(idVAF))
 disp(scoreOut(idVAF).Wp.site)
 
 disp('Best cline RMSE fit:')
-[~,idVAF] = max([scoreOut.mRMSE_cline])
+[~,idVAF] = max(mean(reshape([scoreOut.mRMSE_cline],3,[])',2));
 disp(scoreOut(idVAF))
 disp(scoreOut(idVAF).Wp.site)
 

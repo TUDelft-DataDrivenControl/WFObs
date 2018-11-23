@@ -1,4 +1,4 @@
-function [ time,u,v,turbData,meshingOut ] = LES_import_core( scriptOptions,rawTurbData,filterSettings,meshSetup )
+function [ flow,turb ] = LES_import_core( scriptOptions,rawTurbData,filterSettings,meshSetup )
 %% Core code
 addpath('bin');
 addpath('bin/natsortfiles'); % Natural sorter library
@@ -27,9 +27,9 @@ k_flow = interp1(flowData.time,1:length(flowData.time),time,'nearest',1);
 % Rotate and translate mesh to align wind with vertical axis
 [ flowData,turbData,u_Inf,v_Inf,WD,cornerPoints ] = rotateTranslate( flowData,turbData,meshSetup );
 
-% Determine target meshing (simplified meshing.m code)
-Wp = simpleMeshing(turbData,meshSetup);
-
+[targetMesh.X,targetMesh.Y] = ndgrid(linspace(0,max(turbData.Crx)+meshSetup.distance_N,meshSetup.Nx), ...
+                                     linspace(0,max(turbData.Cry)+meshSetup.distance_E,meshSetup.Ny));
+                                 
 % Perform remesh for every timestep
 NN = length(time);
 Nt = length(turbData.Crx);
@@ -38,16 +38,16 @@ for k = 1:NN
         ticIt      = tic;      % Timer for iterations (s)
         ETA        = 'N/A';    % Estimated time left
         h2         = figure;   % Create empty figure
-        tri        = delaunay(flowData.yu,flowData.xu); % Necessary for plotting raw data
+        tri        = delaunay(flowData.xu,flowData.yu); % Necessary for plotting raw data
         k_len      = floor(log10(NN))+1;
         [u,v]      = deal(zeros(NN,meshSetup.Nx,meshSetup.Ny));
         
         % Setup interpolation functions with initial values = 0
-        uInterpolant = scatteredInterpolant(flowData.yu,flowData.xu,zeros(size(flowData.yu)),'linear');
-        vInterpolant = scatteredInterpolant(flowData.yv,flowData.xv,zeros(size(flowData.yu)),'linear');
+        uInterpolant = scatteredInterpolant(flowData.xu,flowData.yu,zeros(size(flowData.yu)),'linear');
+        vInterpolant = scatteredInterpolant(flowData.xv,flowData.yv,zeros(size(flowData.yu)),'linear');
         
         % Settings for exporting input settings
-        CT_given = nnz(strcmp(fieldnames(turbData),'CT')) > 0 ;
+        CT_given = any(strcmp(fieldnames(turbData),'CT')) || any(strcmp(fieldnames(turbData),'CT_prime'));
         if CT_given == false
             for j = 1:Nt
                 rotorPts.x{j} = ones(1,filterSettings.Ur.nPts)*turbData.Crx(j);
@@ -70,8 +70,8 @@ for k = 1:NN
     if strcmp(dataSource,'sowfa')
         disp(['Loading VTK file from: ''' vtkFiles{k_flow(k)} '''.'])
         [~,~,cellData] = importVTK(vtkFiles{k_flow(k)});   
-        flowDataInt.uk = cellData(:,2);
-        flowDataInt.vk = cellData(:,1);
+        flowDataInt.uk = cellData(:,1);
+        flowDataInt.vk = cellData(:,2);
     else
         flowDataInt.uk = flowData.u(k_flow(k),:)';
         flowDataInt.vk = flowData.v(k_flow(k),:)';
@@ -88,8 +88,8 @@ for k = 1:NN
     vInterpolant.Values = flowData.vk;
     
     % Interpolate and find velocity
-    uk_remeshed = uInterpolant(Wp.ldyy(:),Wp.ldxx2(:));
-    vk_remeshed = vInterpolant(Wp.ldyy2(:),Wp.ldxx(:)); 
+    uk_remeshed = uInterpolant(targetMesh.X,targetMesh.Y);
+    vk_remeshed = vInterpolant(targetMesh.X,targetMesh.Y); 
     
     % Calculate CT_prime from flow data
     if CT_given == false && ~isempty(turbDataRaw)
@@ -105,18 +105,19 @@ for k = 1:NN
         trisurf(tri, flowData.yu, flowData.xu, flowData.uk); % vk_raw
         lighting none; shading flat; colorbar; axis equal;
         light('Position',[-50 -15 29]); view(0,90); hold on;
-        plot3([0, Wp.Ly Wp.Ly 0 0],[0 0 Wp.Lx Wp.Lx 0], [1e3*ones(5,1)],'k--' )  % Draw submesh area
+        plot3([0, max(targetMesh.Y(:)) max(targetMesh.Y(:)) 0 0],...
+              [0 0 max(targetMesh.X(:)) max(targetMesh.X(:)) 0], [1e3*ones(5,1)],'k--' )  % Draw submesh area
         for jTurb = 1:Nt  % Draw turbines
             plot3(turbData.Cry(jTurb)+[-0.5,0.5]*turbData.Drotor(jTurb),turbData.Crx(jTurb)*[1,1],[1e3 1e3],'k-');
             text(turbData.Cry(jTurb)+0.5*turbData.Drotor(jTurb),turbData.Crx(jTurb),1e3,['T' num2str(jTurb)]);
         end
-        ylim([min([-10;flowData.xu]),max([Wp.Lx+10;flowData.xu])]);
-        xlim([min([-10;flowData.yu]),max([Wp.Ly+10;flowData.yu])]);
+        ylim([min([-10;flowData.xu]),max([max(targetMesh.X(:))+10;flowData.xu])]);
+        xlim([min([-10;flowData.yu]),max([max(targetMesh.Y(:))+10;flowData.yu])]);
         ylabel('x-direction (m)'); xlabel('y-direction (m)');
         title('RAW $u$ [m/s]','interpreter','latex');
         
         subplot(1,2,2);
-        contourf(Wp.ldyy, Wp.ldxx2,reshape(uk_remeshed,Wp.Nx,Wp.Ny),'Linecolor','none');
+        contourf(targetMesh.Y, targetMesh.X,reshape(uk_remeshed,meshSetup.Nx,meshSetup.Ny),'Linecolor','none');
         axis equal tight; colorbar; hold on;
         for jTurb = 1:Nt
             plot(turbData.Cry(jTurb)+[-0.5,0.5]*turbData.Drotor(jTurb),turbData.Crx(jTurb)*[1,1],'k-');
@@ -146,16 +147,24 @@ for k = 1:NN
     end  
     
     % save to tensors
-    u(k,:,:) = reshape(uk_remeshed,Wp.Nx,Wp.Ny);
-    v(k,:,:) = reshape(vk_remeshed,Wp.Nx,Wp.Ny);
+    u(k,:,:) = reshape(uk_remeshed,meshSetup.Nx,meshSetup.Ny);
+    v(k,:,:) = reshape(vk_remeshed,meshSetup.Nx,meshSetup.Ny);
 end
 
 %% Post-processing
-if ~isempty(turbDataRaw)
-    CT_prime = zeros(NN,Nt);
-    if CT_given % Ct' (Ct' = Ct/(1-a)^2, by Goit et al.)
+if isempty(turbDataRaw)
+    turb = [];
+else
+    
+    if CT_given
+        if isfield(turbData,'CT_prime')
+            CT_prime = turbData.CT_prime;
+            CT_prime_unf = turbData.CT_prime;
+        else % Ct' (Ct' = Ct/(1-a)^2, by Goit et al.)
+        CT_prime = zeros(NN,Nt);
         CT_prime_unf = turbData.CT./((1-turbData.a).^2);
         CT_prime     = CT_prime_unf;
+        end
     else
         UrMean = UrMean_unf;
         if filterSettings.Ur.MM % Filter average flow velocity on rotor
@@ -175,23 +184,23 @@ if ~isempty(turbDataRaw)
     if filterSettings.CTp.MM % Filter CT_prime directly
         mmLimits = ceil([filterSettings.CTp.tL filterSettings.CTp.tR]/meshSetup.dt);
         CT_prime = movmean(CT_prime,mmLimits,1);
+        
+        % Compare filtered with nonfiltered signal
+        figure;
+        figLayout = numSubplots(Nt);
+        for j = 1:Nt
+            subplot(figLayout(1),figLayout(2),j);
+            plot(time,CT_prime_unf(:,j),'-','displayName','Unfiltered');
+            hold on;
+            plot(time,CT_prime(:,j),'--','displayName','Filtered');
+            grid on;
+            xlabel('Time (s)')
+            ylabel(['CT'' (-)'])
+            title(['Turbine ' num2str(j)])
+        end
+        legend('Unfiltered','Filtered')
     end;
-    
-    % Compare filtered with nonfiltered signal
-    figure;
-    figLayout = numSubplots(Nt);
-    for j = 1:Nt
-        subplot(figLayout(1),figLayout(2),j);
-        plot(time,CT_prime_unf(:,j),'-','displayName','Unfiltered');
-        hold on;
-        plot(time,CT_prime(:,j),'--','displayName','Filtered');
-        grid on;
-        xlabel('Time (s)')
-        ylabel(['CT'' (-)'])
-        title(['Turbine ' num2str(j)])
-    end
-    legend('Unfiltered','Filtered')
-    
+   
     % Format inputs
     turbDataFields = fieldnames(turbData);
     for j = 1:NN
@@ -200,32 +209,23 @@ if ~isempty(turbDataRaw)
             inputData(j).t(:,1)        = turbData.time(j);
             inputData(j).phi(:,1)      = turbData.phi(j,:);
             inputData(j).CT_prime(:,1) = CT_prime(j,:);
-            inputData(j).CT_prime_unfiltered(:,1) = CT_prime_unf(j,:);
         end
     end
+    % Collect in a single struct
+    turb = struct(...
+        'inputs',inputData,...
+        'data',turbData,...
+        'rawData',turbDataRaw);
 end
 
-% Write properties for meshing
+% Write properties for the flow
 flow = struct(...
     'time',time,...
-    'xu',
-    'u',u,...
-    'v',v,...
-    
-meshingOut.gridType  = 'lin';
-meshingOut.Lx        = Wp.Lx;
-meshingOut.Ly        = Wp.Ly;
-meshingOut.Nx        = Wp.Nx;
-meshingOut.Ny        = Wp.Ny;
-meshingOut.Crx       = turbData.Crx;
-meshingOut.Cry       = turbData.Cry;
-meshingOut.h         = meshSetup.dt;
-meshingOut.L         = time(end);
-meshingOut.Drotor    = turbData.Drotor;
-meshingOut.turbInput = inputData;
-meshingOut.u_Inf     = u_Inf;
-meshingOut.v_Inf     = v_Inf;
-meshingOut.Rho       = meshSetup.rho;
-
+    'xu',targetMesh.X,...
+    'yu',targetMesh.Y,...
+    'u',u,...    
+    'xv',targetMesh.X,...
+    'yv',targetMesh.Y,...
+    'v',v);
 toc
 end

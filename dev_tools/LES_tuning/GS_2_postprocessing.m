@@ -57,6 +57,7 @@ clear i Wp X Y yTurbs threshold thresholdRel yTurbsUnique xCL yCL LESData
 disp('Starting file processing.')
 parpool(40)
 parfor j = 1:length(fileList)
+    tic
     loadedData = load(fileList{j});
     WpPar     = loadedData.WpPar;
     sol_array = loadedData.sol_array;
@@ -106,6 +107,7 @@ parfor j = 1:length(fileList)
     scoreOut(j).VAF_power   = powerVAF;
     scoreOut(j).mVAF_power  = mean(powerVAF);
     scoreOut(j).Wp          = WpPar;
+    toc
 end
 clear j 
 
