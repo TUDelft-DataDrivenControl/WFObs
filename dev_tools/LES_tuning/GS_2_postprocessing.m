@@ -2,9 +2,9 @@ clear all; close all; clc;
 addpath('../../WFSim/bin/core');
 addpath('../../bin_supplementary/offline_tools');
 
-sourceFolder = 'GS_out';
-outputFile = 'GS_postProcessed.mat';
-LESDataFile = '../../data_LES/LESData_sowfa_9turb_apc_alm_turbl.mat'; % Specify LES data file
+sourceFolder = 'GS_out_palm6turb';
+outputFile = 'GS_postProcessed_palm6turb.mat';
+LESDataFile = '../../data_LES/LESData_palm_6turb_adm_turbl.mat'; % Specify LES data file
 
 % List all files
 filesSource = dir(sourceFolder);
@@ -17,6 +17,7 @@ end
 clear i 
 
 % Post-processing
+disp('Setting up LES data...')
 load(fileList{1}); % Load first file to get WpPar/meshing
 Wp = meshing(WpPar,0,0);
 LESData = loadLESdata(LESDataFile); % Load pregenerated LES data
@@ -36,6 +37,7 @@ end
 clear WpPar sol_array i
 
 % Determine centerline locations
+disp('Setting up centerline calculations...')
 yTurbs = sort(Wp.turbine.Cry);
 threshold = 0.5*Wp.turbine.Drotor;
 thresholdRel = threshold/max(Wp.turbine.Cry);
@@ -52,6 +54,8 @@ flowInterpolant = griddedInterpolant(Wp.mesh.ldxx2,Wp.mesh.ldyy,zeros(size(Wp.me
 clear i Wp X Y yTurbs threshold thresholdRel yTurbsUnique xCL yCL LESData
 
 % Process each GS output file
+disp('Starting file processing.')
+parpool(40)
 parfor j = 1:length(fileList)
     loadedData = load(fileList{j});
     WpPar     = loadedData.WpPar;
@@ -67,7 +71,6 @@ parfor j = 1:length(fileList)
     for i = 1:length(sol_array)
         sol_array(i).PEst = sol_array(i).PEst * powerscaleOpt;
     end
-    clear i
     
     % Determine power error
     powerLES = [solTrue.P];
@@ -77,11 +80,11 @@ parfor j = 1:length(fileList)
     for i = 1:length(WpPar.turbine.Crx) % = number of turbines
         powerVAF(i) = vaf(powerLES(i,:),powerWFSim(i,:)); % var. accounted for (%)
     end
-    clear i
     
     % Determine centerline error
     [RMSE_clines,VAF_clines] = deal(zeros(length(sol_array),length(centerline)));
     for ii = 1:length(sol_array)
+        tmp = ii;
         flowInterpolantTmp = flowInterpolant;
         flowInterpolantTmp.Values = sol_array(ii).uEst;
         for ic = 1:length(centerline)
@@ -91,7 +94,6 @@ parfor j = 1:length(fileList)
             VAF_clines(ii,ic) = vaf(cline_LES,cline_WFSim);
         end
     end    
-    clear ii ic
     
     % Write to score output struct
     scoreOut(j).mRMSE_flow  = rms(flowError);
@@ -108,3 +110,4 @@ end
 clear j 
 
 save(outputFile,'scoreOut');
+disp('Finished.')
