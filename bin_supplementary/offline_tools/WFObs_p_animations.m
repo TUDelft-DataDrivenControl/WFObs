@@ -88,7 +88,7 @@ if (postProcOptions.Animate > 0) && (~rem(sol.k,postProcOptions.Animate))
             saveas(hFigs{1},[postProcOptions.savePath '/' strucObs.filtertype '_cplot' num2str(sol.k) '.png']);
         end      
         if postProcOptions.plotPower
-            saveas(hFigs{2},[scriptOptions.savePath '/' strucObs.filtertype '_power_ ' num2str(sol.k) '.png']);
+            saveas(hFigs{2},[postProcOptions.savePath '/' strucObs.filtertype '_power_ ' num2str(sol.k) '.png']);
         end
         if postProcOptions.plotError
             saveas(hFigs{3},[postProcOptions.savePath '/' strucObs.filtertype '_errorplot.png']);
