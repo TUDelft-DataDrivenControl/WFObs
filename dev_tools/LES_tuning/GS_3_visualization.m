@@ -1,6 +1,6 @@
 clear all; close all; clc;
 
-outputFile = 'W:\WFObs\dev_tools\LES_tuning/GS_postProcessed_9turb_APC.mat';
+outputFile = 'W:\WFObs\dev_tools\LES_tuning\GS_postProcessed_acc2019.mat';
 
 
 load(outputFile);
@@ -42,7 +42,7 @@ Wpt         = [Wp.turbine];
 FS          = [Wpt.forcescale];
 scorePlot1  = [scoreOut.mRMSE_cline];
 scorePlot2  = [scoreOut.mRMSE_flow];
-scorePlot3  = [scoreOut.mRMSE_power]*1e-6;
+scorePlot3  = [scoreOut.mmRMSE_power]*1e-6;
 scorePlot4  = [scoreOut.mVAF_cline];
 scorePlot5  = [scoreOut.mVAF_power];
 fs_array = unique(FS);
