@@ -59,7 +59,7 @@ if strucObs.U_Inf.estimate && sol.k > kSkip % Skip initialization period
 
     % Use upstream measured turbine powers to estimate U_infty
     if length(upstreamTurbinesMeasured) > 0
-        eta = 0.95; % Correction factor to correct for ADM/WFSim mismatch
+        eta = strucObs.U_Inf.pwrScaling; % Scaling factor [-]
         psc = Wp.turbine.powerscale; % Powerscale [-]
         Rho = Wp.site.Rho; % Air density [kg/m3]
         Ar  = 0.25*pi*Wp.turbine.Drotor^2; % Rotor swept area [m2]

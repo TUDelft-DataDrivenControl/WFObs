@@ -18,6 +18,7 @@ strucObs.loadRandomSeed = true;
 % Estimate freestream conditions
 strucObs.U_Inf.estimate  = false;  % Estimate freestream (inflow) u_Inf and v_Inf
 strucObs.U_Inf.intFactor = 0.99;  % LPF gain (1: do not change, 0: instant change)
+strucObs.U_Inf.pwrScaling = 0.95; % pwrScaling = P_meas/P_ADM, roughly. Scaling factor for difference between ADM and measurement data, including efficiency losses etc.
 
 %% Kalman filter settings
 % State estimation settings
