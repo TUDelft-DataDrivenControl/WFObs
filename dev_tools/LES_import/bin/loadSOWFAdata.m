@@ -15,12 +15,22 @@ end
 
 % Initialize flowDataRaw struct()
 NN = nnz(cell2mat(strfind(filesInFolder,'.vtk')));
-tmpString =regexp(filesInFolder{1},'/','split');
-vtkName = tmpString{end};
-vtkName = strrep(vtkName,'.vtk',''); % Remove the VTK part
+for j = 1:2
+    tmpString =regexp(filesInFolder{1},'/','split');
+    tmpString =regexp(tmpString{1},'\','split');
+    vtkNameTmp{j} = tmpString{end};
+end
+if strcmp(vtkNameTmp{1},vtkNameTmp{2}) % Identical names
+    tmpString =regexp(filesInFolder{1},'/','split');
+    tmpString =regexp(tmpString{1},'\','split');
+    vtkName = tmpString{end-1};
+else
+    vtkName = strrep(vtkNameTmp{1},'.vtk',''); % Remove the VTK part
+end
 vtkId = str2num(vtkName);
 dtFlow = rem(vtkId,1000);
-disp('Assuming the flow is sampled in steps of 5 seconds (based on VTK names.');
+disp(['Assuming the flow is sampled in steps of ' num2str(dtFlow) ' s (based on VTK names).']);
+
 flowDataRaw.time  = dtFlow*(1:NN'); % Usually sampled at 1 Hz
 flowDataRaw.zu_3d = unique(z);
 
@@ -46,8 +56,10 @@ catch
     
     if isfield(scriptOptions,'turbOutADM')
         disp('Found turbOutADM! If this is wrong, comment out ''scriptOptions.turbOutADM = ...'' in your configuration file.');
-        nacYaw = importADMR([scriptOptions.turbOutADM '/nacYaw']);
-        power =  importADMR([scriptOptions.turbOutADM '/powerGenerator']);
+        nacYaw = importADMR([scriptOptions.turbOutADM filesep ls([scriptOptions.turbOutADM filesep 'na*Yaw'])]);
+        power =  importADMR([scriptOptions.turbOutADM filesep ...
+                            [ls([scriptOptions.turbOutADM filesep 'generatorPower'])...
+                             ls([scriptOptions.turbOutADM filesep 'powerGenerator'])]]);
         turbDataOut.time = unique(nacYaw.Times);
         turbDataOut.time(isnan(turbDataOut.time)) = [];
         turbDataOut.time = turbDataOut.time-turbDataOut.time(1);

@@ -99,7 +99,7 @@ for k = 1:NN
     end
        
     % Produce figures
-    if ~rem(k,scriptOptions.plotFrequency) | k == 1
+    if ~rem(k,scriptOptions.plotFrequency) || k == 1
         set(0,'CurrentFigure',h2); clf
         subplot(1,2,1);
         trisurf(tri, flowData.yu, flowData.xu, flowData.uk); % vk_raw
